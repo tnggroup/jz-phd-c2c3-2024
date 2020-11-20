@@ -1,0 +1,548 @@
+---
+title: "GED MSc Research Project, Analysis Plan, Setup 2"
+author: "Johan Zvrskovec"
+date: "01/06/2020"
+output:
+  html_document:
+    fig_height: 7
+    fig_width: 7
+  pdf_document: default
+  word_document:
+    fig_height: 7
+    fig_width: 7
+---
+
+```{r clean, include=FALSE}
+rm(list = ls(all.names = TRUE)) #will clear all objects includes hidden objects.
+gc() #free up memrory and report the memory usage.
+```
+
+```{r settings}
+project<-c() #create project metadata object
+
+project$date.run<-Sys.Date()
+
+project$host<-"local" #this is the place where the code is run [local,cluster]
+
+#file path settings
+##set project shared working directory **change if you have other settings**
+if(project$host=="local") {
+project$folderpath<-normalizePath("~/King's College London/MT-Translational Neuropsychiatric Genomics - Johan_Zvrskovec_PhD - Johan_Zvrskovec_PhD/JZ_GED_RESEARCHPROJECT")
+} else if (project$host=="cluster") {
+project$folderpath<-normalizePath("/scratch/users/k19049801/project/JZ_GED_RESEARCHPROJECT")
+}
+##project working directory subfolders
+project$folderpath.working_directory<-normalizePath(paste0(project$folderpath,"/","working_directory"))
+project$folderpath.data<-normalizePath(paste0(project$folderpath,"/","data"))
+project$folderpath.data_raw<-normalizePath(paste0(project$folderpath,"/","data_raw"))
+project$folderpath.scripts<-normalizePath(paste0(project$folderpath,"/","scripts"))
+
+##munged datasets folder
+if(project$host=="local") {
+  project$mungedpath<-normalizePath("~/Documents/local_db/JZ_GED_RESEARCHPROJECT/data/munged_noMHC")
+} else if (project$host=="cluster") {
+  project$mungedpath<-normalizePath("/mnt/lustre/groups/ukbiobank/sumstats/munged_noMHC")
+}
+
+##LD scores datasets folders (these strings need to have a trailing slash for the GSEM LDSC to work)
+project$mvLDSCpath.ld <- paste0(project$folderpath.data_raw,"/eur_w_ld_chr/") #LD-scores
+project$mvLDSCpath.wld <- paste0(project$folderpath.data_raw,"/eur_w_ld_chr/") #Weights, if different from LD-scores
+
+#The vector of selected summary dataset codes to process for use in the GSEM modelling
+project$code.sel<-c("DEPR05","ANXI03","NEUR01","TIRE01","SUBJ01","ALCD03","HEAL01")
+
+setwd(dir = normalizePath(project$folderpath.working_directory))
+
+```
+
+```{r knitr setup, include=FALSE, purl=FALSE}
+knitr::opts_chunk$set(echo = TRUE,comment=NA,prompt=FALSE,cache=FALSE)
+knitr::opts_knit$set(root.dir=normalizePath(project$folderpath.working_directory))
+
+```
+
+```{r purl export, include=FALSE, purl=FALSE}
+#knitr::purl("analysis_plan_setup2_20200601.Rmd")
+  
+```
+
+```{r setup, echo=FALSE, warning=F}
+getwd() #print wd
+
+#package setup
+#require(parameters) #not compatible with Genomic SEM models?
+
+#remove.packages("GenomicSEM")
+#devtools::install_github("MichelNivard/GenomicSEM",ref = 'v2.1') #specify branch for better stability
+#devtools::install_github("MichelNivard/GenomicSEM") #master branch as default
+require(GenomicSEM)
+require(skimr)
+require(psych)
+
+
+
+
+```
+
+
+# Project timeline
+Optimally finished by the end of June. Will probably not be possible considering the current situation, and I might need a time extension. 
+
+# Background
+## Prerequisites
+Based on earlier discussion the research project will use the method Genomic SEM (Grotzinger et al. 2019) on primarily summary statistic type data. The project might also involve or prepare for future work on visualization of collected data in the GLAD project and attempts to improve performance of existing Genomic SEM program workflows.
+
+An example of the application of Genomic SEM is the paper by Allegrini and colleagues (Allegrini et al. 2019).
+
+A newer example is the recent preprint by Thorp et al. 2020: https://www.medrxiv.org/content/10.1101/2020.04.08.20057653v1
+
+The project should follow the TNG SOP on project folder structure etc as much as possible:
+https://docs.google.com/document/d/1uLwjQVmlqpNHSPMV1sukYiJ6Jsxh2iw7kOCNSoZFd5E/edit
+
+## Project variations and ideas
+MTAG is another method; a subtype of Genomic SEM that may be worth looking into.
+
+## Psychiatric Disorders
+```{r psychiatric disorder metadata}
+#,echo=FALSE
+project$psychiatricDisorder<-data.frame(
+  code=c("ANXI","DEPR","BIPO","ALCD"),
+  populationPrevalence=c(
+    .16, #Any type of anxiety disorder, Via https://doi.org/10.1038/s41380-019-0559-1 (2019), originally from https://doi.org/10.1017/S1121189X00001421 (2009)
+    .15, #MDD, from the LD-calculations in https://doi.org/10.1038/s41588-018-0090-3 (2018), but with a possible reference to https://doi.org/10.1146/annurev-publhealth-031912-114409 (2013) which states 11.1% lifetime prevalence of MDE.
+    .007, #mean of male and female global prevalence rate (2013) from https://doi.org/10.1111/bdi.12423 (2016)
+    .159 # European measurement from https://doi.org/10.1001/archpsyc.64.7.830 via https://doi.org/10.1038/s41593-018-0275-1 
+    ), 
+  reference_doi=c(
+    "https://doi.org/10.1017/S1121189X00001421",
+    "https://doi.org/10.1038/s41588-018-0090-3",
+    "https://doi.org/10.1111/bdi.12423",
+    "https://doi.org/10.1001/archpsyc.64.7.830"
+    ))
+
+project$psychiatricDisorder
+
+```
+
+# Main objectives
+1. Exploratory factor analysis (EFA) of genetic covariance matrices of anxiety, depression, bipolar disorder and possibly other datasets. Aim to find genetic latent factors for overall exogenous variables. Maybe add a factor for smoking or other addiction.
+2. Confirmatory factor analysis (CFA) to confirm factors from 1.
+3. Maybe genetic multivariable regression: correlations between unique anxiety/depression and trauma?
+4. Discovery GWAS of SNP-effects in the common factors models - synthetic GWAS. Find effects of SNP’s on latent factors from 1,2.
+5. Find specific, non-shared effects of SNP’s on latent factors from 1,2 (for each disorder, and for subtypes if possible).
+6. Explain or possibly explore further steps of pathway analysis of implied functional variants.
+
+# Datasets
+I will use GWAS summary statistics datasets from the TNG/UK Biobank GWAS repository. Below follows a list of datasets from the repository referenced in the project. The datasets have gone through a cleaning step which has to be documented here further.
+
+Datasets included in the current project setup have been selected to primarily include participants of European ancestry and corresponding European LD scores. To include datasets on individuals of other ancestry I would have to complete the analysis using LD scores corresponding to these ancestries as well.
+
+```{r dataset metadata, warning=F}
+#, echo=FALSE
+
+project$sumstats<-read.table(paste0(project$folderpath.data_raw,"/","ukbb_sumstats_download202005.csv"), header=T, quote="\"", sep = ",", fill=T, blank.lines.skip=T,as.is = c(2), strip.white = T)
+
+#rename and add columns
+names(project$sumstats)[names(project$sumstats)=="n_cases"]<-"n_case"
+names(project$sumstats)[names(project$sumstats)=="n_controls"]<-"n_control"
+project$sumstats$reference_doi<-c("")
+
+#add missing datasets and data
+project$sumstats[nrow(project$sumstats)+1,c("code","n_case","n_control","n_total","reference_doi")]=list(
+  code=c("DEPR05"),
+  n_case=16823,
+  n_control=25632,
+  n_total=42455,
+  reference_doi=c("https://doi.org/10.1038/s41588-018-0090-3")
+  )
+
+project$sumstats$gwas_name[which(project$sumstats$code=="DEPR05")]="Major depressive disorder (PGC2 29)"
+
+project$sumstats$reference_doi[which(project$sumstats$code=="HEAL01")]="https://doi.org/10.1093/ije/dyw219"
+
+##add a sample prevalence for all datasets
+project$sumstats$sample_prevalence<-project$sumstats$n_case/project$sumstats$n_total
+
+skim(project$sumstats)
+
+
+project$sumstats.sel<-project$sumstats[which(project$sumstats$code %in% project$code.sel),]
+
+
+project$sumstats.sel[,c("code","n_total","pmid","reference_doi","sample_prevalence")]
+
+#save the project data
+saveRDS(project,file = paste0(project$folderpath.working_directory,"/","project.SETUP2.Rds"))
+
+```
+
+# Project Steps
+
+## Munge and split of summary statistics
+This is a step where the original cleaned summary statistics are converted into a file format that is suitable for the LDSC procedure later - munged. There are already previously munged data available on the Rosalind cluster as part of an internal UKBB summary statistics pipeline. The path to the munged datasets is specified by the mungedpath-folder setting. Variants belonging in the MHC-region have been removed before munging.
+
+```{r prepare data for analysis}
+
+#source("../scripts/prepare_data_for_analysis.R")
+
+#munged data is here
+project$mungedpath
+
+```
+
+## Multivariate LDSC
+The multivariate LDSC procedure calculates genetic correlations between the different traits and estimates of correlation standard errors, producing S (variances and covariances = heritabilities and coheritabilities) and V (diagonal: squared standard errors of elements in S. Off-diagonal: Covariances of elements in S - "dependencies between estimation errors used to model dependencies due to sample overlap") matrices used later in the Genomic SEM model fitting.
+
+```{r multivariate LDSC}
+
+if (file.exists(paste0(project$folderpath.working_directory,"/","mvLDSC.SETUP2.Rds"))) {
+  mvLDSC<-readRDS(file=paste0(project$folderpath.working_directory,"/","mvLDSC.SETUP2.Rds"))
+} else {
+  print("Running multivariate LDSC. This might take a while.")
+  mvLDSC<-c()
+  mvLDSC$trait<-c()
+  mvLDSC$populationPrevalence<-c()
+  mvLDSC$trait.name<-c()
+  #could probably use regex here somehow:
+  #grep(pattern = "ALCD",x = project$sumstats.sel$code,perl = T, value = F)
+  for(cCode in project$sumstats.sel$code) {
+    mvLDSC$trait<-c(mvLDSC$trait,paste0(project$mungedpath,"/",cCode,"_noMHC.sumstats.gz"))
+    
+    popPrevToAdd<-NA_real_
+    
+    if(cCode %in% c("ALCD01","ALCD03")) {
+      popPrevToAdd=project$psychiatricDisorder$populationPrevalence[which(project$psychiatricDisorder$code=="ALCD")]
+    } else if (cCode %in% c("ANXI03","ANXI09")) {
+      popPrevToAdd=project$psychiatricDisorder$populationPrevalence[which(project$psychiatricDisorder$code=="ANXI")]
+    } else if (cCode %in% c("DEPR05","DEPR09")) {
+      popPrevToAdd=project$psychiatricDisorder$populationPrevalence[which(project$psychiatricDisorder$code=="DEPR")]
+    }
+    
+    mvLDSC$populationPrevalence<-c(mvLDSC$populationPrevalence,popPrevToAdd)
+  }
+  
+  
+  project$sumstats.sel[,c("code","sample_prevalence")]
+  mvLDSC$trait
+  mvLDSC$populationPrevalence
+  
+  #run multivariable LDSC
+  mvLDSC$output<-ldsc(mvLDSC$trait, project$sumstats.sel$sample_prevalence, mvLDSC$populationPrevalence, project$mvLDSCpath.ld, project$mvLDSCpath.wld, project$sumstats.sel$code,ldsc.log = "SETUP2")
+  #View(mvLDSC$output$V)
+  #View(mvLDSC$output$S)
+  #View(mvLDSC$output$I)
+  #View(mvLDSC$output$N)
+  
+  #prouce the standard errors of S (variances and covariances) from the diagonal of V (contains both).
+  mvLDSC$output$S.k<-nrow(mvLDSC$output$S)
+  mvLDSC$output$S.SE<-matrix(0, mvLDSC$output$S.k, mvLDSC$output$S.k)
+  mvLDSC$output$S.SE[lower.tri(mvLDSC$output$S.SE,diag=TRUE)] <-sqrt(diag(mvLDSC$output$V))
+  
+  #save the LDSC output
+  saveRDS(object = mvLDSC,file = paste0(project$folderpath.working_directory,"/","mvLDSC.SETUP2.Rds"))
+  print("LDSC is done now and the result should have been saved into a file.")
+  
+  
+}
+
+```
+
+## Exploratory Factor Analysis
+EFA using the stats package using both orthogonal and oblique rotations with 3 factors. 4 factors are too many for 7 variables.
+
+In the case of orthogonal rotation the squared factor loadings represent the amount of explained variance. SS (sum of squares) loadings are the sum of these squared loadings and represents the amount of explained variance per factor.
+
+```{r EFA}
+#mvLDSC$output$V
+mvLDSC$output$S
+mvLDSC$output$I
+mvLDSC$output$N
+mvLDSC$output$m
+
+require(Matrix)
+mvLDSC$output$S.smooth<-as.matrix((nearPD(mvLDSC$output$S, corr = FALSE))$mat)
+
+require(stats)
+print("Orthogonal rotation - varimax")
+EFA.SETUP2<-factanal(
+  covmat = mvLDSC$output$S.smooth,
+  n.obs = max(mvLDSC$output$N),
+  factors = 3,
+  rotation = "varimax"
+  )
+
+#print the loadings for each factor
+print(EFA.SETUP2$loadings, cutoff = 0.10)
+
+print("Oblique rotation - promax")
+EFA.SETUP2<-factanal(
+  covmat = mvLDSC$output$S.smooth,
+  n.obs = max(mvLDSC$output$N),
+  factors = 3,
+  rotation = "promax"
+  )
+
+#print the loadings for each factor
+print(EFA.SETUP2$loadings, cutoff = 0.10)
+
+
+```
+```{r old EFA, include=FALSE}
+#EFA using the psych package - did not work for some reason
+#EFA.SETUP2<- psych::fa(
+#  r = mvLDSC$output$S.smooth,
+#  covar = T, #using a covariance matrix rather that a correlation matrix
+#  nfactors = 3, #number of factors
+#  n.obs = max(mvLDSC$output$N), #number of observations, required for correlation matrixes
+#  n.iter = 1000, #Number of bootstrap interations to do in fa
+#  rotate = "oblimin", #rotation, oblimin allows the factors to be correlated
+#  fm = "ml", #for normal data - "ml" (maximum likelihood) is preferred, if you have skewed ordinal data, "wls" (weighted least squares) is preferred
+#  scores = TRUE
+#  )
+#EFA.SETUP2
+
+#print the loadings for each factor
+#print(EFA.SETUP2$loadings, cutoff = 0.01)
+
+#u2 is uniqueness - unique variance
+#h2 is communality - common variance 
+
+```
+
+
+
+## Confirmatory Factor Analysis
+Here are models exploring situations where the ANXI loading on the anxiety factor is preferably fixed to 1 and where the loadings generally are reflecting the results from the EFA.
+
+### Model MDefSETUP2_shared1
+This 3 latent factor model replicates the oblique EFA result with a loading cutoff of 0.25.
+```{r CFA MDefSETUP2_shared1}
+ 
+MDefSETUP2_shared1<- '
+F1 =~ DEPR05 + NEUR01 + SUBJ01
+F2 =~ ALCD03 + HEAL01 + TIRE01
+F3 =~ ANXI03 + NEUR01
+
+F1~~1*F1
+F2~~1*F2
+F3~~1*F3
+
+F1~~F2
+F1~~F3
+F2~~F3
+'
+MResSETUP2_shared1<-usermodel(covstruc = mvLDSC$output, estimation = "ML", model = MDefSETUP2_shared1)
+MResSETUP2_shared1$modelfit
+MResSETUP2_shared1$results
+
+```
+### Model MDefSETUP2_shared1p
+This 3 latent factor model replicates the oblique EFA result with a loading cutoff of 0.2. Does not converge.
+```{r CFA MDefSETUP2_shared1p}
+ 
+MDefSETUP2_shared1p<- '
+F1 =~ NA*DEPR05 + NEUR01 + SUBJ01
+F2 =~ NA*ALCD03 + HEAL01 + TIRE01
+F3 =~ NA*ANXI03 + ALCD03 + NEUR01 + SUBJ01 + TIRE01 + DEPR05
+
+F1~~1*F1
+F2~~1*F2
+F3~~1*F3
+
+F1~~F2
+F1~~F3
+F2~~F3
+'
+MResSETUP2_shared1p<-usermodel(covstruc = mvLDSC$output, estimation = "ML", model = MDefSETUP2_shared1p)
+MResSETUP2_shared1p$modelfit
+MResSETUP2_shared1p$results
+
+```
+
+### Model MDefSETUP2_shared2
+This 3 latent factor model replicates the orthogonal EFA result with a loading cutoff of 0.4. Relatively good fit**.
+```{r CFA MDefSETUP2_shared2}
+ 
+MDefSETUP2_shared2<- '
+F1 =~ NA*DEPR05 + ANXI03 + NEUR01 + SUBJ01
+F2 =~ NA*ALCD03 + HEAL01 + TIRE01
+F3 =~ ANXI03 + NEUR01 + DEPR05
+
+F1~~1*F1
+F2~~1*F2
+F3~~1*F3
+
+F1~~F2
+F1~~F3
+F2~~F3
+'
+MResSETUP2_shared2<-usermodel(covstruc = mvLDSC$output, estimation = "ML", model = MDefSETUP2_shared2)
+MResSETUP2_shared2$modelfit
+MResSETUP2_shared2$results
+
+```
+### Model MDefSETUP2_shared3
+This 3 latent factor model replicates the EFA results by choosing the highest loading variabls considering both EFA results - any loading from EFA orthogonal cutoff 0.4 or EFA oblique cutoff 0.2. Great fit!***.
+```{r CFA MDefSETUP2_shared3}
+MDefSETUP2_shared3<- '
+F1 =~ NA*DEPR05 + ANXI03 + NEUR01 + SUBJ01
+F2 =~ NA*ALCD03 + HEAL01 + TIRE01
+F3 =~ ANXI03 + ALCD03 + NEUR01 + SUBJ01 + TIRE01 + DEPR05
+
+F1~~1*F1
+F2~~1*F2
+F3~~1*F3
+
+F1~~F2
+F1~~F3
+F2~~F3
+'
+MRefSETUP2_shared3<-usermodel(covstruc = mvLDSC$output, estimation = "ML", model = MDefSETUP2_shared3)
+MRefSETUP2_shared3$modelfit
+MRefSETUP2_shared3$results
+
+```
+
+
+## Old Confirmatory Factor Analysis
+Below are different old models that I investigated based on previous EFA results using one latenf factor with ANXI alone loading onto it - which was not what we wanted since it does not capture ANXI from other variables.
+
+### Model MDefSETUP2_1l
+This model tries to capture 3 latent factors directly based on the EFA loadings (but keeping one factor with only ANXI loading on top of it) - does not converge.
+```{r CFA MDefSETUP2_1l}
+ 
+MDefSETUP2_1l<- '
+F1 =~ NA*ANXI03
+F2 =~ NA*DEPR05 + NEUR01 + ANXI03 + SUBJ01
+F3 =~ NA*ALCD03 + NEUR01 + HEAL01 + TIRE01
+
+F1~~1*F1
+F2~~1*F2
+F3~~1*F3
+
+F1~~F2
+F1~~F3
+F2~~F3
+'
+MResSETUP2_1l<-usermodel(covstruc = mvLDSC$output, estimation = "ML", model = MDefSETUP2_1l)
+MResSETUP2_1l$modelfit
+MResSETUP2_1l$results
+
+```
+
+### Model MDefSETUP2_layered1
+1 latent ANXI factor regressed on DEPR + NEUR + ALCD. SUBJ + TIRE + HEAL are regressed on the latent ANXI factor.
+```{r CFA MDefSETUP2_layered1}
+
+MDefSETUP2_layered1<- '
+F1 =~ NA*ANXI03
+F1 ~ NA*DEPR05 + NEUR01 + ALCD03
+SUBJ01 + TIRE01 + HEAL01 ~ NA*F1
+
+F1~~1*F1
+
+'
+MResSETUP2_layered1<-usermodel(covstruc = mvLDSC$output, estimation = "ML", model = MDefSETUP2_layered1)
+MResSETUP2_layered1$modelfit
+MResSETUP2_layered1$results
+```
+
+### Model MDefSETUP2_layered2
+2 latent ANXI/(DEPR + NEUR + ALCD) factors. SUBJ + TIRE + HEAL are regressed on the latent ANXI factor. Mediocre fit? **
+```{r CFA MDefSETUP2_layered2}
+#chisq    df      p_chisq     AIC       CFI         SRMR
+#121.4356 12    3.196205e-20  153.4356  0.9426882   0.094998
+
+MDefSETUP2_layered2<- '
+F1 =~ NA*ANXI03
+F2 =~ NA*ANXI03 + DEPR05 + NEUR01 + ALCD03
+SUBJ01 + TIRE01 + HEAL01 ~ NA*F1
+
+F1~~1*F1
+F2~~1*F2
+
+F1~~F2
+
+'
+MResSETUP2_layered2<-usermodel(covstruc = mvLDSC$output, estimation = "ML", model = MDefSETUP2_layered2)
+MResSETUP2_layered2$modelfit
+MResSETUP2_layered2$results
+```
+
+### Model MDefSETUP2_layered3
+3 latent factors = ANXI, DEPR/ANXI, ALCD. SUBJ regressed on DEPR/ANXI factor. TIRE + HEAL regressed on the ANXI + ALCD factors. Good fit!***
+```{r CFA MDefSETUP2_layered3}
+#3 latent factors = ANXI, DEPR/ANXI, ALCD. SUBJ regressed on DEPR/ANXI factor. TIRE + HEAL regressed on the ANXI + ALCD factors. Good fit!***
+#     chisq       df    p_chisq     AIC       CFI         SRMR
+#     7.968532    7     0.3353769   49.96853  0.9994928   0.02870422
+MDefSETUP2_layered3<- '
+F1 =~ NA*ANXI03
+F2 =~ NA*DEPR05 + NEUR01 + ANXI03
+F3 =~ NA*ALCD03 + NEUR01
+
+SUBJ01 ~ NA*F2
+TIRE01 + HEAL01 ~ NA*F1 + F3
+
+F1~~1*F1
+F2~~1*F2
+F3~~1*F3
+
+F1~~F2
+F1~~F3
+F2~~F3
+
+'
+MResSETUP2_layered3<-usermodel(covstruc = mvLDSC$output, estimation = "ML", model = MDefSETUP2_layered3)
+MResSETUP2_layered3$modelfit
+MResSETUP2_layered3$results
+```
+
+### Model MDefSETUP2_layered3p
+Variant of MDefSETUP2_layered3 with ANXI03 removed from the second factor. 3 latent factors = ANXI, DEPR, ALCD. SUBJ regressed on DEPR factor. TIRE + HEAL regressed on the ANXI + ALCD factors. Does not converge.
+```{r CFA MDefSETUP2_layered3p}
+MDefSETUP2_layered3p<- '
+F1 =~ NA*ANXI03
+F2 =~ NA*DEPR05 + NEUR01
+F3 =~ NA*ALCD03 + NEUR01
+
+SUBJ01 ~ NA*F2
+TIRE01 + HEAL01 ~ NA*F1 + F3
+
+F1~~1*F1
+F2~~1*F2
+F3~~1*F3
+
+F1~~F2
+F1~~F3
+F2~~F3
+
+'
+MResSETUP2_layered3p<-usermodel(covstruc = mvLDSC$output, estimation = "ML", model = MDefSETUP2_layered3p)
+MResSETUP2_layered3p$modelfit
+MResSETUP2_layered3p$results
+```
+
+
+### Model MDefSETUP2_layered4
+3 latent factors = ANXI, DEPR/ANXI, ALCD  , not including the regression on SUBJ01, TIRE01, and HEAL01 - does not converge
+```{r CFA MDefSETUP2_layered4}
+
+MDefSETUP2_layered4<- '
+F1 =~ NA*ANXI03
+F2 =~ NA*DEPR05 + NEUR01 + ANXI03
+F3 =~ NA*ALCD03 + NEUR01
+
+F1~~1*F1
+F2~~1*F2
+F3~~1*F3
+
+F1~~F2
+F1~~F3
+F2~~F3
+
+'
+MResSETUP2_layered4<-usermodel(covstruc = mvLDSC$output, estimation = "ML", model = MDefSETUP2_layered4)
+MResSETUP2_layered4$modelfit
+MResSETUP2_layered4$results
+```
+

@@ -1,0 +1,238 @@
+---
+title: "setup2 preparations"
+author: "Johan Zvrskovec"
+date: "25/05/2020"
+output:
+  html_document:
+    fig_width: 7
+    fig_height: 7
+  word_document: 
+    fig_width: 7
+    fig_height: 7
+
+---
+
+```{r knitr setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,comment=NA,prompt=FALSE,cache=FALSE)
+#set project shared working directory *change if you have other settings*
+knitr::opts_knit$set(root.dir=normalizePath("~/King's College London/MT-Translational Neuropsychiatric Genomics - Johan_Zvrskovec_PhD - Johan_Zvrskovec_PhD/JZ_GED_RESEARCHPROJECT/working_directory"))
+```
+
+```{r clean and setup packages, include=FALSE}
+rm(list = ls(all.names = TRUE)) #will clear all objects includes hidden objects.
+gc() #free up memrory and report the memory usage.
+
+require(ggplot2)
+library(ggrepel)
+require(skimr)
+require(tidyverse)
+
+
+```
+
+```{r read data}
+ANXI03.rg<-read.table("~/King's College London/MT-Translational Neuropsychiatric Genomics - Johan_Zvrskovec_PhD - Johan_Zvrskovec_PhD/JZ_GED_RESEARCHPROJECT/data/ANXI03_gc.txt", header=T, quote="", sep = "")
+
+skim(ANXI03.rg)
+
+ANXI03.rg_new <- ANXI03.rg %>%
+extract(col = p2, into = "code", regex = "_noMHC/(.*)_noMHC.sumstats.", remove = F, )
+
+ANXI03.rg.overview <- ANXI03.rg_new[which(ANXI03.rg_new$p<.00001),]
+
+```
+
+```{r plot data, fig.width=9, fig.height=6, out.width="1000px", out.height="1000px"}
+
+ggplot(data = ANXI03.rg_new, mapping = 
+         aes(x = seq_along(rg),
+             y = rg)) +
+         geom_point(aes(colour=log10(p))) +
+  
+  #geom_text(aes(label=ifelse(rg>.10 | rg<(-.10),as.character(code),'')),hjust=0,vjust=0) +
+  geom_text_repel(aes(label=ifelse(rg>.12 | rg<(-.06),as.character(code),'')),
+                  box.padding   = 0.1, 
+                  point.padding = 0.1,
+                  segment.color = 'grey50',
+                  size = 2,
+                  segment.size = 0.2,
+                  segment.alpha = 0.7
+                  ) +
+  
+  scale_color_gradientn(colours = c("#F98123","#EEEEEE")) +
+  
+  geom_hline(
+    yintercept = mean(ANXI03.rg_new$rg, na.rm = T),
+    color = "red") +
+  
+  geom_hline(
+    yintercept = median(ANXI03.rg_new$rg, na.rm = T),
+    color = "blue") +
+  
+  geom_hline(
+    yintercept = mean(ANXI03.rg_new$rg, na.rm = T) - sd(ANXI03.rg_new$rg, na.rm = T),
+    color = "purple") +
+  
+  geom_hline(
+    yintercept = mean(ANXI03.rg_new$rg, na.rm = T) + sd(ANXI03.rg_new$rg, na.rm = T),
+    color = "purple") +
+  
+  labs(y = "rG",
+       x = "Sequence of datasets",
+       title = "Genetic correlations of traits in the UK Biobank Sumstat repository with ANXI03") +
+  
+  theme_bw()
+
+ggplot(data = ANXI03.rg_new, mapping = 
+         aes(x = se,
+             y = rg)) +
+         geom_point(aes(colour=log10(p))) +
+  
+  geom_text_repel(aes(label=ifelse(rg>.15 | rg<(-.15),as.character(code),'')),
+                  box.padding   = 0.1, 
+                  point.padding = 0.1,
+                  segment.color = 'grey50',
+                  size = 2,
+                  segment.size = 0.2,
+                  segment.alpha = 0.7
+                  ) +
+  
+  scale_color_gradientn(colours = c("#F98123","#EEEEEE")) +
+  
+  labs(y = "rG",
+       x = "se",
+       title = "Genetic correlations of traits in the UK Biobank Sumstat repository with ANXI03") +
+  
+  theme_bw()
+
+ggplot(data = ANXI03.rg.overview, mapping = 
+         aes(x = seq_along(rg),
+             y = rg)) +
+         geom_point(aes(colour=log10(p))) +
+  
+  #geom_text(aes(label=ifelse(rg>.10 | rg<(-.10),as.character(code),'')),hjust=0,vjust=0) +
+  geom_text_repel(aes(label=ifelse(rg>.12 | rg<(-.06),as.character(code),'')),
+                  box.padding   = 0.1, 
+                  point.padding = 0.1,
+                  segment.color = 'grey50',
+                  size = 2,
+                  segment.size = 0.2,
+                  segment.alpha = 0.7
+                  ) +
+  
+  scale_color_gradientn(colours = c("#F98123","#EEEEEE")) +
+  
+  geom_hline(
+    yintercept = mean(ANXI03.rg.overview$rg, na.rm = T),
+    color = "red") +
+  
+  geom_hline(
+    yintercept = median(ANXI03.rg.overview$rg, na.rm = T),
+    color = "blue") +
+  
+  geom_hline(
+    yintercept = mean(ANXI03.rg.overview$rg, na.rm = T) - sd(ANXI03.rg.overview$rg, na.rm = T),
+    color = "purple") +
+  
+  geom_hline(
+    yintercept = mean(ANXI03.rg.overview$rg, na.rm = T) + sd(ANXI03.rg.overview$rg, na.rm = T),
+    color = "purple") +
+  
+  labs(y = "rG",
+       x = "Sequence of datasets",
+       title = "Genetic correlations of traits in the UK Biobank Sumstat repository with ANXI03 (p<.00001)") +
+  
+  theme_bw()
+
+ggplot(data = ANXI03.rg.overview, mapping = 
+         aes(x = h2_obs,
+             y = rg)) +
+         geom_point(aes(colour=log10(p))) +
+  
+  geom_text_repel(aes(label=ifelse(rg>.15 | rg<(-.15),as.character(code),'')),
+                  box.padding   = 0.1, 
+                  point.padding = 0.1,
+                  segment.color = 'grey50',
+                  size = 2,
+                  segment.size = 0.2,
+                  segment.alpha = 0.7
+                  ) +
+  
+  scale_color_gradientn(colours = c("#F98123","#EEEEEE")) +
+  
+  geom_hline(
+    yintercept = mean(ANXI03.rg.overview$rg, na.rm = T),
+    color = "red") +
+  
+  geom_hline(
+    yintercept = median(ANXI03.rg.overview$rg, na.rm = T),
+    color = "blue") +
+  
+  geom_hline(
+    yintercept = mean(ANXI03.rg.overview$rg, na.rm = T) - sd(ANXI03.rg.overview$rg, na.rm = T),
+    color = "purple") +
+  
+  geom_hline(
+    yintercept = mean(ANXI03.rg.overview$rg, na.rm = T) + sd(ANXI03.rg.overview$rg, na.rm = T),
+    color = "purple") +
+  
+  labs(y = "rG",
+       x = "h2_obs",
+       title = "Genetic correlations of traits in the UK Biobank Sumstat repository with ANXI03 (p<.00001)") +
+  
+  theme_bw()
+
+```
+
+```{r filter out prospective datasets, fig.width=9, fig.height=6, out.width="1000px", out.height="1000px"}
+
+ANXI03.rg.setup2 <- ANXI03.rg_new[which(abs(ANXI03.rg_new$rg)>0.4 & ANXI03.rg_new$p<.00001),]
+
+ggplot(data = ANXI03.rg.setup2, mapping = 
+         aes(x = se,
+             y = abs(rg))) +
+         geom_point(aes(colour=rg),
+                    size=4) +
+  
+  geom_label_repel(aes(label=ifelse(rg>.15 | rg<(-.15),as.character(code),'')),
+                  box.padding   = 0.3, 
+                  point.padding = 0.2,
+                  segment.color = 'grey50',
+                  size = 5,
+                  segment.size = 0.2,
+                  segment.alpha = 0.7
+                  ) +
+  
+  scale_color_gradientn(colours = c("#3333FF","#F98123")) +
+  
+  labs(y = "|rG|",
+       x = "rG se",
+       title = "|rG| of traits in the UK Biobank Sumstat repository with ANXI03 (|rG| > .4, p<.00001)") +
+  
+  theme_bw()
+
+ggplot(data = ANXI03.rg.setup2, mapping = 
+         aes(x = h2_obs,
+             y = abs(rg))) +
+         geom_point(aes(colour=rg),
+                    size=4) +
+  
+  geom_label_repel(aes(label=as.character(code)),
+                  box.padding   = 0.3, 
+                  point.padding = 0.2,
+                  segment.color = 'grey50',
+                  size = 5,
+                  segment.size = 0.2,
+                  segment.alpha = 0.7
+                  ) +
+  
+  scale_color_gradientn(colours = c("#3333FF","#F98123")) +
+  
+  labs(y = "|rG|",
+       x = "h2_obs",
+       title = "|rG| of traits in the UK Biobank Sumstat repository with ANXI03 (|rG| > .4, p<.00001)") +
+  
+  theme_bw()
+
+
+```
