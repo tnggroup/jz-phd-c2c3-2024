@@ -30,7 +30,7 @@ project$setup.code.date<-paste0(project$setup.code,"_",project$date.run)
 project$filename.rmd<-paste0(project$setup.code,".Rmd")
 project$filename.r<-paste0(project$setup.code,".R")
 
-project$host<-"local" #this is the place where the code is run [local,cluster]
+project$host<-"cluster" #this is the place where the code is run [local,cluster]
 project$seting.refreshPrepareSummaryStatistics<-FALSE
 project$setting.refreshLatentFactorGWAS<-FALSE
 
@@ -43,21 +43,28 @@ project$folderpath<-normalizePath("/scratch/users/k19049801/project/JZ_GED_PHD_C
 }
 ##project working directory subfolders
 project$folderpath.workingDirectory<-normalizePath(paste0(project$folderpath,"/","workingDirectory"))
-project$folderpath.data<-normalizePath(paste0(project$folderpath,"/","data"))
+
 project$folderpath.scripts<-normalizePath(paste0(project$folderpath,"/","scripts"))
-project$folderpath.include<-normalizePath(paste0(project$folderpath,"/","include"))
+#project$folderpath.include<-normalizePath(paste0(project$folderpath,"/","include"))
 project$folderpath.plots<-normalizePath(paste0(project$folderpath,"/","plots"))
 
-##cleaned datasets folder
+#general data folder
 if(project$host=="local") {
-  project$folderpath.data.sumstats.cleaned<-normalizePath("~/Documents/local_db/JZ_GED_PHD_C1/data.sumstats.cleaned")
+  project$folderpath.data<-normalizePath("~/Documents/local_db/JZ_GED_PHD_C1/data")
+} else if (project$host=="cluster") {
+  project$folderpath.data<-normalizePath(paste0(project$folderpath,"/","data"))
+}
+
+##cleaned sumstats folder
+if(project$host=="local") {
+  project$folderpath.data.sumstats.cleaned<-normalizePath("~/Documents/local_db/JZ_GED_PHD/data.sumstats.cleaned")
 } else if (project$host=="cluster") {
   project$folderpath.data.sumstats.cleaned<-normalizePath("/mnt/lustre/groups/ukbiobank/sumstats/cleaned")
 }
 
-##munged datasets folder
+##munged sumstats folder
 if(project$host=="local") {
-  project$folderpath.data.sumstats.munged<-normalizePath("~/Documents/local_db/JZ_GED_PHD_C1/data.sumstats.mungedNoMHC")
+  project$folderpath.data.sumstats.munged<-normalizePath("~/Documents/local_db/JZ_GED_PHD/data.sumstats.mungedNoMHC")
 } else if (project$host=="cluster") {
   project$folderpath.data.sumstats.munged<-normalizePath("/mnt/lustre/groups/ukbiobank/sumstats/munged_noMHC")
 }
@@ -65,6 +72,9 @@ if(project$host=="local") {
 ##LD scores datasets folders (these strings need to have a trailing slash for the GSEM LDSC to work)
 project$folderpath.data.mvLDSC.ld <- paste0(project$folderpath.data,"/eur_w_ld_chr/") #LD-scores
 project$folderpath.data.mvLDSC.wld <- paste0(project$folderpath.data,"/eur_w_ld_chr/") #Weights, if different from LD-scores
+
+##HLD reference panel
+project$folderpath.data.HLD.ld<-paste0(project$folderpath.data,"/UKB_imputed_hm3_SVD_eigen99_extraction/")
 
 ##Reference file for calculating SNP variance across traits. Used in the preparation step for performing latent factor GWAS.
 project$filepath.genomeReference<-normalizePath(paste0(project$folderpath.data,"/","reference.1000G.maf.0.005.txt")) #1000 genomes phase 3
@@ -112,7 +122,6 @@ getwd() #print wd
 #install.packages("skimr")
 #install.packages("psych")
 #install.packages("Matrix")
-#install.packages("stats")
 #install.packages("tidyverse")
 #install.packages("ggrepel")
 #install.packages("gt")
@@ -123,15 +132,223 @@ library(GenomicSEM)
 library(skimr)
 library(psych)
 library(Matrix)
-library(stats)
 
 library(tidyverse)
-library(ggrepel)
-library(DiagrammeR)
-library(gt)
-library(kableExtra)
-library(corrplot)
+#library(ggrepel)
+#library(gt)
+#library(kableExtra)
+#library(corrplot)
 
 #source(normalizePath(paste0(project$folderpath.scripts,"/","gsem.usermodel.mod.R")))
+
+```
+
+# Trait setup
+```{r trait setup}
+#,echo=FALSE
+project$trait<-data.frame(
+  code=c("ANXI","DEPR","BIPO","ALCD"),
+  populationPrevalence=c(
+    .16, #Any type of anxiety disorder, Via https://doi.org/10.1038/s41380-019-0559-1 (2019), originally from https://doi.org/10.1017/S1121189X00001421 (2009)
+    .15, #MDD, from the LD-calculations in https://doi.org/10.1038/s41588-018-0090-3 (2018), but with a possible reference to https://doi.org/10.1146/annurev-publhealth-031912-114409 (2013) which states 11.1% lifetime prevalence of MDE.
+    .007, #mean of male and female global prevalence rate (2013) from https://doi.org/10.1111/bdi.12423 (2016)
+    .159 # European measurement from https://doi.org/10.1001/archpsyc.64.7.830 via https://doi.org/10.1038/s41593-018-0275-1 (how was this calculated though?)
+    ), 
+  referenceDOI=c(
+    "https://doi.org/10.1017/S1121189X00001421",
+    "https://doi.org/10.1038/s41588-018-0090-3",
+    "https://doi.org/10.1111/bdi.12423",
+    "https://doi.org/10.1001/archpsyc.64.7.830"
+    ))
+
+project$trait
+
+```
+# GWAS summary statistics dataset setup
+```{r GWAS sumstat dataset setup}
+#, echo=FALSE
+
+project$sumstats<-read.table(paste0(project$folderpath.data,"/","ukbb_sumstats_download202005.csv"), header=T, quote="\"", sep = ",", fill=T, blank.lines.skip=T,as.is = c(2), strip.white = T)
+
+
+#rename and add columns
+names(project$sumstats)[names(project$sumstats)=="n_cases"]<-"n_case"
+names(project$sumstats)[names(project$sumstats)=="n_controls"]<-"n_control"
+project$sumstats$gwas_name.nice<-NA_character_
+project$sumstats$code.trait<-NA_character_
+project$sumstats$reference_doi<-NA_character_
+project$sumstats$effect.logit<-as.logical(NA)
+project$sumstats$se.logit<-as.logical(NA)
+project$sumstats$dependent_variable.OLS<-as.logical(NA)
+project$sumstats$age.min<-NA_integer_
+project$sumstats$age.max<-NA_integer_
+project$sumstats$age.mean<-NA_real_
+project$sumstats$age.sd<-NA_real_
+
+#add missing datasets and data
+project$sumstats[nrow(project$sumstats)+1,c("code","n_case","n_control","n_total","reference_doi")]=list(
+  code=c("DEPR05"),
+  n_case=16823,
+  n_control=25632,
+  n_total=42455,
+  reference_doi=c("https://doi.org/10.1038/s41588-018-0090-3")
+  )
+
+#reformat columns
+project$sumstats$gwas_name<-as.character(project$sumstats$gwas_name)
+project$sumstats$gwas_name.nice<-project$sumstats$gwas_name
+
+##Add comprehensive names as in the Google sheet
+project$sumstats$gwas_name[which(project$sumstats$code=="DEPR05")]="Major depressive disorder (PGC2 29)"
+
+##Add nice trait names to be used in the report
+project$sumstats$gwas_name.nice[which(project$sumstats$code=="ALCD03")]="Alcohol dependence"
+project$sumstats$gwas_name.nice[which(project$sumstats$code=="ANXI03")]="Anxiety disorder"
+project$sumstats$gwas_name.nice[which(project$sumstats$code=="NEUR01")]="Neuroticism"
+project$sumstats$gwas_name.nice[which(project$sumstats$code=="SUBJ01")]="Subjective well-being"
+project$sumstats$gwas_name.nice[which(project$sumstats$code=="TIRE01")]="Self-reported tiredness"
+project$sumstats$gwas_name.nice[which(project$sumstats$code=="DEPR05")]="Major depressive disorder"
+
+
+##Add trait/disorder information
+project$sumstats <- project$sumstats %>%
+mutate(
+  code.trait=substr(x = code, start = 1, stop = 4)
+       ) %>%
+  left_join(project$trait[,c("code","populationPrevalence")], by = c("code.trait" = "code"))
+
+##Add sumstat file paths
+project$sumstats <- project$sumstats %>%
+mutate(
+  mungedpath=paste0(project$folderpath.data.sumstats.munged,"/",code,"_noMHC.sumstats.gz")
+       )
+
+##add reference year
+project$sumstats$reference_year[which(project$sumstats$code=="ANXI03")]=2019
+project$sumstats$reference_year[which(project$sumstats$code=="NEUR01")]=2016
+project$sumstats$reference_year[which(project$sumstats$code=="DEPR05")]=2018
+
+##Add doi links for easy access to dataset publication
+project$sumstats$reference_doi[which(project$sumstats$code=="ALCD03")]="https://doi.org/10.1038/s41593-018-0275-1"
+project$sumstats$reference_doi[which(project$sumstats$code=="ANXI03")]="https://doi.org/10.1038/s41380-019-0559-1"
+project$sumstats$reference_doi[which(project$sumstats$code=="HEAL01")]="https://doi.org/10.1093/ije/dyw219"
+project$sumstats$reference_doi[which(project$sumstats$code=="NEUR01")]="https://doi.org/10.1038/ng.3552"
+project$sumstats$reference_doi[which(project$sumstats$code=="SUBJ01")]="https://doi.org/10.1038/ng.3552"
+project$sumstats$reference_doi[which(project$sumstats$code=="TIRE01")]="https://doi.org/10.1038/mp.2017.5"
+
+
+##Add PMID
+project$sumstats$pmid[which(project$sumstats$code=="ANXI03")]="31748690"
+project$sumstats$pmid[which(project$sumstats$code=="NEUR01")]="27089181"
+project$sumstats$pmid[which(project$sumstats$code=="SUBJ01")]="27089181"
+project$sumstats$pmid[which(project$sumstats$code=="DEPR05")]="29700475"
+
+##add dependent variable type
+project$sumstats$dependent_variable[which(project$sumstats$code=="NEUR01")]="continuous"
+project$sumstats$dependent_variable[which(project$sumstats$code=="DEPR05")]="binary"
+
+##add participant numbers
+project$sumstats$n_total[which(project$sumstats$code=="NEUR01")]=170911
+
+##add ancestry details
+project$sumstats$ancestry[which(project$sumstats$code=="NEUR01")]="EUR"
+project$sumstats$ancestry[which(project$sumstats$code=="DEPR05")]="EUR"
+
+##add sex details
+project$sumstats$sex[which(project$sumstats$code=="NEUR01")]="both"
+project$sumstats$sex[which(project$sumstats$code=="DEPR05")]="both"
+
+##add age range
+project$sumstats$age.min[which(project$sumstats$code=="SUBJ01")]=40
+project$sumstats$age.max[which(project$sumstats$code=="SUBJ01")]=73
+project$sumstats$age.mean[which(project$sumstats$code=="SUBJ01")]=56.91
+project$sumstats$age.sd[which(project$sumstats$code=="SUBJ01")]=7.93
+project$sumstats$age.min[which(project$sumstats$code=="TIRE01")]=40
+project$sumstats$age.max[which(project$sumstats$code=="TIRE01")]=73
+project$sumstats$age.mean[which(project$sumstats$code=="TIRE01")]=56.91
+project$sumstats$age.sd[which(project$sumstats$code=="TIRE01")]=7.93
+
+##add data on whether effects are on log odds ratio or not
+project$sumstats$effect.logit[which(project$sumstats$code=="ALCD03")]=T #Did not find the original readme for this, only looked at the readme for the 2018 subsequent release, and the data. Assuming log-scale from the naming of the variables (beta) and that it follows the standard of the 2018 release - explicitly states log scale beta. Values are consistent with regression betas or log OR. THESE MIGHT HAVE BEEN CONVERTED IN THE FLASK APP LATER THOUGH!! CHECK!!               
+project$sumstats$effect.logit[which(project$sumstats$code=="ANXI03")]=F # Kirstin sort of confirm that she converted both effect and s.e. to linear scales. Data and readme is available from her KCL web site. Unclear which dataset was used for ANXI03 though. Confirm this later by comparing datasets?
+project$sumstats$effect.logit[which(project$sumstats$code=="HEAL01")]=F #The original data including readme downloaded to data_raw/original. States "Beta" without explanation, and I assume linear beta.
+project$sumstats$effect.logit[which(project$sumstats$code=="NEUR01")]=F #The official read-me states "regression beta"
+project$sumstats$effect.logit[which(project$sumstats$code=="SUBJ01")]=F #The official read-me states "regression beta"
+project$sumstats$effect.logit[which(project$sumstats$code=="TIRE01")]=F #The official read-me states "beta"
+project$sumstats$effect.logit[which(project$sumstats$code=="DEPR05")]=F #https://www.med.unc.edu/pgc/files/2019/04/PGC_MDD_2018_README_third_180316.pdf # The readme states daner format, but that SE is s.e. of log(OR), while the daner format does not state log scale variables here. Assuming linear scale OR, which is consistent with the data.
+
+##add data on whether the SEs are on a logistic scale or not
+project$sumstats$se.logit[which(project$sumstats$code=="ALCD03")]=T #Did not find the original readme for this, only looked at the readme for the 2018 subsequent release, and the data. SE is strangely set to 1 for top rows. Assumes this is true because of log-scale beta.
+project$sumstats$se.logit[which(project$sumstats$code=="ANXI03")]=F #Assume linear becasue of Kirstin Purves assuring that both were converted to linear scale.
+project$sumstats$se.logit[which(project$sumstats$code=="HEAL01")]=F #Assume linear scale because of linear beta
+project$sumstats$se.logit[which(project$sumstats$code=="NEUR01")]=F #Assume linear scale because of linear beta
+project$sumstats$se.logit[which(project$sumstats$code=="SUBJ01")]=F #Assume linear scale because of linear beta
+project$sumstats$se.logit[which(project$sumstats$code=="TIRE01")]=F #Assume linear scale because of linear beta
+project$sumstats$se.logit[which(project$sumstats$code=="DEPR05")]=F #Assume linear scale because of linear OR
+
+##add information on wether a continous dependent variable was analysed using an OLS (linear) estimator. Used for the latent factor GWAS preparation step.
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="ALCD03")]=F
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="ANXI03")]=F
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="DEPR05")]=F
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="HEAL01")]=T
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="NEUR01")]=T
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="SUBJ01")]=T
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="TIRE01")]=T
+
+##add sample prevalence for all datasets
+project$sumstats$samplePrevalence<-project$sumstats$n_case/project$sumstats$n_total
+
+project$sumstats<-project$sumstats[order(project$sumstats$code),]
+
+#save the project data
+saveRDS(project,file = paste0(project$folderpath.workingDirectory,"/","project.",project$setup.code,".Rds"))
+
+#View(project$sumstats)
+
+```
+
+
+# GWAS summary statistics variable selection
+```{r GWAS sumstat dataset variable selection}
+
+#selection based on specific traits
+project$sumstats.sel.code<-c("DEPR05","ANXI03","NEUR01","TIRE01","SUBJ01","ALCD03","HEAL01")
+project$sumstats.sel<-project$sumstats[which(project$sumstats$code %in% project$sumstats.sel.code),]
+project$sumstats.sel$code<-project$sumstats.sel$code.trait
+project$sumstats.sel[,c("code","n_total","pmid","reference_doi","samplePrevalence","populationPrevalence","mungedpath")]
+
+#View(project$sumstats.sel)
+
+```
+
+
+# Multivariate LD
+The multivariate LDSC and HDL procedure calculates genetic correlations between the different traits and estimates of correlation standard errors, producing S (variances and covariances = heritabilities and coheritabilities) and V (diagonal: squared standard errors of elements in S. Off-diagonal: Covariances of elements in S - "dependencies between estimation errors used to model dependencies due to sample overlap") matrices used later in the Genomic SEM model fitting.
+
+HDL is an improved method to account for linkage disequilibrium.
+
+```{r multivariate LD}
+
+project$filepath.mvLD<-paste0(project$folderpath.working_directory,"/","mvLD.",project$setup.code,".Rds")
+
+if (file.exists(project$filepath.mvLD)) {
+  project$mvLD<-readRDS(file=project$filepath.mvLD)
+} else {
+  print("Running multivariate LD correction with HDL. This might take a while.")
+  project$mvLD<-c()
+  
+  #run HDL
+  project$mvLD$covstruct <- hdl(traits = project$sumstats.sel$mungedpath,
+                                sample.prev = project$sumstats.sel$samplePrevalence,
+                                population.prev = project$sumstats.sel$populationPrevalence,
+                                trait.names=project$sumstats.sel$code,
+                                LD.path=project$folderpath.data.HLD.ld,
+                                method = "piecewise")
+  
+  #save the HDL output
+  saveRDS(object = project$mvLD,file = project$filepath.mvLD)
+  print("Multivariate LD correction is done now and the result should have been saved into a file.")
+  
+}
 
 ```
