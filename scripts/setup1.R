@@ -1,18 +1,60 @@
-## ----clean, include=FALSE--------------------------------------------------------------------------
-rm(list = ls(all.names = TRUE)) #will clear all objects includes hidden objects.
-gc() #free up memrory and report the memory usage.
+## ----package setup, echo=FALSE, warning=F-----------------------------------------------------------------------------
+
+#install.packages("skimr")
+#install.packages("psych")
+#install.packages("Matrix")
+#install.packages("tidyverse")
+#install.packages("ggrepel")
+#install.packages("gt")
+#install.packages("kableExtra")
+#devtools::install_github("taiyun/corrplot", build_vignettes = TRUE)
+#remove.packages("GenomicSEM")
+#devtools::install_github("MichelNivard/GenomicSEM",ref = 'v2.1') #specify branch for better stability
+#devtools::install_github("MichelNivard/GenomicSEM") #master branch as default
+#remove.packages("GenomicSEM")
+#devtools::install_github("johanzvrskovec/GenomicSEM",ref = 'hdl-fixes') #specify branch
+#devtools::install_github("zhenin/HDL/HDL")
+#devtools::install_github("zhenin/HDL/HDL@77cb9d0984d1302e40bfd871491e292f8f09f49d")
+#remove.packages("HDL")
+#install.packages("optparse")
+
+library(skimr)
+library(psych)
+library(Matrix)
+
+library(tidyverse)
+library(ggrepel)
+library(gt)
+#library(kableExtra)
+#library(corrplot) #do not run on cluster, does not work?
+library(GenomicSEM)
+library(HDL)
+library(optparse)
 
 
-## ----settings--------------------------------------------------------------------------------------
+
+## ----command line setup-----------------------------------------------------------------------------------------------
+clParser <- OptionParser()
+clParser <- add_option(clParser, c("-t", "--task"), type="integer", default=1,
+                help="Index of the explicit task to run separately:\n1: No task\n2:HDL Piecewise\n3:HDL Jackknife\n4:vLDSC\n5:original piecewise HDL\n6:original jackknife HDL [default %default]")
+clParser <- add_option(clParser, c("-l", "--location"), type="character", default="local",
+                help="The place where the code is run [local,cluster] [default %default]")
+
+
+
+## ----settings---------------------------------------------------------------------------------------------------------
 project<-c() #create project metadata object
+project$clOptions<-parse_args(clParser)
 project$date.run<-Sys.Date()
 project$setup.version<-1
 project$setup.code<-paste0("setup",project$setup.version)
 project$setup.code.date<-paste0(project$setup.code,"_",project$date.run)
 project$filename.rmd<-paste0(project$setup.code,".Rmd")
 project$filename.r<-paste0(project$setup.code,".R")
+project$functions<-c()
 
-project$host<-"cluster" #this is the place where the code is run [local,cluster]
+
+project$host<-project$clOptions$location #this is the place where the code is run [local,cluster] read from command line - default local
 project$seting.refreshPrepareSummaryStatistics<-FALSE
 project$setting.refreshLatentFactorGWAS<-FALSE
 
@@ -39,14 +81,14 @@ if(project$host=="local") {
 
 ##cleaned sumstats folder
 if(project$host=="local") {
-  project$folderpath.data.sumstats.cleaned<-normalizePath("~/Documents/local_db/JZ_GED_PHD/data.sumstats.cleaned")
+  project$folderpath.data.sumstats.cleaned<-normalizePath("~/Documents/local_db/JZ_GED_PHD_C1/data.sumstats.cleaned")
 } else if (project$host=="cluster") {
   project$folderpath.data.sumstats.cleaned<-normalizePath("/mnt/lustre/groups/ukbiobank/sumstats/cleaned")
 }
 
 ##munged sumstats folder
 if(project$host=="local") {
-  project$folderpath.data.sumstats.munged<-normalizePath("~/Documents/local_db/JZ_GED_PHD/data.sumstats.mungedNoMHC")
+  project$folderpath.data.sumstats.munged<-normalizePath("~/Documents/local_db/JZ_GED_PHD_C1/data.sumstats.mungedNoMHC")
 } else if (project$host=="cluster") {
   project$folderpath.data.sumstats.munged<-normalizePath("/mnt/lustre/groups/ukbiobank/sumstats/munged_noMHC")
 }
@@ -56,7 +98,16 @@ project$folderpath.data.mvLDSC.ld <- paste0(project$folderpath.data,"/eur_w_ld_c
 project$folderpath.data.mvLDSC.wld <- paste0(project$folderpath.data,"/eur_w_ld_chr/") #Weights, if different from LD-scores
 
 ##HLD reference panel
-project$folderpath.data.HLD.ld<-paste0(project$folderpath.data,"/UKB_imputed_hm3_SVD_eigen99_extraction/")
+if(project$host=="local") {
+  #use the smallest reference panel as default for local tests
+  project$folderpath.data.HLD.ld<-paste0(project$folderpath.data,"/UKB_array_SVD_eigen90_extraction/")
+} else if (project$host=="cluster") {
+  project$folderpath.data.HLD.ld<-paste0(project$folderpath.data,"/UKB_imputed_hm3_SVD_eigen99_extraction/")
+}
+  
+##full script file paths
+project$filepath.rmd<-normalizePath(paste0(project$folderpath.scripts,"/",project$filename.rmd))
+project$filepath.r<-normalizePath(paste0(project$folderpath.scripts,"/",project$filename.r))
 
 ##Reference file for calculating SNP variance across traits. Used in the preparation step for performing latent factor GWAS.
 project$filepath.genomeReference<-normalizePath(paste0(project$folderpath.data,"/","reference.1000G.maf.0.005.txt")) #1000 genomes phase 3
@@ -80,41 +131,14 @@ setwd(dir = normalizePath(project$folderpath.workingDirectory))
 
 
 
-## ----setup, echo=FALSE, warning=F------------------------------------------------------------------
+## ----additional source setup, echo=FALSE, warning=F-------------------------------------------------------------------
 
-getwd() #print wd
-
-#package setup
-
-#remove.packages("GenomicSEM")
-#devtools::install_github("MichelNivard/GenomicSEM",ref = 'v2.1') #specify branch for better stability
-#devtools::install_github("MichelNivard/GenomicSEM") #master branch as default
-
-#install.packages("skimr")
-#install.packages("psych")
-#install.packages("Matrix")
-#install.packages("tidyverse")
-#install.packages("ggrepel")
-#install.packages("gt")
-#install.packages("kableExtra")
-#devtools::install_github("taiyun/corrplot", build_vignettes = TRUE)
-
-library(GenomicSEM)
-library(skimr)
-library(psych)
-library(Matrix)
-
-library(tidyverse)
-#library(ggrepel)
-#library(gt)
-#library(kableExtra)
-#library(corrplot)
-
-#source(normalizePath(paste0(project$folderpath.scripts,"/","gsem.usermodel.mod.R")))
+source(normalizePath(paste0(project$folderpath.scripts,"/","shru.R")))
+#source(normalizePath(paste0(project$folderpath.scripts,"/","hdl.mod.R")))
 
 
 
-## ----trait setup-----------------------------------------------------------------------------------
+## ----trait setup------------------------------------------------------------------------------------------------------
 #,echo=FALSE
 project$trait<-data.frame(
   code=c("ANXI","DEPR","BIPO","ALCD"),
@@ -135,7 +159,7 @@ project$trait
 
 
 
-## ----GWAS sumstat dataset setup--------------------------------------------------------------------
+## ----GWAS sumstat dataset setup---------------------------------------------------------------------------------------
 #, echo=FALSE
 
 project$sumstats<-read.table(paste0(project$folderpath.data,"/","ukbb_sumstats_download202005.csv"), header=T, quote="\"", sep = ",", fill=T, blank.lines.skip=T,as.is = c(2), strip.white = T)
@@ -277,7 +301,7 @@ saveRDS(project,file = paste0(project$folderpath.workingDirectory,"/","project."
 
 
 
-## ----GWAS sumstat dataset variable selection-------------------------------------------------------
+## ----GWAS sumstat dataset variable selection--------------------------------------------------------------------------
 
 #selection based on specific traits
 project$sumstats.sel.code<-c("DEPR05","ANXI03","NEUR01","TIRE01","SUBJ01","ALCD03","HEAL01")
@@ -285,32 +309,284 @@ project$sumstats.sel<-project$sumstats[which(project$sumstats$code %in% project$
 project$sumstats.sel$code<-project$sumstats.sel$code.trait
 project$sumstats.sel[,c("code","n_total","pmid","reference_doi","samplePrevalence","populationPrevalence","mungedpath")]
 
-#View(project$sumstats.sel)
+#View(project$sumstats.sel[,c("code","n_total","pmid","reference_doi","samplePrevalence","populationPrevalence","mungedpath")])
 
 
 
-## ----multivariate LD-------------------------------------------------------------------------------
+## ----multivariate LD--------------------------------------------------------------------------------------------------
+#purl=FALSE
 
-project$filepath.mvLD<-paste0(project$folderpath.working_directory,"/","mvLD.",project$setup.code,".Rds")
+hdl.original<-function(traits,sample.prev,population.prev,trait.names,LD.path,jackknife){
+      
+      #for testing
+      # traits = project$sumstats.sel$mungedpath
+      # sample.prev = project$sumstats.sel$samplePrevalence
+      # population.prev = project$sumstats.sel$populationPrevalence
+      # trait.names=project$sumstats.sel$code
+      # LD.path=project$folderpath.data.HLD.ld
+      # jackknife = FALSE
+      
+      
+      n.traits<-length(traits)
+      result.S<-matrix(data=NA,nrow = n.traits, ncol = n.traits)
+      result.S.se<-matrix(data=NA,nrow = n.traits, ncol = n.traits)
+      result.P<-matrix(data=NA,nrow = n.traits, ncol = n.traits)
+      
+      
+      # traiti<-2
+      # traitj<-1
+      for(traiti in 1:n.traits){
+        gwas1.df <- as.data.frame(suppressMessages(read_delim(traits[traiti], "\t", escape_double = FALSE, trim_ws = TRUE,progress = F)))
+        for(traitj in 1:n.traits){
+          
+          if(traiti==traitj){
+            hdlres.h2<-NA
+            hdlres.h2<-HDL.h2(gwas.df = gwas1.df, LD.path = LD.path)
+
+            if(is.na(hdlres.h2)) {
+              result.S[traiti,traitj]<-NA_real_
+              result.S[traiti,traitj]<-NA_real_
+              result.P[traiti,traitj]<-NA_real_
+            } else {
+              result.S[traiti,traitj]<-hdlres.h2$h2
+              result.S.se[traiti,traitj]<-hdlres.h2$h2.se
+              result.P[traiti,traitj]<-hdlres.h2$P
+            }
+            
+            # hdlres.rg<-NA
+            # hdlres.rg<-HDL.rg(gwas1.df = gwas1.df, gwas2.df = gwas1.df, LD.path = LD.path, jackknife.df = jackknife)
+            # if(is.na(hdlres.rg)) {
+            #   result.S[traiti,traitj]<-NA_real_
+            #   result.S[traiti,traitj]<-NA_real_
+            #   result.P[traiti,traitj]<-NA_real_
+            # } else {
+            #   result.S[traiti,traitj]<-hdlres.rg$estimates.df[c('Genetic_Covariance'),1]
+            #   result.S.se[traiti,traitj]<-hdlres.rg$estimates.df[c('Genetic_Covariance'),2]
+            #   result.P[traiti,traitj]<-hdlres.rg$P
+            # }
+            
+          } else {
+            gwas2.df <- as.data.frame(suppressMessages(read_delim(traits[traitj], "\t", escape_double = FALSE, trim_ws = TRUE,progress = F)))
+            hdlres.rg<-NA
+            hdlres.rg<-HDL.rg(gwas1.df = gwas1.df, gwas2.df = gwas2.df, LD.path = LD.path, jackknife.df = jackknife)
+            if(is.na(hdlres.rg)) {
+              result.S[traiti,traitj]<-NA_real_
+              result.S[traiti,traitj]<-NA_real_
+              result.P[traiti,traitj]<-NA_real_
+            } else {
+              result.S[traiti,traitj]<-hdlres.rg$estimates.df[c('Genetic_Covariance'),1]
+              result.S.se[traiti,traitj]<-hdlres.rg$estimates.df[c('Genetic_Covariance'),2]
+              result.P[traiti,traitj]<-hdlres.rg$P
+            }
+          }
+          
+          
+        }
+      }
+      return(list(result.S=result.S, result.S.se=result.S.se, result.P=result.P))
+    }
+
+
+
+project$filepath.mvLD<-paste0(project$folderpath.workingDirectory,"/","mvLD.",project$setup.code,".Rds")
+project$filepath.mvLD.HDL.piecewise<-paste0(project$folderpath.workingDirectory,"/","mvLD.",project$setup.code,".HDL.piecewise.Rds")
+project$filepath.mvLD.HDL.jackknife<-paste0(project$folderpath.workingDirectory,"/","mvLD.",project$setup.code,".HDL.jackknife.Rds")
+project$filepath.mvLD.mvLDSC<-paste0(project$folderpath.workingDirectory,"/","mvLD.",project$setup.code,".mvLDSC.Rds")
+project$filepath.mvLD.origHDL.piecewise<-paste0(project$folderpath.workingDirectory,"/","mvLD.",project$setup.code,".origHDL.piecewise.Rds")
+project$filepath.mvLD.origHDL.jackknife<-paste0(project$folderpath.workingDirectory,"/","mvLD.",project$setup.code,".origHDL.jackknife.Rds")
+
 
 if (file.exists(project$filepath.mvLD)) {
+  print("Using existing covariance structure from previous HDL computation.")
   project$mvLD<-readRDS(file=project$filepath.mvLD)
 } else {
-  print("Running multivariate LD correction with HDL. This might take a while.")
+  print("Running multivariate LD regression with HDL. This might take a while. If this runs for too long you may want to abort the process.")
   project$mvLD<-c()
   
-  #run HDL
-  project$mvLD$covstruct <- hdl(traits = project$sumstats.sel$mungedpath,
+  if(project$clOptions$task==1){
+    
+    
+    project$mvLD$startTime<-Sys.time()
+    
+    #launch all tasks simultaneously
+    # system(command = paste0("Rscript \"",project$filepath.r,"\" -t 3 >", project$setup.code.date, "HDL.jackknife.log"), wait=FALSE)
+    # Sys.sleep(time = 10)
+    # system(command = paste0("Rscript \"",project$filepath.r,"\" -t 2 >", project$setup.code.date, "HDL.piecewise.log"), wait=FALSE)
+    # Sys.sleep(time = 10)
+    # system(command = paste0("Rscript \"",project$filepath.r,"\" -t 4 "), wait=FALSE)
+    
+    while(!file.exists(project$filepath.mvLD.HDL.piecewise) || !file.exists(project$filepath.mvLD.HDL.jackknife) || !file.exists(project$filepath.mvLD.mvLDSC)) {
+      
+      shru$evercat(message = paste0(
+        "\nHDL.piecewise=",file.exists(project$filepath.mvLD.HDL.piecewise),
+        " HDL.jackknife=",file.exists(project$filepath.mvLD.HDL.jackknife),
+        " mvLDSC=",file.exists(project$filepath.mvLD.mvLDSC),
+        "\nRunning time=",round(Sys.time()-project$mvLD$startTime,3)
+        ))
+      Sys.sleep(time = 3)
+    }
+    Sys.sleep(time = 5) #for graceful access to the resulting files in case writing is still ongoing
+    shru$evercat(message = paste0(
+        "\nHDL.piecewise=",file.exists(project$filepath.mvLD.HDL.piecewise),
+        " HDL.jackknife=",file.exists(project$filepath.mvLD.HDL.jackknife),
+        " mvLDSC=",file.exists(project$filepath.mvLD.mvLDSC),
+        "\nFinal running time=",round(Sys.time()-project$mvLD$startTime,3)
+        ), end = TRUE)
+    project$mvLD$covstruct.HDL.piecewise<-readRDS(file=project$filepath.mvLD.HDL.piecewise)
+    project$mvLD$covstruct.HDL.jackknife<-readRDS(file=project$filepath.mvLD.HDL.jackknife)
+    project$mvLD$covstruct.mvLDSC<-readRDS(file=project$filepath.mvLD.mvLDSC)
+    
+    #remove intermediate results
+    #file.remove(project$filepath.mvLD.HDL.piecewise)
+    #file.remove(project$filepath.mvLD.HDL.jackknife)
+    #file.remove(project$filepath.mvLD.mvLDSC)
+    
+  }
+  
+  
+  if(project$clOptions$task==2 && !file.exists(project$filepath.mvLD.HDL.piecewise)){
+    #run HDL piecewise
+    #system(command = paste0("touch 2.txt"))
+    project$mvLD$covstruct.HDL.piecewise <- hdl(traits = project$sumstats.sel$mungedpath,
+                                  sample.prev = project$sumstats.sel$samplePrevalence,
+                                  population.prev = project$sumstats.sel$populationPrevalence,
+                                  trait.names=project$sumstats.sel$code,
+                                  LD.path=project$folderpath.data.HLD.ld,
+                                  method = "piecewise")
+    
+    saveRDS(object = project$mvLD$covstruct.HDL.piecewise,file = project$filepath.mvLD.HDL.piecewise)
+    quit(save = "no")
+  }
+  
+  if(project$clOptions$task==3 && !file.exists(project$filepath.mvLD.HDL.jackknife)){
+    #run HDL jackknife
+    #system(command = paste0("touch 3.txt"))
+    project$mvLD$covstruct.HDL.jackknife <- hdl(traits = project$sumstats.sel$mungedpath,
                                 sample.prev = project$sumstats.sel$samplePrevalence,
                                 population.prev = project$sumstats.sel$populationPrevalence,
                                 trait.names=project$sumstats.sel$code,
                                 LD.path=project$folderpath.data.HLD.ld,
-                                method = "piecewise")
+                                method = "jackknife")
   
-  #save the HDL output
+    saveRDS(object = project$mvLD$covstruct.HDL.jackknife,file = project$filepath.mvLD.HDL.jackknife)
+    quit(save = "no")
+  }
+  
+  if(project$clOptions$task==4 && !file.exists(project$filepath.mvLD.mvLDSC)){
+    #run mvLDSC
+    #system(command = paste0("touch 4.txt"))
+    project$mvLD$covstruct.mvLDSC<-ldsc(traits = project$sumstats.sel$mungedpath,
+                                    sample.prev =  project$sumstats.sel$samplePrevalence,
+                                    population.prev = project$sumstats.sel$populationPrevalence,
+                                    trait.names = project$sumstats.sel$code,
+                                    ld = project$folderpath.data.mvLDSC.ld,
+                                    wld = project$folderpath.data.mvLDSC.ld,
+                                    ldsc.log = project$setup.code.date,
+                                    stand = TRUE
+                                    )
+    saveRDS(object = project$mvLD$covstruct.mvLDSC,file = project$filepath.mvLD.mvLDSC)
+    quit(save = "no")
+  }
+  
+  if(project$clOptions$task==5 && !file.exists(project$filepath.mvLD.origHDL.piecewise)){
+    #run HDL original piecewise
+    
+    
+    
+    project$mvLD$covstruct.origHDL.piecewise<-hdl.original(traits = project$sumstats.sel$mungedpath,
+                                sample.prev = project$sumstats.sel$samplePrevalence,
+                                population.prev = project$sumstats.sel$populationPrevalence,
+                                trait.names=project$sumstats.sel$code,
+                                LD.path=project$folderpath.data.HLD.ld, jackknife = FALSE)
+    
+    saveRDS(object = project$mvLD$covstruct.origHDL.piecewise,file = project$filepath.mvLD.origHDL.piecewise)
+    quit(save = "no")
+  }
+  
+  if(project$clOptions$task==6 && !file.exists(project$filepath.mvLD.origHDL.jackknife)){
+    #run HDL original jackknife
+    
+    project$mvLD$covstruct.origHDL.jackknife<-hdl.original(traits = project$sumstats.sel$mungedpath,
+                                sample.prev = project$sumstats.sel$samplePrevalence,
+                                population.prev = project$sumstats.sel$populationPrevalence,
+                                trait.names=project$sumstats.sel$code,
+                                LD.path=project$folderpath.data.HLD.ld, jackknife = TRUE)
+    
+    saveRDS(object = project$mvLD$covstruct.origHDL.jackknife,file = project$filepath.mvLD.origHDL.jackknife)
+    quit(save = "no")
+  }
+  
+  #save the mvLD output
   saveRDS(object = project$mvLD,file = project$filepath.mvLD)
-  print("Multivariate LD correction is done now and the result should have been saved into a file.")
+  print("Multivariate LD correction is done now and the resulting covariance structure should have been saved into a file.")
   
 }
+
+#some additional calculations
+
+#prouce the standard errors of S (variances and covariances) from the diagonal of V (contains both).
+  project$mvLD$covstruct.mvLDSC$S.k<-nrow(project$mvLD$covstruct.mvLDSC$S)
+  project$mvLD$covstruct.mvLDSC$S.SE<-matrix(0, project$mvLD$covstruct.mvLDSC$S.k, project$mvLD$covstruct.mvLDSC$S.k)
+  project$mvLD$covstruct.mvLDSC$S.SE[lower.tri(project$mvLD$covstruct.mvLDSC$S.SE,diag=TRUE)] <-sqrt(diag(project$mvLD$covstruct.mvLDSC$V))
+  project$mvLD$covstruct.mvLDSC$S_Stand.SE<-matrix(0, project$mvLD$covstruct.mvLDSC$S.k, project$mvLD$covstruct.mvLDSC$S.k)
+  project$mvLD$covstruct.mvLDSC$S_Stand.SE[lower.tri(project$mvLD$covstruct.mvLDSC$S_Stand.SE,diag=TRUE)] <-sqrt(diag(project$mvLD$covstruct.mvLDSC$V_Stand))
+  
+  project$mvLD$covstruct.HDL.piecewise$S.k<-nrow(project$mvLD$covstruct.HDL.piecewise$S)
+  project$mvLD$covstruct.HDL.piecewise$S.SE<-matrix(0, project$mvLD$covstruct.HDL.piecewise$S.k, project$mvLD$covstruct.HDL.piecewise$S.k)
+  project$mvLD$covstruct.HDL.piecewise$S.SE[lower.tri(project$mvLD$covstruct.HDL.piecewise$S.SE,diag=TRUE)] <-sqrt(diag(project$mvLD$covstruct.HDL.piecewise$V))
+  project$mvLD$covstruct.HDL.piecewise$S_Stand.SE<-matrix(0, project$mvLD$covstruct.HDL.piecewise$S.k, project$mvLD$covstruct.HDL.piecewise$S.k)
+  project$mvLD$covstruct.HDL.piecewise$S_Stand.SE[lower.tri(project$mvLD$covstruct.HDL.piecewise$S_Stand.SE,diag=TRUE)] <-sqrt(diag(project$mvLD$covstruct.HDL.piecewise$V_Stand))
+
+#add newly computed heritabilities to the selected summary statistics table
+for(iTrait in 1:nrow(project$sumstats.sel)) {
+  project$sumstats.sel$h2.liability[iTrait]<-project$mvLD$covstruct.HDL.jackknife$S[[iTrait,iTrait]]
+  # for(iTrait2 in 1:iTrait) {
+  #   mvLDSC$cor.test[[iTrait,iTrait2]]<-cortest(R1 = mvLDSC$output$S[[iTrait,iTrait2]], n1 = mvLDSC$output$N[iTrait,iTrait2],)
+  # }
+}
+
+
+
+
+
+## ----improved annotation of chosen datasets, fig.width=9, fig.height=6, out.width="1600px", out.height="1000px"-------
+#skim(project$sumstats.sel)
+project$sumstats.sel.table<-project$sumstats.sel[,c("gwas_name.nice","dependent_variable","n_total","reference_year","samplePrevalence","populationPrevalence","h2.liability")]
+rownames(project$sumstats.sel.table)<-NULL #Remove the rowname column
+
+#project$sumstats.sel.table
+
+project$plots.sumstats.sel.table<-project$sumstats.sel.table %>% 
+  gt() %>% 
+  fmt_number(columns = vars(samplePrevalence, populationPrevalence), decimals = 2) %>%
+  fmt_number(columns = vars(h2.liability), decimals = 3) %>%
+  fmt_number(columns = vars(n_total), decimals = 0) %>%
+  tab_header(
+    title = "Selected GWAS summary statistics datasets"
+  ) %>% cols_label(
+    gwas_name.nice = "Trait",
+    #ancestry = "Ancestry",
+    #sex = "Sex",
+    dependent_variable = "Dependent variable",
+    n_total = "Total number of participants",
+    reference_year = "Reference year",
+    samplePrevalence = "Sample prevalence",
+    populationPrevalence = "Population prevalence",
+    h2.liability = html("h<sup>2</sup><sub>SNP,liability scale</sub>")
+    
+  ) %>%
+  tab_style(
+    style = cell_text(size = px(12)),
+    locations = cells_column_labels(everything())       
+  ) %>%
+  tab_style(
+    style = cell_text(size = px(12),weight = "bold"),
+    locations = cells_body(everything())        
+  )
+
+project$plots.sumstats.sel.table
+
+gtsave(data = project$plots.sumstats.sel.table, filename = paste0(project$folderpath.plots,"/sumstats.sel.table.rtf"))
+
 
 

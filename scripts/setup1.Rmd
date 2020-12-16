@@ -12,7 +12,7 @@ output:
     fig_width: 9
 ---
 
-```{r clean, include=FALSE}
+```{r clean, include=FALSE, purl=FALSE}
 rm(list = ls(all.names = TRUE)) #will clear all objects includes hidden objects.
 gc() #free up memrory and report the memory usage.
 ```
@@ -20,17 +20,64 @@ gc() #free up memrory and report the memory usage.
 # Title
 **High Definition Latent Factor GWAS of Psychiatric Disorders Implicates Biological Mechanisms of Anxiety and Mood Disorders**
 
+```{r package setup, echo=FALSE, warning=F}
+
+#install.packages("skimr")
+#install.packages("psych")
+#install.packages("Matrix")
+#install.packages("tidyverse")
+#install.packages("ggrepel")
+#install.packages("gt")
+#install.packages("kableExtra")
+#devtools::install_github("taiyun/corrplot", build_vignettes = TRUE)
+#remove.packages("GenomicSEM")
+#devtools::install_github("MichelNivard/GenomicSEM",ref = 'v2.1') #specify branch for better stability
+#devtools::install_github("MichelNivard/GenomicSEM") #master branch as default
+#remove.packages("GenomicSEM")
+#devtools::install_github("johanzvrskovec/GenomicSEM",ref = 'hdl-fixes') #specify branch
+#devtools::install_github("zhenin/HDL/HDL")
+#devtools::install_github("zhenin/HDL/HDL@77cb9d0984d1302e40bfd871491e292f8f09f49d")
+#remove.packages("HDL")
+#install.packages("optparse")
+
+library(skimr)
+library(psych)
+library(Matrix)
+
+library(tidyverse)
+library(ggrepel)
+library(gt)
+#library(kableExtra)
+#library(corrplot) #do not run on cluster, does not work?
+library(GenomicSEM)
+library(HDL)
+library(optparse)
+
+```
+
+```{r command line setup}
+clParser <- OptionParser()
+clParser <- add_option(clParser, c("-t", "--task"), type="integer", default=1,
+                help="Index of the explicit task to run separately:\n1: No task\n2:HDL Piecewise\n3:HDL Jackknife\n4:vLDSC\n5:original piecewise HDL\n6:original jackknife HDL [default %default]")
+clParser <- add_option(clParser, c("-l", "--location"), type="character", default="local",
+                help="The place where the code is run [local,cluster] [default %default]")
+
+```
+
 # Script settings
 ```{r settings}
 project<-c() #create project metadata object
+project$clOptions<-parse_args(clParser)
 project$date.run<-Sys.Date()
 project$setup.version<-1
 project$setup.code<-paste0("setup",project$setup.version)
 project$setup.code.date<-paste0(project$setup.code,"_",project$date.run)
 project$filename.rmd<-paste0(project$setup.code,".Rmd")
 project$filename.r<-paste0(project$setup.code,".R")
+project$functions<-c()
 
-project$host<-"local" #this is the place where the code is run [local,cluster]
+
+project$host<-project$clOptions$location #this is the place where the code is run [local,cluster] read from command line - default local
 project$seting.refreshPrepareSummaryStatistics<-FALSE
 project$setting.refreshLatentFactorGWAS<-FALSE
 
@@ -74,9 +121,16 @@ project$folderpath.data.mvLDSC.ld <- paste0(project$folderpath.data,"/eur_w_ld_c
 project$folderpath.data.mvLDSC.wld <- paste0(project$folderpath.data,"/eur_w_ld_chr/") #Weights, if different from LD-scores
 
 ##HLD reference panel
-#project$folderpath.data.HLD.ld<-paste0(project$folderpath.data,"/UKB_imputed_hm3_SVD_eigen99_extraction/")
-project$folderpath.data.HLD.ld<-paste0(project$folderpath.data,"/UKB_array_SVD_eigen90_extraction/")
-
+if(project$host=="local") {
+  #use the smallest reference panel as default for local tests
+  project$folderpath.data.HLD.ld<-paste0(project$folderpath.data,"/UKB_array_SVD_eigen90_extraction/")
+} else if (project$host=="cluster") {
+  project$folderpath.data.HLD.ld<-paste0(project$folderpath.data,"/UKB_imputed_hm3_SVD_eigen99_extraction/")
+}
+  
+##full script file paths
+project$filepath.rmd<-normalizePath(paste0(project$folderpath.scripts,"/",project$filename.rmd))
+project$filepath.r<-normalizePath(paste0(project$folderpath.scripts,"/",project$filename.r))
 
 ##Reference file for calculating SNP variance across traits. Used in the preparation step for performing latent factor GWAS.
 project$filepath.genomeReference<-normalizePath(paste0(project$folderpath.data,"/","reference.1000G.maf.0.005.txt")) #1000 genomes phase 3
@@ -111,37 +165,10 @@ knitr::purl(project$filename.rmd)
 ```
 
 
-```{r setup, echo=FALSE, warning=F}
+```{r additional source setup, echo=FALSE, warning=F}
 
-getwd() #print wd
-
-#package setup
-
-#remove.packages("GenomicSEM")
-#devtools::install_github("MichelNivard/GenomicSEM",ref = 'v2.1') #specify branch for better stability
-#devtools::install_github("MichelNivard/GenomicSEM") #master branch as default
-
-#install.packages("skimr")
-#install.packages("psych")
-#install.packages("Matrix")
-#install.packages("tidyverse")
-#install.packages("ggrepel")
-#install.packages("gt")
-#install.packages("kableExtra")
-#devtools::install_github("taiyun/corrplot", build_vignettes = TRUE)
-
-library(GenomicSEM)
-library(skimr)
-library(psych)
-library(Matrix)
-
-library(tidyverse)
-#library(ggrepel)
-#library(gt)
-#library(kableExtra)
-#library(corrplot)
-
-#source(normalizePath(paste0(project$folderpath.scripts,"/","gsem.usermodel.mod.R")))
+source(normalizePath(paste0(project$folderpath.scripts,"/","shru.R")))
+#source(normalizePath(paste0(project$folderpath.scripts,"/","hdl.mod.R")))
 
 ```
 
@@ -319,7 +346,7 @@ project$sumstats.sel<-project$sumstats[which(project$sumstats$code %in% project$
 project$sumstats.sel$code<-project$sumstats.sel$code.trait
 project$sumstats.sel[,c("code","n_total","pmid","reference_doi","samplePrevalence","populationPrevalence","mungedpath")]
 
-#View(project$sumstats.sel)
+#View(project$sumstats.sel[,c("code","n_total","pmid","reference_doi","samplePrevalence","populationPrevalence","mungedpath")])
 
 ```
 
@@ -327,30 +354,439 @@ project$sumstats.sel[,c("code","n_total","pmid","reference_doi","samplePrevalenc
 # Multivariate LD
 The multivariate LDSC and HDL procedure calculates genetic correlations between the different traits and estimates of correlation standard errors, producing S (variances and covariances = heritabilities and coheritabilities) and V (diagonal: squared standard errors of elements in S. Off-diagonal: Covariances of elements in S - "dependencies between estimation errors used to model dependencies due to sample overlap") matrices used later in the Genomic SEM model fitting.
 
-HDL is an improved method to account for linkage disequilibrium.
+HDL is an improved method to account for linkage disequilibrium while estimating genetic effects from GWAS.
 
 ```{r multivariate LD}
 
-project$filepath.mvLD<-paste0(project$folderpath.working_directory,"/","mvLD.",project$setup.code,".Rds")
+hdl.original_scratch<-function(traits,sample.prev,population.prev,trait.names,LD.path,jackknife){
+      
+      #for testing
+      # traits = project$sumstats.sel$mungedpath
+      # sample.prev = project$sumstats.sel$samplePrevalence
+      # population.prev = project$sumstats.sel$populationPrevalence
+      # trait.names=project$sumstats.sel$code
+      # LD.path=project$folderpath.data.HLD.ld
+      # jackknife = FALSE
+      
+      
+      n.traits<-length(traits)
+      result.S<-matrix(data=NA,nrow = n.traits, ncol = n.traits)
+      result.S.se<-matrix(data=NA,nrow = n.traits, ncol = n.traits)
+      result.S_std<-matrix(data=NA,nrow = n.traits, ncol = n.traits)
+      result.S_std.se<-matrix(data=NA,nrow = n.traits, ncol = n.traits)
+      result.P<-matrix(data=NA,nrow = n.traits, ncol = n.traits)
+      
+      
+      #traiti<-2
+      #traitj<-3
+      for(traiti in 1:n.traits){
+        gwas1.df <- as.data.frame(suppressMessages(read_delim(traits[traiti], "\t", escape_double = FALSE, trim_ws = TRUE,progress = F)))
+        for(traitj in 1:n.traits){
+          
+          if(traiti==traitj){
+            hdlres.h2<-NA
+            hdlres.h2<-HDL.h2(gwas.df = gwas1.df, LD.path = LD.path)
+
+            if(is.na(hdlres.h2)) {
+              result.S[traiti,traitj]<-NA_real_
+              result.S.se[traiti,traitj]<-NA_real_
+              result.S_std[traiti,traitj]<-NA_real_
+              result.S_std.se[traiti,traitj]<-NA_real_
+              result.P[traiti,traitj]<-NA_real_
+            } else {
+              result.S[traiti,traitj]<-hdlres.h2$h2
+              result.S.se[traiti,traitj]<-hdlres.h2$h2.se
+              result.S_std.se[traiti,traitj]<-1
+              result.P[traiti,traitj]<-hdlres.h2$P
+            }
+            
+            # hdlres.rg<-NA
+            # hdlres.rg<-HDL.rg(gwas1.df = gwas1.df, gwas2.df = gwas1.df, LD.path = LD.path, jackknife.df = jackknife)
+            # if(is.na(hdlres.rg)) {
+            #   result.S[traiti,traitj]<-NA_real_
+            #   result.S[traiti,traitj]<-NA_real_
+            #   result.P[traiti,traitj]<-NA_real_
+            # } else {
+            #   result.S[traiti,traitj]<-hdlres.rg$estimates.df[c('Genetic_Covariance'),1]
+            #   result.S.se[traiti,traitj]<-hdlres.rg$estimates.df[c('Genetic_Covariance'),2]
+            #   result.P[traiti,traitj]<-hdlres.rg$P
+            # }
+            
+          } else {
+            gwas2.df <- as.data.frame(suppressMessages(read_delim(traits[traitj], "\t", escape_double = FALSE, trim_ws = TRUE,progress = F)))
+            hdlres.rg<-NA
+            hdlres.rg<-HDL.rg(gwas1.df = gwas1.df, gwas2.df = gwas2.df, LD.path = LD.path, jackknife.df = jackknife)
+            if(is.na(hdlres.rg)) {
+              result.S[traiti,traitj]<-NA_real_
+              result.S.se[traiti,traitj]<-NA_real_
+              result.S_std[traiti,traitj]<-NA_real_
+              result.S_std.se[traiti,traitj]<-NA_real_
+              result.P[traiti,traitj]<-NA_real_
+            } else {
+              result.S[traiti,traitj]<-hdlres.rg$estimates.df[c('Genetic_Covariance'),1]
+              result.S.se[traiti,traitj]<-hdlres.rg$estimates.df[c('Genetic_Covariance'),2]
+              result.S_std[traiti,traitj]<-hdlres.rg$estimates.df[c('Genetic_Correlation'),1]
+              result.S_std.se[traiti,traitj]<-hdlres.rg$estimates.df[c('Genetic_Correlation'),2]
+              result.P[traiti,traitj]<-hdlres.rg$P
+            }
+          }
+          
+          
+        }
+      }
+      return(list(S=result.S, S.se=result.S.se, S_std=result.S_std, S_std.se=result.S_std.se, P=result.P))
+    }
+
+
+
+project$filepath.mvLD<-paste0(project$folderpath.workingDirectory,"/","mvLD.",project$setup.code,".Rds")
+project$filepath.mvLD.HDL.piecewise<-paste0(project$folderpath.workingDirectory,"/","mvLD.",project$setup.code,".HDL.piecewise.Rds")
+project$filepath.mvLD.HDL.jackknife<-paste0(project$folderpath.workingDirectory,"/","mvLD.",project$setup.code,".HDL.jackknife.Rds")
+project$filepath.mvLD.mvLDSC<-paste0(project$folderpath.workingDirectory,"/","mvLD.",project$setup.code,".mvLDSC.Rds")
+project$filepath.mvLD.origHDL.piecewise<-paste0(project$folderpath.workingDirectory,"/","mvLD.",project$setup.code,".origHDL.piecewise.Rds")
+project$filepath.mvLD.origHDL.jackknife<-paste0(project$folderpath.workingDirectory,"/","mvLD.",project$setup.code,".origHDL.jackknife.Rds")
+
 
 if (file.exists(project$filepath.mvLD)) {
+  print("Using existing covariance structure from previous HDL computation.")
   project$mvLD<-readRDS(file=project$filepath.mvLD)
 } else {
-  print("Running multivariate LD correction with HDL. This might take a while.")
+  print("Running multivariate LD regression with HDL. This might take a while. If this runs for too long you may want to abort the process.")
   project$mvLD<-c()
   
-  #run HDL
-  project$mvLD$covstruct <- hdl(traits = project$sumstats.sel$mungedpath,
+  if(project$clOptions$task==1){
+    
+    
+    project$mvLD$startTime<-Sys.time()
+    
+    #launch all tasks simultaneously
+    # system(command = paste0("Rscript \"",project$filepath.r,"\" -t 3 >", project$setup.code.date, "HDL.jackknife.log"), wait=FALSE)
+    # Sys.sleep(time = 10)
+    # system(command = paste0("Rscript \"",project$filepath.r,"\" -t 2 >", project$setup.code.date, "HDL.piecewise.log"), wait=FALSE)
+    # Sys.sleep(time = 10)
+    # system(command = paste0("Rscript \"",project$filepath.r,"\" -t 4 "), wait=FALSE)
+    
+    while(!file.exists(project$filepath.mvLD.HDL.piecewise) || !file.exists(project$filepath.mvLD.HDL.jackknife) || !file.exists(project$filepath.mvLD.mvLDSC)) {
+      
+      shru$evercat(message = paste0(
+        "\nHDL.piecewise=",file.exists(project$filepath.mvLD.HDL.piecewise),
+        " HDL.jackknife=",file.exists(project$filepath.mvLD.HDL.jackknife),
+        " mvLDSC=",file.exists(project$filepath.mvLD.mvLDSC),
+        "\nRunning time=",round(Sys.time()-project$mvLD$startTime,3)
+        ))
+      Sys.sleep(time = 3)
+    }
+    Sys.sleep(time = 5) #for graceful access to the resulting files in case writing is still ongoing
+    shru$evercat(message = paste0(
+        "\nHDL.piecewise=",file.exists(project$filepath.mvLD.HDL.piecewise),
+        " HDL.jackknife=",file.exists(project$filepath.mvLD.HDL.jackknife),
+        " mvLDSC=",file.exists(project$filepath.mvLD.mvLDSC),
+        "\nFinal running time=",round(Sys.time()-project$mvLD$startTime,3)
+        ), end = TRUE)
+    project$mvLD$covstruct.HDL.piecewise<-readRDS(file=project$filepath.mvLD.HDL.piecewise)
+    project$mvLD$covstruct.HDL.jackknife<-readRDS(file=project$filepath.mvLD.HDL.jackknife)
+    project$mvLD$covstruct.mvLDSC<-readRDS(file=project$filepath.mvLD.mvLDSC)
+    
+    #remove intermediate results
+    #file.remove(project$filepath.mvLD.HDL.piecewise)
+    #file.remove(project$filepath.mvLD.HDL.jackknife)
+    #file.remove(project$filepath.mvLD.mvLDSC)
+    
+  }
+  
+  
+  if(project$clOptions$task==2 && !file.exists(project$filepath.mvLD.HDL.piecewise)){
+    #run HDL piecewise
+    #system(command = paste0("touch 2.txt"))
+    project$mvLD$covstruct.HDL.piecewise <- hdl(traits = project$sumstats.sel$mungedpath,
+                                  sample.prev = project$sumstats.sel$samplePrevalence,
+                                  population.prev = project$sumstats.sel$populationPrevalence,
+                                  trait.names=project$sumstats.sel$code,
+                                  LD.path=project$folderpath.data.HLD.ld,
+                                  method = "piecewise")
+    
+    saveRDS(object = project$mvLD$covstruct.HDL.piecewise,file = project$filepath.mvLD.HDL.piecewise)
+    quit(save = "no")
+  }
+  
+  if(project$clOptions$task==3 && !file.exists(project$filepath.mvLD.HDL.jackknife)){
+    #run HDL jackknife
+    #system(command = paste0("touch 3.txt"))
+    project$mvLD$covstruct.HDL.jackknife <- hdl(traits = project$sumstats.sel$mungedpath,
                                 sample.prev = project$sumstats.sel$samplePrevalence,
                                 population.prev = project$sumstats.sel$populationPrevalence,
                                 trait.names=project$sumstats.sel$code,
                                 LD.path=project$folderpath.data.HLD.ld,
-                                method = "piecewise")
+                                method = "jackknife")
   
-  #save the HDL output
+    saveRDS(object = project$mvLD$covstruct.HDL.jackknife,file = project$filepath.mvLD.HDL.jackknife)
+    quit(save = "no")
+  }
+  
+  if(project$clOptions$task==4 && !file.exists(project$filepath.mvLD.mvLDSC)){
+    #run mvLDSC
+    #system(command = paste0("touch 4.txt"))
+    project$mvLD$covstruct.mvLDSC<-ldsc(traits = project$sumstats.sel$mungedpath,
+                                    sample.prev =  project$sumstats.sel$samplePrevalence,
+                                    population.prev = project$sumstats.sel$populationPrevalence,
+                                    trait.names = project$sumstats.sel$code,
+                                    ld = project$folderpath.data.mvLDSC.ld,
+                                    wld = project$folderpath.data.mvLDSC.ld,
+                                    ldsc.log = project$setup.code.date,
+                                    stand = TRUE
+                                    )
+    saveRDS(object = project$mvLD$covstruct.mvLDSC,file = project$filepath.mvLD.mvLDSC)
+    quit(save = "no")
+  }
+  
+  if(project$clOptions$task==5 && !file.exists(project$filepath.mvLD.origHDL.piecewise)){
+    #run HDL original piecewise
+    
+    
+    
+    project$mvLD$covstruct.origHDL.piecewise<-hdl.original(traits = project$sumstats.sel$mungedpath,
+                                sample.prev = project$sumstats.sel$samplePrevalence,
+                                population.prev = project$sumstats.sel$populationPrevalence,
+                                trait.names=project$sumstats.sel$code,
+                                LD.path=project$folderpath.data.HLD.ld, jackknife = FALSE)
+    
+    saveRDS(object = project$mvLD$covstruct.origHDL.piecewise,file = project$filepath.mvLD.origHDL.piecewise)
+    quit(save = "no")
+  }
+  
+  if(project$clOptions$task==6 && !file.exists(project$filepath.mvLD.origHDL.jackknife)){
+    #run HDL original jackknife
+    
+    project$mvLD$covstruct.origHDL.jackknife<-hdl.original(traits = project$sumstats.sel$mungedpath,
+                                sample.prev = project$sumstats.sel$samplePrevalence,
+                                population.prev = project$sumstats.sel$populationPrevalence,
+                                trait.names=project$sumstats.sel$code,
+                                LD.path=project$folderpath.data.HLD.ld, jackknife = TRUE)
+    
+    saveRDS(object = project$mvLD$covstruct.origHDL.jackknife,file = project$filepath.mvLD.origHDL.jackknife)
+    quit(save = "no")
+  }
+  
+  #save the mvLD output
   saveRDS(object = project$mvLD,file = project$filepath.mvLD)
-  print("Multivariate LD correction is done now and the result should have been saved into a file.")
+  print("Multivariate LD correction is done now and the resulting covariance structure should have been saved into a file.")
   
 }
+
+#some additional calculations
+
+#prouce the standard errors of S (variances and covariances) from the diagonal of V (contains both).
+  project$mvLD$covstruct.mvLDSC$S.k<-nrow(project$mvLD$covstruct.mvLDSC$S)
+  project$mvLD$covstruct.mvLDSC$S.SE<-matrix(0, project$mvLD$covstruct.mvLDSC$S.k, project$mvLD$covstruct.mvLDSC$S.k)
+  project$mvLD$covstruct.mvLDSC$S.SE[lower.tri(project$mvLD$covstruct.mvLDSC$S.SE,diag=TRUE)] <-sqrt(diag(project$mvLD$covstruct.mvLDSC$V))
+  project$mvLD$covstruct.mvLDSC$S_Stand.SE<-matrix(0, project$mvLD$covstruct.mvLDSC$S.k, project$mvLD$covstruct.mvLDSC$S.k)
+  project$mvLD$covstruct.mvLDSC$S_Stand.SE[lower.tri(project$mvLD$covstruct.mvLDSC$S_Stand.SE,diag=TRUE)] <-sqrt(diag(project$mvLD$covstruct.mvLDSC$V_Stand))
+  
+  project$mvLD$covstruct.HDL.piecewise$S.k<-nrow(project$mvLD$covstruct.HDL.piecewise$S)
+  project$mvLD$covstruct.HDL.piecewise$S.SE<-matrix(0, project$mvLD$covstruct.HDL.piecewise$S.k, project$mvLD$covstruct.HDL.piecewise$S.k)
+  project$mvLD$covstruct.HDL.piecewise$S.SE[lower.tri(project$mvLD$covstruct.HDL.piecewise$S.SE,diag=TRUE)] <-sqrt(diag(project$mvLD$covstruct.HDL.piecewise$V))
+  project$mvLD$covstruct.HDL.piecewise$S_Stand.SE<-matrix(0, project$mvLD$covstruct.HDL.piecewise$S.k, project$mvLD$covstruct.HDL.piecewise$S.k)
+  project$mvLD$covstruct.HDL.piecewise$S_Stand.SE[lower.tri(project$mvLD$covstruct.HDL.piecewise$S_Stand.SE,diag=TRUE)] <-sqrt(diag(project$mvLD$covstruct.HDL.piecewise$V_Stand))
+
+#add newly computed heritabilities to the selected summary statistics table
+for(iTrait in 1:nrow(project$sumstats.sel)) {
+  project$sumstats.sel$h2.liability[iTrait]<-project$mvLD$covstruct.HDL.jackknife$S[[iTrait,iTrait]]
+  # for(iTrait2 in 1:iTrait) {
+  #   mvLDSC$cor.test[[iTrait,iTrait2]]<-cortest(R1 = mvLDSC$output$S[[iTrait,iTrait2]], n1 = mvLDSC$output$N[iTrait,iTrait2],)
+  # }
+}
+
+```
+
+# Plots of trait rg using different LD methods
+
+```{r display ld rg, fig.width=9, fig.height=6, out.width="1000px", out.height="1200px", purl=FALSE}
+#install.packages("cowplot")
+library(cowplot)
+
+
+project$functions$plot.rg.dot<-function(df,xvar,rg,rg.se=NULL, xlab="xvar"){
+
+plotToReturn<-ggplot(
+  data = df, 
+  mapping = 
+         aes(x = xvar,
+             y = abs(rg))) +
+         geom_point(
+             aes(
+             colour=rg.se,
+             size=2   #100*h.se.mean
+             )
+           ) +
+  
+  geom_label_repel(aes(
+    label=as.character(paste0(name,"\n[",round(xvar,digits = 2),",",round(rg,digits = 2),"]"  ))
+    #label=as.character(paste0(name,"\n[",round(h.mean,digits = 2),",",round(rg,digits = 2),"(nstd:",round(h.se.mean,digits = 2),")]"  ))
+    ),
+                  box.padding   = 0.5,
+                  point.padding = 0.2,
+                  segment.color = theme.color$contrastDark1,
+                  label.size = 0,
+                  size = 3,
+                  segment.size = 0,
+                  segment.alpha = 0.7
+                  ) +
+  
+  #scale_size_continuous(range = c(2,30), guide = FALSE) +
+  
+  scale_color_gradientn(colours = c(theme.color$contrastDark3,theme.color$contrastLight3)) +
+  
+  geom_hline(
+    yintercept = 0,
+    color = theme.color$contrastDark2,
+    size=1,
+    linetype="twodash") +
+  
+  labs(y = expression(~abs(r[g])),
+       x = xlab
+  ) +
+  theme_bw() + 
+  theme(
+    axis.text=element_text(size=18),
+    axis.title=element_text(size=20,face="bold"),
+    legend.text=element_text(size=20),
+    legend.title=element_text(size=18,face="bold")
+    )
+
+return(plotToReturn)
+
+}
+
+project$functions$plot.rg.dot.multi<-function(S,S.se,S.std,S.std.se,plotTitle,plotSubtitle){
+  n.traits<-length(S[1,])
+  vh<-diag(S)
+  vh.se<-diag(S.se)
+  #View(S.std)
+  
+  S.h.mean<-matrix(data=NA,nrow = n.traits, ncol = n.traits)
+  S.absdiff<-matrix(data=NA,nrow = n.traits, ncol = n.traits)
+  S.h.se.mean<-matrix(data=NA,nrow = n.traits, ncol = n.traits)
+  S.names<-matrix(data=NA,nrow = n.traits, ncol = n.traits)
+  for(traiti in 1:n.traits){
+    for(traitj in 1:n.traits){
+      S.h.mean[traiti,traitj]<-(vh[traiti]+vh[traitj])/2
+      S.absdiff[traiti,traitj]<-abs(vh[traiti]-vh[traitj])
+      S.h.se.mean[traiti,traitj]<-(vh.se[traiti]+vh.se[traitj])/2
+      S.names[traiti,traitj]<-paste0(colnames(S)[traiti],"_",colnames(S)[traitj])
+    }
+  }
+  # View(S.h.mean)
+  # View(S.h.se.mean)
+  # View(S.se)
+  # View(S.absdiff)
+  
+  varNames<-S.names[lower.tri(S.names)]
+  varRg<-S.std[lower.tri(S.std)]
+  varRgse<-S.std.se[lower.tri(S.std.se)]
+  varHm<-S.h.mean[lower.tri(S.h.mean)]
+  varHAbsdiff<-S.absdiff[lower.tri(S.absdiff)]
+  varHsem<-S.h.se.mean[lower.tri(S.h.se.mean)]
+  
+  #View(varNames)
+  #View(varRg)
+  #View(varHm)
+  #View(varHm)
+  
+  df<-data.frame(name = varNames, rg= varRg, h.mean = varHm,  h.absdiff=varHAbsdiff, h.se.mean=varHsem, rg.se=varRgse)
+  #View(df)
+  
+  pTitle<-ggplot() +
+    labs(title = plotTitle, subtitle = plotSubtitle) + theme_minimal()
+  
+  p1<-project$functions$plot.rg.dot(df = df, rg = df$rg, xvar = df$h.mean, rg.se = df$rg.se, xlab="Mean trait SNP heritability, liability scale")
+  
+  p2<-project$functions$plot.rg.dot(df = df, rg = df$rg, xvar = df$h.absdiff, rg.se = df$rg.se, xlab="Absolute difference in trait SNP heritability, liability scale")
+  
+  p3<-project$functions$plot.rg.dot(df = df, rg = df$rg, xvar = df$rg.se, rg.se = df$rg.se, xlab="SNP-based genetic correlations, standard error, liability scale")
+  
+  cp <- plot_grid(p1, p2, p3, labels = c("A","B","C"), label_size = 24, ncol = 1)
+  #cp <- plot_grid(pTitle,cp, ncol = 1)
+  return(cp)
+  
+  
+}
+
+# S<-project$mvLD$covstruct.mvLDSC$S
+# S.se<-project$mvLD$covstruct.mvLDSC$S.SE
+# S.std<-project$mvLD$covstruct.mvLDSC$S_Stand
+# S.std.se<-project$mvLD$covstruct.mvLDSC$S_Stand.SE
+# plotTitle<-"mvLDSC"
+# plotSubtitle<-"LD-score regression method"
+
+plotRg.mvLDSC<-project$functions$plot.rg.dot.multi(
+  S = project$mvLD$covstruct.mvLDSC$S,
+  S.se = project$mvLD$covstruct.mvLDSC$S.SE,
+  S.std = project$mvLD$covstruct.mvLDSC$S_Stand,
+  S.std.se = project$mvLD$covstruct.mvLDSC$S_Stand.SE,
+  plotTitle = "mvLDSC",
+  plotSubtitle = "LD-score regression method")
+plotRg.mvLDSC
+png(filename = paste0(project$folderpath.plots,"/","ldscoremethod.rg.","mvLDSC",".png"), width = 1200, height = 1400)
+  plotRg.mvLDSC
+dev.off()
+
+plotRg.mvLDSC<-project$functions$plot.rg.dot.multi(
+  S = project$mvLD$covstruct.HDL.jackknife,
+  S.se = project$mvLD$covstruct.mvLDSC$S.SE,
+  S.std = project$mvLD$covstruct.mvLDSC$S_Stand,
+  S.std.se = project$mvLD$covstruct.mvLDSC$S_Stand.SE,
+  plotTitle = "mvLDSC",
+  plotSubtitle = "LD-score regression method")
+plotRg.mvLDSC
+png(filename = paste0(project$folderpath.plots,"/","ldscoremethod.rg.","mvLDSC",".png"), width = 1200, height = 1400)
+  plotRg.mvLDSC
+dev.off()
+
+
+```
+
+
+
+# Improved annotation of chosen datasets
+
+```{r improved annotation of chosen datasets, fig.width=9, fig.height=6, out.width="1600px", out.height="1000px"}
+#skim(project$sumstats.sel)
+project$sumstats.sel.table<-project$sumstats.sel[,c("gwas_name.nice","dependent_variable","n_total","reference_year","samplePrevalence","populationPrevalence","h2.liability")]
+rownames(project$sumstats.sel.table)<-NULL #Remove the rowname column
+
+#project$sumstats.sel.table
+
+project$plots.sumstats.sel.table<-project$sumstats.sel.table %>% 
+  gt() %>% 
+  fmt_number(columns = vars(samplePrevalence, populationPrevalence), decimals = 2) %>%
+  fmt_number(columns = vars(h2.liability), decimals = 3) %>%
+  fmt_number(columns = vars(n_total), decimals = 0) %>%
+  tab_header(
+    title = "Selected GWAS summary statistics datasets"
+  ) %>% cols_label(
+    gwas_name.nice = "Trait",
+    #ancestry = "Ancestry",
+    #sex = "Sex",
+    dependent_variable = "Dependent variable",
+    n_total = "Total number of participants",
+    reference_year = "Reference year",
+    samplePrevalence = "Sample prevalence",
+    populationPrevalence = "Population prevalence",
+    h2.liability = html("h<sup>2</sup><sub>SNP,liability scale</sub>")
+    
+  ) %>%
+  tab_style(
+    style = cell_text(size = px(12)),
+    locations = cells_column_labels(everything())       
+  ) %>%
+  tab_style(
+    style = cell_text(size = px(12),weight = "bold"),
+    locations = cells_body(everything())        
+  )
+
+project$plots.sumstats.sel.table
+
+gtsave(data = project$plots.sumstats.sel.table, filename = paste0(project$folderpath.plots,"/sumstats.sel.table.rtf"))
+
 
 ```
