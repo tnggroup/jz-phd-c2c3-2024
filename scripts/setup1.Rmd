@@ -348,7 +348,7 @@ project$sumstats.sel.code<-c("DEPR05","ANXI03","NEUR01","TIRE01","SUBJ01","ALCD0
 project$sumstats.sel<-project$sumstats[which(project$sumstats$code %in% project$sumstats.sel.code),]
 project$sumstats.sel$code<-project$sumstats.sel$code.trait
 project$sumstats.sel[,c("code","n_total","pmid","reference_doi","samplePrevalence","populationPrevalence","mungedpath")]
-
+project$k.sel<-nrow(project$sumstats.sel)
 #View(project$sumstats.sel[,c("code","n_total","pmid","reference_doi","samplePrevalence","populationPrevalence","mungedpath")])
 
 ```
@@ -375,7 +375,7 @@ if (file.exists(project$filepath.mvLD)) {
   print("Using existing covariance structure from previous HDL computation.")
   project$mvLD<-readRDS(file=project$filepath.mvLD)
 } else {
-  print("Running multivariate LD regression with HDL. This might take a while. If this runs for too long you may want to abort the process.")
+  print("Running (or reading ready results from) multivariate LD regression with HDL. This might take a while. If the procedure runs for too long you may want to abort the process.")
   project$mvLD<-c()
   
   if(project$clOptions$task==1){
@@ -394,8 +394,10 @@ if (file.exists(project$filepath.mvLD)) {
     project$mvLD$covstruct.HDL.piecewise<-readRDS(file=project$filepath.mvLD.HDL.piecewise)
     project$mvLD$covstruct.HDL.jackknife<-readRDS(file=project$filepath.mvLD.HDL.jackknife)
     project$mvLD$covstruct.mvLDSC<-readRDS(file=project$filepath.mvLD.mvLDSC)
-    project$mvLD$covstruct.origHDL.jackknife<-readRDS(file=project$filepath.mvLD.origHDL.jackknife)
     project$mvLD$covstruct.origHDL.piecewise<-readRDS(file=project$filepath.mvLD.origHDL.piecewise)
+    project$mvLD$covstruct.origHDL.jackknife<-readRDS(file=project$filepath.mvLD.origHDL.jackknife)
+    project$mvLD$covstruct.origHDL_liab.piecewise <-readRDS(file=project$filepath.mvLD.origHDL_liab.piecewise)
+    project$mvLD$covstruct.origHDL_liab.jackknife<-readRDS(file=project$filepath.mvLD.origHDL_liab.jackknife)
     
   }
   
@@ -453,7 +455,7 @@ if (file.exists(project$filepath.mvLD)) {
                                 sample.prev = project$sumstats.sel$samplePrevalence,
                                 population.prev = project$sumstats.sel$populationPrevalence,
                                 trait.names=project$sumstats.sel$code,
-                                LD.path=project$folderpath.data.HLD.ld, jackknife = FALSE)
+                                LD.path=project$folderpath.data.HLD.ld, jackknife = FALSE, liabilityScale = FALSE)
     
     saveRDS(object = project$mvLD$covstruct.origHDL.piecewise,file = project$filepath.mvLD.origHDL.piecewise)
     quit(save = "no")
@@ -466,7 +468,7 @@ if (file.exists(project$filepath.mvLD)) {
                                 sample.prev = project$sumstats.sel$samplePrevalence,
                                 population.prev = project$sumstats.sel$populationPrevalence,
                                 trait.names=project$sumstats.sel$code,
-                                LD.path=project$folderpath.data.HLD.ld, jackknife = TRUE)
+                                LD.path=project$folderpath.data.HLD.ld, jackknife = TRUE, liabilityScale = FALSE)
     
     saveRDS(object = project$mvLD$covstruct.origHDL.jackknife,file = project$filepath.mvLD.origHDL.jackknife)
     quit(save = "no")
@@ -509,40 +511,63 @@ if (file.exists(project$filepath.mvLD)) {
   
 }
 
-#some additional calculations
+#Additional computations
 
-#prouce the standard errors of S (variances and covariances) from the diagonal of V (contains both).
-  project$mvLD$covstruct.mvLDSC$S.k<-nrow(project$mvLD$covstruct.mvLDSC$S)
-  project$mvLD$covstruct.mvLDSC$S.SE<-matrix(0, project$mvLD$covstruct.mvLDSC$S.k, project$mvLD$covstruct.mvLDSC$S.k)
+#missing column names - fix in the GSEM method!!!
+colnames(project$mvLD$covstruct.origHDL.piecewise$S) <- project$sumstats.sel$code
+colnames(project$mvLD$covstruct.origHDL.jackknife$S) <- project$sumstats.sel$code
+
+#retrieve the standard errors of S (variances and covariances) from the diagonal of V (contains both).
+  project$mvLD$covstruct.mvLDSC$S.SE<-matrix(0, project$k.sel, project$k.sel)
+  project$mvLD$covstruct.mvLDSC$S_Stand.SE<-matrix(0, project$k.sel, project$k.sel)
   project$mvLD$covstruct.mvLDSC$S.SE[lower.tri(project$mvLD$covstruct.mvLDSC$S.SE,diag=TRUE)] <-sqrt(diag(project$mvLD$covstruct.mvLDSC$V))
-  project$mvLD$covstruct.mvLDSC$S_Stand.SE<-matrix(0, project$mvLD$covstruct.mvLDSC$S.k, project$mvLD$covstruct.mvLDSC$S.k)
   project$mvLD$covstruct.mvLDSC$S_Stand.SE[lower.tri(project$mvLD$covstruct.mvLDSC$S_Stand.SE,diag=TRUE)] <-sqrt(diag(project$mvLD$covstruct.mvLDSC$V_Stand))
   
-  # project$mvLD$covstruct.HDL.piecewise$S.k<-nrow(project$mvLD$covstruct.HDL.piecewise$S)
-  # project$mvLD$covstruct.HDL.piecewise$S.SE<-matrix(0, project$mvLD$covstruct.HDL.piecewise$S.k, project$mvLD$covstruct.HDL.piecewise$S.k)
-  # project$mvLD$covstruct.HDL.piecewise$S.SE[lower.tri(project$mvLD$covstruct.HDL.piecewise$S.SE,diag=TRUE)] <-sqrt(diag(project$mvLD$covstruct.HDL.piecewise$V))
-  # project$mvLD$covstruct.HDL.piecewise$S_Stand.SE<-matrix(0, project$mvLD$covstruct.HDL.piecewise$S.k, project$mvLD$covstruct.HDL.piecewise$S.k)
-  # project$mvLD$covstruct.HDL.piecewise$S_Stand.SE[lower.tri(project$mvLD$covstruct.HDL.piecewise$S_Stand.SE,diag=TRUE)] <-sqrt(diag(project$mvLD$covstruct.HDL.piecewise$V_Stand))
-
+  project$mvLD$covstruct.HDL.piecewise$S.SE<-matrix(0, project$k.sel, project$k.sel)
+  project$mvLD$covstruct.HDL.piecewise$S_Stand.SE<-matrix(0, project$k.sel, project$k.sel)
+  project$mvLD$covstruct.HDL.piecewise$S.SE[lower.tri(project$mvLD$covstruct.HDL.piecewise$S.SE,diag=TRUE)] <-sqrt(diag(project$mvLD$covstruct.HDL.piecewise$V))
+  project$mvLD$covstruct.HDL.piecewise$S_Stand.SE[lower.tri(project$mvLD$covstruct.HDL.piecewise$S_Stand.SE,diag=TRUE)] <-sqrt(diag(project$mvLD$covstruct.HDL.piecewise$V_Stand))
+  
+  project$mvLD$covstruct.HDL.jackknife$S.SE<-matrix(0, project$k.sel, project$k.sel)
+  project$mvLD$covstruct.HDL.jackknife$S_Stand.SE<-matrix(0, project$k.sel, project$k.sel)
+  project$mvLD$covstruct.HDL.jackknife$S.SE[lower.tri(project$mvLD$covstruct.HDL.jackknife$S.SE,diag=TRUE)] <-sqrt(diag(project$mvLD$covstruct.HDL.jackknife$V))
+  project$mvLD$covstruct.HDL.jackknife$S_Stand.SE[lower.tri(project$mvLD$covstruct.HDL.jackknife$S_Stand.SE,diag=TRUE)] <-sqrt(diag(project$mvLD$covstruct.HDL.jackknife$V_Stand))
+  
 #add newly computed heritabilities to the selected summary statistics table
-for(iTrait in 1:nrow(project$sumstats.sel)) {
-  project$sumstats.sel$h2.liability[iTrait]<-project$mvLD$covstruct.HDL.jackknife$S[[iTrait,iTrait]]
-  # for(iTrait2 in 1:iTrait) {
-  #   mvLDSC$cor.test[[iTrait,iTrait2]]<-cortest(R1 = mvLDSC$output$S[[iTrait,iTrait2]], n1 = mvLDSC$output$N[iTrait,iTrait2],)
-  # }
-}
+project$sumstats.sel$h2.liability_mvLDSC<-diag(project$mvLD$covstruct.mvLDSC$S)
+project$sumstats.sel$h2.se.liability_mvLDSC<-diag(project$mvLD$covstruct.mvLDSC$S.SE)
+project$sumstats.sel$h2.liability_HDL.piecewise<-diag(project$mvLD$covstruct.HDL.piecewise$S)
+project$sumstats.sel$h2.se.liability_HDL.piecewise<-diag(project$mvLD$covstruct.HDL.piecewise$S.SE) 
+project$sumstats.sel$h2.liability_HDL.jackknife<-diag(project$mvLD$covstruct.HDL.jackknife$S)
+project$sumstats.sel$h2.se.liability_HDL.jackknife<-diag(project$mvLD$covstruct.HDL.jackknife$S.SE)
+project$sumstats.sel$h2.observed_origHDL.piecewise<-diag(project$mvLD$covstruct.origHDL.piecewise$S)
+project$sumstats.sel$h2.se.observed_origHDL.piecewise<-diag(project$mvLD$covstruct.origHDL.piecewise$S.se)
+project$sumstats.sel$h2.observed_origHDL.jackknife<-diag(project$mvLD$covstruct.origHDL.jackknife$S)
+project$sumstats.sel$h2.se.observed_origHDL.jackknife<-diag(project$mvLD$covstruct.origHDL.jackknife$S.se)
+project$sumstats.sel$h2.liability_origHDL.piecewise<-diag(project$mvLD$covstruct.origHDL_liab.piecewise$S)
+project$sumstats.sel$h2.se.liability_origHDL.piecewise<-diag(project$mvLD$covstruct.origHDL_liab.piecewise$S.se)
+project$sumstats.sel$h2.liability_origHDL.jackknife<-diag(project$mvLD$covstruct.origHDL_liab.jackknife$S)
+project$sumstats.sel$h2.se.liability_origHDL.jackknife<-diag(project$mvLD$covstruct.origHDL_liab.jackknife$S.se)
 
+#project$mvLD$covstruct.HDL.jackknife$complete
+
+#View(project$sumstats.sel)
+
+  
 ```
 
 # Plots of trait rg using different LD methods
 
-```{r display ld rg, fig.width=9, fig.height=6, out.width="1000px", out.height="1200px", purl=FALSE}
+```{r display ld rg, fig.width=9, fig.height=6, out.width="1200px", out.height="1400px", purl=FALSE}
 #install.packages("cowplot")
 library(cowplot)
 
-
 project$functions$plot.rg.dot<-function(df,xvar,rg,rg.se=NULL, xlab="xvar"){
 
+# if(!is.null(rg.se)){
+#   df$rg.se[which(is.na(df$rg.se))]<-0
+# }
+  
 plotToReturn<-ggplot(
   data = df, 
   mapping = 
@@ -564,7 +589,7 @@ plotToReturn<-ggplot(
                   segment.color = theme.color$contrastDark1,
                   label.size = 0,
                   size = 3,
-                  segment.size = 0,
+                  segment.size = 0.2,
                   segment.alpha = 0.7
                   ) +
   
@@ -574,9 +599,26 @@ plotToReturn<-ggplot(
   
   geom_hline(
     yintercept = 0,
+    color = "black",
+    size=0.6,
+    linetype="solid") +
+  
+  geom_hline(
+    yintercept = mean(abs(rg)),
     color = theme.color$contrastDark2,
     size=1,
     linetype="twodash") +
+  
+  geom_vline(
+    xintercept = mean(xvar),
+    color = theme.color$contrastDark4,
+    size=1,
+    linetype="twodash") +
+  
+  scale_x_continuous(breaks = sort(c(seq(ifelse(any(is.na(xvar)),0,round(min(xvar),digits = 2)),
+                                         ifelse(any(is.na(xvar)),0,round(max(xvar),digits = 2)), length.out=5),
+                                     ifelse(any(is.na(xvar)),0,round(mean(xvar), digits = 2))
+                                            ))) +
   
   labs(y = expression(~abs(r[g])),
        x = xlab
@@ -634,11 +676,11 @@ project$functions$plot.rg.dot.multi<-function(S,S.se,S.std,S.std.se,plotTitle,pl
   pTitle<-ggplot() +
     labs(title = plotTitle, subtitle = plotSubtitle) + theme_minimal()
   
-  p1<-project$functions$plot.rg.dot(df = df, rg = df$rg, xvar = df$h.mean, rg.se = df$rg.se, xlab="Mean trait SNP heritability, liability scale")
+  p1<-project$functions$plot.rg.dot(df = df, rg = df$rg, xvar = df$h.mean, rg.se = df$rg.se, xlab="Mean trait SNP heritability")
   
-  p2<-project$functions$plot.rg.dot(df = df, rg = df$rg, xvar = df$h.absdiff, rg.se = df$rg.se, xlab="Absolute difference in trait SNP heritability, liability scale")
+  p2<-project$functions$plot.rg.dot(df = df, rg = df$rg, xvar = df$h.absdiff, rg.se = df$rg.se, xlab="Absolute difference in trait SNP heritability")
   
-  p3<-project$functions$plot.rg.dot(df = df, rg = df$rg, xvar = df$rg.se, rg.se = df$rg.se, xlab="SNP-based genetic correlations, standard error, liability scale")
+  p3<-project$functions$plot.rg.dot(df = df, rg = df$rg, xvar = df$rg.se, rg.se = df$rg.se, xlab="SNP-based genetic correlations, standard error")
   
   cp <- plot_grid(p1, p2, p3, labels = c("A","B","C"), label_size = 24, ncol = 1)
   #cp <- plot_grid(pTitle,cp, ncol = 1)
@@ -666,17 +708,106 @@ png(filename = paste0(project$folderpath.plots,"/","ldscoremethod.rg.","mvLDSC",
   plotRg.mvLDSC
 dev.off()
 
-plotRg.mvLDSC<-project$functions$plot.rg.dot.multi(
-  S = project$mvLD$covstruct.HDL.jackknife,
-  S.se = project$mvLD$covstruct.mvLDSC$S.SE,
-  S.std = project$mvLD$covstruct.mvLDSC$S_Stand,
-  S.std.se = project$mvLD$covstruct.mvLDSC$S_Stand.SE,
-  plotTitle = "mvLDSC",
+#View(project$mvLD$covstruct.HDL.piecewise$S)
+#View(project$mvLD$covstruct.HDL.piecewise$S_Stand)
+
+# ratio <- tcrossprod(1 / sqrt(diag(project$mvLD$covstruct.HDL.piecewise$S)))
+# S_Stand <- project$mvLD$covstruct.HDL.piecewise$S * ratio
+
+#View(1 / sqrt(diag(project$mvLD$covstruct.HDL.piecewise$S)))
+
+plotRg.HDL.piecewise<-project$functions$plot.rg.dot.multi(
+  S = project$mvLD$covstruct.HDL.piecewise$S,
+  S.se = project$mvLD$covstruct.HDL.piecewise$S.SE,
+  S.std = project$mvLD$covstruct.HDL.piecewise$S_Stand,
+  S.std.se = project$mvLD$covstruct.HDL.piecewise$S_Stand.SE,
+  plotTitle = "GSEM HDL using piecewise",
   plotSubtitle = "LD-score regression method")
-plotRg.mvLDSC
-png(filename = paste0(project$folderpath.plots,"/","ldscoremethod.rg.","mvLDSC",".png"), width = 1200, height = 1400)
-  plotRg.mvLDSC
+plotRg.HDL.piecewise
+png(filename = paste0(project$folderpath.plots,"/","ldscoremethod.rg.","HDL.piecewise",".png"), width = 1200, height = 1400)
+  plotRg.HDL.piecewise
 dev.off()
+
+plotRg.HDL.jackknife<-project$functions$plot.rg.dot.multi(
+  S = project$mvLD$covstruct.HDL.jackknife$S,
+  S.se = project$mvLD$covstruct.HDL.jackknife$S.SE,
+  S.std = project$mvLD$covstruct.HDL.jackknife$S_Stand,
+  S.std.se = project$mvLD$covstruct.HDL.jackknife$S_Stand.SE,
+  plotTitle = "GSEM HDL using jackknife",
+  plotSubtitle = "LD-score regression method")
+plotRg.HDL.jackknife
+png(filename = paste0(project$folderpath.plots,"/","ldscoremethod.rg.","HDL.jackknife",".png"), width = 1200, height = 1400)
+  plotRg.HDL.jackknife
+dev.off()
+
+plotRg.origHDL.piecewise<-project$functions$plot.rg.dot.multi(
+  S = project$mvLD$covstruct.origHDL.piecewise$S,
+  S.se = project$mvLD$covstruct.origHDL.piecewise$S.se,
+  S.std = project$mvLD$covstruct.origHDL.piecewise$S_std,
+  S.std.se = project$mvLD$covstruct.origHDL.piecewise$S_std.se,
+  plotTitle = "Original HDL using piecewise (observed scale)",
+  plotSubtitle = "LD-score regression method")
+plotRg.origHDL.piecewise
+png(filename = paste0(project$folderpath.plots,"/","ldscoremethod.rg.","origHDL.piecewise",".png"), width = 1200, height = 1400)
+  plotRg.origHDL.piecewise
+dev.off()
+
+plotRg.origHDL.jackknife<-project$functions$plot.rg.dot.multi(
+  S = project$mvLD$covstruct.origHDL.jackknife$S,
+  S.se = project$mvLD$covstruct.origHDL.jackknife$S.se,
+  S.std = project$mvLD$covstruct.origHDL.jackknife$S_std,
+  S.std.se = project$mvLD$covstruct.origHDL.jackknife$S_std.se,
+  plotTitle = "Original HDL using jackknife (observed scale)",
+  plotSubtitle = "LD-score regression method")
+plotRg.origHDL.jackknife
+png(filename = paste0(project$folderpath.plots,"/","ldscoremethod.rg.","origHDL.jackknife",".png"), width = 1200, height = 1400)
+  plotRg.origHDL.jackknife
+dev.off()
+
+plotRg.origHDL_liab.piecewise<-project$functions$plot.rg.dot.multi(
+  S = project$mvLD$covstruct.origHDL_liab.piecewise$S,
+  S.se = project$mvLD$covstruct.origHDL_liab.piecewise$S.se,
+  S.std = project$mvLD$covstruct.origHDL_liab.piecewise$S_std,
+  S.std.se = project$mvLD$covstruct.origHDL_liab.piecewise$S_std.se,
+  plotTitle = "Original HDL using piecewise (liability scale)",
+  plotSubtitle = "LD-score regression method")
+plotRg.origHDL_liab.piecewise
+png(filename = paste0(project$folderpath.plots,"/","ldscoremethod.rg.","origHDL_liab.piecewise",".png"), width = 1200, height = 1400)
+  plotRg.origHDL_liab.piecewise
+dev.off()
+
+plotRg.origHDL_liab.jackknife<-project$functions$plot.rg.dot.multi(
+  S = project$mvLD$covstruct.origHDL_liab.jackknife$S,
+  S.se = project$mvLD$covstruct.origHDL_liab.jackknife$S.se,
+  S.std = project$mvLD$covstruct.origHDL_liab.jackknife$S_std,
+  S.std.se = project$mvLD$covstruct.origHDL_liab.jackknife$S_std.se,
+  plotTitle = "Original HDL using jackknife (observed scale)",
+  plotSubtitle = "LD-score regression method")
+plotRg.origHDL_liab.jackknife
+png(filename = paste0(project$folderpath.plots,"/","ldscoremethod.rg.","origHDL_liab.jackknife",".png"), width = 1200, height = 1400)
+  plotRg.origHDL_liab.jackknife
+dev.off()
+
+
+#View(project$mvLD$covstruct.mvLDSC$S)
+#View(project$mvLD$covstruct.mvLDSC$S.SE)
+mean(project$mvLD$covstruct.mvLDSC$S.SE[lower.tri(project$mvLD$covstruct.mvLDSC$S.SE, diag = TRUE)])
+
+#View(project$mvLD$covstruct.HDL.piecewise$S)
+#View(project$mvLD$covstruct.HDL.piecewise$S.SE)
+mean(project$mvLD$covstruct.HDL.piecewise$S.SE[lower.tri(project$mvLD$covstruct.HDL.piecewise$S.SE, diag = TRUE)])
+
+#View(project$mvLD$covstruct.HDL.jackknife$S)
+#View(project$mvLD$covstruct.HDL.jackknife$S.SE)
+mean(project$mvLD$covstruct.HDL.jackknife$S.SE[lower.tri(project$mvLD$covstruct.HDL.jackknife$S.SE, diag = TRUE)])
+
+#View(project$mvLD$covstruct.origHDL.piecewise$S)
+#View(project$mvLD$covstruct.origHDL.piecewise$S.se)
+mean(project$mvLD$covstruct.origHDL.piecewise$S.se[lower.tri(project$mvLD$covstruct.origHDL.piecewise$S.se, diag = TRUE)])
+
+#View(project$mvLD$covstruct.origHDL_liab.piecewise$S)
+#View(project$mvLD$covstruct.origHDL_liab.piecewise$S.se)
+mean(project$mvLD$covstruct.origHDL_liab.piecewise$S.se[lower.tri(project$mvLD$covstruct.origHDL_liab.piecewise$S.se, diag = TRUE)])
 
 
 ```
@@ -689,7 +820,7 @@ dev.off()
 #skim(project$sumstats.sel)
 project$sumstats.sel.table<-project$sumstats.sel[,c("gwas_name.nice","dependent_variable","n_total","reference_year","samplePrevalence","populationPrevalence","h2.liability")]
 rownames(project$sumstats.sel.table)<-NULL #Remove the rowname column
-
+View(project$sumstats.sel)
 #project$sumstats.sel.table
 
 project$plots.sumstats.sel.table<-project$sumstats.sel.table %>% 
