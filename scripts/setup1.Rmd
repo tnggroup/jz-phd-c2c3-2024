@@ -42,6 +42,10 @@ This analysis script is meant to contain most of the analysis steps performed in
 #devtools::install_github("zhenin/HDL/HDL@77cb9d0984d1302e40bfd871491e292f8f09f49d")
 #remove.packages("HDL")
 #install.packages("optparse")
+#remove.packages("semPlate")
+#devtools::install_github(repo = "k19049801/semPlate", host="github.kcl.ac.uk", ) #does not work
+#devtools::install_local(path =  paste(project$folderpath.include,"/semPlate_0.1.tar.gz"))
+#Better install semPlate from the semPlate R-studio package project
 
 library(skimr)
 library(psych)
@@ -51,10 +55,10 @@ library(tidyverse)
 library(ggrepel)
 library(gt)
 #library(kableExtra)
-#library(corrplot) #do not run on cluster, does not work?
 library(GenomicSEM)
 library(HDL)
 library(optparse)
+library(stats)
 
 ```
 
@@ -83,6 +87,17 @@ project$functions<-c()
 project$host<-project$clOptions$location #this is the place where the code is run [local,cluster] read from command line - default local
 project$seting.refreshPrepareSummaryStatistics<-FALSE
 project$setting.refreshLatentFactorGWAS<-FALSE
+
+#color theme settings
+theme.color<-c()
+theme.color$contrastDark1<-"#2D2D2D"
+theme.color$contrastDark2<-"#CC99CC"
+theme.color$contrastDark3<-"#6699CC"
+theme.color$contrastDark4<-"#99CC99"
+theme.color$contrastLight1<-"#66CCCC"
+theme.color$contrastLight2<-"#FFCC66"
+theme.color$contrastLight3<-"#F99157"
+theme.color$contrastLight4<-"#F2777A"
 
 #file path settings
 ##set project shared working directory **change if you have other settings**
@@ -119,6 +134,8 @@ if(project$host=="local") {
   project$folderpath.data.sumstats.munged<-normalizePath("/mnt/lustre/groups/ukbiobank/sumstats/munged_noMHC")
 }
 
+project$filename.suffix.data.sumstats.munged<-"_noMHC.sumstats"
+
 ##LD scores datasets folders (these strings need to have a trailing slash for the GSEM LDSC to work)
 project$folderpath.data.mvLDSC.ld <- paste0(project$folderpath.data,"/eur_w_ld_chr/") #LD-scores
 project$folderpath.data.mvLDSC.wld <- paste0(project$folderpath.data,"/eur_w_ld_chr/") #Weights, if different from LD-scores
@@ -138,16 +155,19 @@ project$filepath.r<-normalizePath(paste0(project$folderpath.scripts,"/",project$
 ##Reference file for calculating SNP variance across traits. Used in the preparation step for performing latent factor GWAS.
 project$filepath.genomeReference<-normalizePath(paste0(project$folderpath.data,"/","reference.1000G.maf.0.005.txt")) #1000 genomes phase 3
 
-#color theme settings
-theme.color<-c()
-theme.color$contrastDark1<-"#2D2D2D"
-theme.color$contrastDark2<-"#CC99CC"
-theme.color$contrastDark3<-"#6699CC"
-theme.color$contrastDark4<-"#99CC99"
-theme.color$contrastLight1<-"#66CCCC"
-theme.color$contrastLight2<-"#FFCC66"
-theme.color$contrastLight3<-"#F99157"
-theme.color$contrastLight4<-"#F2777A"
+##CFA settings 
+project$cfa.absCutoff.2F.oblq=c(0.30,0.35,0.4) #for promax
+project$cfa.absCutoff.2F.orth=c(0.35,0.4,0.45) #for varimax
+project$cfa.absCutoff.3F.oblq=c(0.2,0.3,0.4) #for promax
+project$cfa.absCutoff.3F.orth=c(0.2,0.3,0.4,0.5) #for varimax
+
+project$cfa.estimator=c("ML","DWLS")
+project$cfa.orthogonal=c(TRUE,FALSE)
+project$cfa.fixedLoadings=c(TRUE,FALSE) 
+
+##latent factor GWAS filter settings
+project$info.filter=.6
+project$maf.filter=0.01
 
 setwd(dir = normalizePath(project$folderpath.workingDirectory))
 
@@ -253,6 +273,11 @@ mutate(
 project$sumstats <- project$sumstats %>%
 mutate(
   mungedpath=paste0(project$folderpath.data.sumstats.munged,"/",code,"_noMHC.sumstats.gz")
+       )
+
+project$sumstats <- project$sumstats %>%
+mutate(
+  cleanedpath=paste0(project$folderpath.data.sumstats.cleaned,"/",code,".gz")
        )
 
 ##add reference year
@@ -365,10 +390,8 @@ project$filepath.mvLD<-paste0(project$folderpath.workingDirectory,"/","mvLD.",pr
 project$filepath.mvLD.HDL.piecewise<-paste0(project$folderpath.workingDirectory,"/","mvLD.",project$setup.code,".HDL.piecewise.Rds")
 project$filepath.mvLD.HDL.jackknife<-paste0(project$folderpath.workingDirectory,"/","mvLD.",project$setup.code,".HDL.jackknife.Rds")
 project$filepath.mvLD.mvLDSC<-paste0(project$folderpath.workingDirectory,"/","mvLD.",project$setup.code,".mvLDSC.Rds")
-project$filepath.mvLD.origHDL.piecewise<-paste0(project$folderpath.workingDirectory,"/","mvLD.",project$setup.code,".origHDL.piecewise.Rds")
-project$filepath.mvLD.origHDL.jackknife<-paste0(project$folderpath.workingDirectory,"/","mvLD.",project$setup.code,".origHDL.jackknife.Rds")
-project$filepath.mvLD.origHDL_liab.piecewise<-paste0(project$folderpath.workingDirectory,"/","mvLD.",project$setup.code,".origHDL_liab.piecewise.Rds")
-project$filepath.mvLD.origHDL_liab.jackknife<-paste0(project$folderpath.workingDirectory,"/","mvLD.",project$setup.code,".origHDL_liab.jackknife.Rds")
+project$filepath.mvLD.origHDL<-paste0(project$folderpath.workingDirectory,"/","mvLD.",project$setup.code,".origHDL.Rds")
+project$filepath.mvLD.origHDL.liabilityScale<-paste0(project$folderpath.workingDirectory,"/","mvLD.",project$setup.code,".origHDL.liabilityScale.Rds")
 
 
 if (file.exists(project$filepath.mvLD)) {
@@ -394,11 +417,8 @@ if (file.exists(project$filepath.mvLD)) {
     project$mvLD$covstruct.HDL.piecewise<-readRDS(file=project$filepath.mvLD.HDL.piecewise)
     project$mvLD$covstruct.HDL.jackknife<-readRDS(file=project$filepath.mvLD.HDL.jackknife)
     project$mvLD$covstruct.mvLDSC<-readRDS(file=project$filepath.mvLD.mvLDSC)
-    project$mvLD$covstruct.origHDL.piecewise<-readRDS(file=project$filepath.mvLD.origHDL.piecewise)
-    project$mvLD$covstruct.origHDL.jackknife<-readRDS(file=project$filepath.mvLD.origHDL.jackknife)
-    project$mvLD$covstruct.origHDL_liab.piecewise <-readRDS(file=project$filepath.mvLD.origHDL_liab.piecewise)
-    project$mvLD$covstruct.origHDL_liab.jackknife<-readRDS(file=project$filepath.mvLD.origHDL_liab.jackknife)
-    
+    project$mvLD$covstruct.origHDL<-readRDS(file=project$filepath.mvLD.origHDL)
+    project$mvLD$covstruct.origHDL.liabilityScale<-readRDS(file=project$filepath.mvLD.origHDL.liabilityScale)
   }
   
   
@@ -446,57 +466,25 @@ if (file.exists(project$filepath.mvLD)) {
     quit(save = "no")
   }
   
-  if(project$clOptions$task==5 && !file.exists(project$filepath.mvLD.origHDL.piecewise)){
-    #run HDL original piecewise
-    
-    
-    
-    project$mvLD$covstruct.origHDL.piecewise<-hdl.original(traits = project$sumstats.sel$mungedpath,
-                                sample.prev = project$sumstats.sel$samplePrevalence,
-                                population.prev = project$sumstats.sel$populationPrevalence,
+  if(project$clOptions$task==5 && !file.exists(project$filepath.mvLD.origHDL)){
+    #run HDL original (using the original jackknife procedure)
+    project$mvLD$covstruct.origHDL<-hdl.original(traits = project$sumstats.sel$mungedpath,
                                 trait.names=project$sumstats.sel$code,
-                                LD.path=project$folderpath.data.HLD.ld, jackknife = FALSE, liabilityScale = FALSE)
+                                LD.path=project$folderpath.data.HLD.ld, liabilityScale = FALSE)
     
-    saveRDS(object = project$mvLD$covstruct.origHDL.piecewise,file = project$filepath.mvLD.origHDL.piecewise)
+    saveRDS(object = project$mvLD$covstruct.origHDL,file = project$filepath.mvLD.origHDL)
     quit(save = "no")
   }
   
-  if(project$clOptions$task==6 && !file.exists(project$filepath.mvLD.origHDL.jackknife)){
-    #run HDL original jackknife
-    
-    project$mvLD$covstruct.origHDL.jackknife<-hdl.original(traits = project$sumstats.sel$mungedpath,
+  if(project$clOptions$task==6 && !file.exists(project$filepath.mvLD.origHDL.liabilityScale)){
+    #run HDL original (using the original jackknife procedure) with conversion to liability scale
+    project$mvLD$covstruct.origHDL.liabilityScale<-hdl.original(traits = project$sumstats.sel$mungedpath,
                                 sample.prev = project$sumstats.sel$samplePrevalence,
                                 population.prev = project$sumstats.sel$populationPrevalence,
                                 trait.names=project$sumstats.sel$code,
-                                LD.path=project$folderpath.data.HLD.ld, jackknife = TRUE, liabilityScale = FALSE)
+                                LD.path=project$folderpath.data.HLD.ld, liabilityScale = TRUE)
     
-    saveRDS(object = project$mvLD$covstruct.origHDL.jackknife,file = project$filepath.mvLD.origHDL.jackknife)
-    quit(save = "no")
-  }
-  
-   if(project$clOptions$task==7 && !file.exists(project$filepath.mvLD.origHDL_liab.piecewise)){
-    #run HDL original piecewise using liability scale
-    
-    project$mvLD$covstruct.origHDL_liab.piecewise<-hdl.original(traits = project$sumstats.sel$mungedpath,
-                                sample.prev = project$sumstats.sel$samplePrevalence,
-                                population.prev = project$sumstats.sel$populationPrevalence,
-                                trait.names=project$sumstats.sel$code,
-                                LD.path=project$folderpath.data.HLD.ld, jackknife = FALSE, liabilityScale=TRUE)
-    
-    saveRDS(object = project$mvLD$covstruct.origHDL_liab.piecewise,file = project$filepath.mvLD.origHDL_liab.piecewise)
-    quit(save = "no")
-   }
-  
-  if(project$clOptions$task==8 && !file.exists(project$filepath.mvLD.origHDL_liab.jackknife)){
-    #run HDL original jackknife using liability scale
-    
-    project$mvLD$covstruct.origHDL_liab.jackknife<-hdl.original(traits = project$sumstats.sel$mungedpath,
-                                sample.prev = project$sumstats.sel$samplePrevalence,
-                                population.prev = project$sumstats.sel$populationPrevalence,
-                                trait.names=project$sumstats.sel$code,
-                                LD.path=project$folderpath.data.HLD.ld, jackknife = TRUE, liabilityScale=TRUE)
-    
-    saveRDS(object = project$mvLD$covstruct.origHDL_liab.jackknife,file = project$filepath.mvLD.origHDL_liab.jackknife)
+    saveRDS(object = project$mvLD$covstruct.origHDL.liabilityScale,file = project$filepath.mvLD.origHDL.liabilityScale)
     quit(save = "no")
   }
   
@@ -513,9 +501,8 @@ if (file.exists(project$filepath.mvLD)) {
 
 #Additional computations
 
-#missing column names - fix in the GSEM method!!!
-colnames(project$mvLD$covstruct.origHDL.piecewise$S) <- project$sumstats.sel$code
-colnames(project$mvLD$covstruct.origHDL.jackknife$S) <- project$sumstats.sel$code
+#missing column names - should be fixed in the GSEM method by now.
+#colnames(project$mvLD$covstruct.origHDL$S) <- project$sumstats.sel$code
 
 #retrieve the standard errors of S (variances and covariances) from the diagonal of V (contains both).
   project$mvLD$covstruct.mvLDSC$S.SE<-matrix(0, project$k.sel, project$k.sel)
@@ -540,14 +527,15 @@ project$sumstats.sel$h2.liability_HDL.piecewise<-diag(project$mvLD$covstruct.HDL
 project$sumstats.sel$h2.se.liability_HDL.piecewise<-diag(project$mvLD$covstruct.HDL.piecewise$S.SE) 
 project$sumstats.sel$h2.liability_HDL.jackknife<-diag(project$mvLD$covstruct.HDL.jackknife$S)
 project$sumstats.sel$h2.se.liability_HDL.jackknife<-diag(project$mvLD$covstruct.HDL.jackknife$S.SE)
-project$sumstats.sel$h2.observed_origHDL.piecewise<-diag(project$mvLD$covstruct.origHDL.piecewise$S)
-project$sumstats.sel$h2.se.observed_origHDL.piecewise<-diag(project$mvLD$covstruct.origHDL.piecewise$S.se)
-project$sumstats.sel$h2.observed_origHDL.jackknife<-diag(project$mvLD$covstruct.origHDL.jackknife$S)
-project$sumstats.sel$h2.se.observed_origHDL.jackknife<-diag(project$mvLD$covstruct.origHDL.jackknife$S.se)
-project$sumstats.sel$h2.liability_origHDL.piecewise<-diag(project$mvLD$covstruct.origHDL_liab.piecewise$S)
-project$sumstats.sel$h2.se.liability_origHDL.piecewise<-diag(project$mvLD$covstruct.origHDL_liab.piecewise$S.se)
-project$sumstats.sel$h2.liability_origHDL.jackknife<-diag(project$mvLD$covstruct.origHDL_liab.jackknife$S)
-project$sumstats.sel$h2.se.liability_origHDL.jackknife<-diag(project$mvLD$covstruct.origHDL_liab.jackknife$S.se)
+project$sumstats.sel$h2.observed_origHDL<-diag(project$mvLD$covstruct.origHDL$S)
+project$sumstats.sel$h2.se.observed_origHDL<-diag(project$mvLD$covstruct.origHDL$S.se)
+project$sumstats.sel$h2.liability_origHDL<-diag(project$mvLD$covstruct.origHDL.liabilityScale$S)
+#project$sumstats.sel$h2.se.liability_origHDL<-diag(project$mvLD$covstruct.origHDL.liabilityScale$S.se)
+
+# #add formatted heritability strings
+# project$sumstats.sel<-project$sumstats.sel %>% mutate(
+#   h2.liability_mvLDSC_s = paste0(h2.liability_mvLDSC,"(",h2.se.liability_mvLDSC,")")
+# )
 
 #project$mvLD$covstruct.HDL.jackknife$complete
 
@@ -728,6 +716,9 @@ png(filename = paste0(project$folderpath.plots,"/","ldscoremethod.rg.","HDL.piec
   plotRg.HDL.piecewise
 dev.off()
 
+#View(project$mvLD$covstruct.HDL.jackknife$S)
+#View(project$mvLD$covstruct.HDL.jackknife$S_Stand)
+
 plotRg.HDL.jackknife<-project$functions$plot.rg.dot.multi(
   S = project$mvLD$covstruct.HDL.jackknife$S,
   S.se = project$mvLD$covstruct.HDL.jackknife$S.SE,
@@ -740,52 +731,28 @@ png(filename = paste0(project$folderpath.plots,"/","ldscoremethod.rg.","HDL.jack
   plotRg.HDL.jackknife
 dev.off()
 
-plotRg.origHDL.piecewise<-project$functions$plot.rg.dot.multi(
-  S = project$mvLD$covstruct.origHDL.piecewise$S,
-  S.se = project$mvLD$covstruct.origHDL.piecewise$S.se,
-  S.std = project$mvLD$covstruct.origHDL.piecewise$S_std,
-  S.std.se = project$mvLD$covstruct.origHDL.piecewise$S_std.se,
-  plotTitle = "Original HDL using piecewise (observed scale)",
+plotRg.origHDL<-project$functions$plot.rg.dot.multi(
+  S = project$mvLD$covstruct.origHDL$S,
+  S.se = project$mvLD$covstruct.origHDL$S.se,
+  S.std = project$mvLD$covstruct.origHDL$S_std,
+  S.std.se = project$mvLD$covstruct.origHDL$S_std.se,
+  plotTitle = "Original HDL (observed scale)",
   plotSubtitle = "LD-score regression method")
-plotRg.origHDL.piecewise
-png(filename = paste0(project$folderpath.plots,"/","ldscoremethod.rg.","origHDL.piecewise",".png"), width = 1200, height = 1400)
-  plotRg.origHDL.piecewise
+plotRg.origHDL
+png(filename = paste0(project$folderpath.plots,"/","ldscoremethod.rg.","origHDL",".png"), width = 1200, height = 1400)
+  plotRg.origHDL
 dev.off()
 
-plotRg.origHDL.jackknife<-project$functions$plot.rg.dot.multi(
-  S = project$mvLD$covstruct.origHDL.jackknife$S,
-  S.se = project$mvLD$covstruct.origHDL.jackknife$S.se,
-  S.std = project$mvLD$covstruct.origHDL.jackknife$S_std,
-  S.std.se = project$mvLD$covstruct.origHDL.jackknife$S_std.se,
-  plotTitle = "Original HDL using jackknife (observed scale)",
+plotRg.origHDL.liabilityScale<-project$functions$plot.rg.dot.multi(
+  S = project$mvLD$covstruct.origHDL.liabilityScale$S,
+  S.se = project$mvLD$covstruct.origHDL.liabilityScale$S.se,
+  S.std = project$mvLD$covstruct.origHDL.liabilityScale$S_std,
+  S.std.se = project$mvLD$covstruct.origHDL.liabilityScale$S_std.se,
+  plotTitle = "Original HDL (liability scale)",
   plotSubtitle = "LD-score regression method")
-plotRg.origHDL.jackknife
-png(filename = paste0(project$folderpath.plots,"/","ldscoremethod.rg.","origHDL.jackknife",".png"), width = 1200, height = 1400)
-  plotRg.origHDL.jackknife
-dev.off()
-
-plotRg.origHDL_liab.piecewise<-project$functions$plot.rg.dot.multi(
-  S = project$mvLD$covstruct.origHDL_liab.piecewise$S,
-  S.se = project$mvLD$covstruct.origHDL_liab.piecewise$S.se,
-  S.std = project$mvLD$covstruct.origHDL_liab.piecewise$S_std,
-  S.std.se = project$mvLD$covstruct.origHDL_liab.piecewise$S_std.se,
-  plotTitle = "Original HDL using piecewise (liability scale)",
-  plotSubtitle = "LD-score regression method")
-plotRg.origHDL_liab.piecewise
-png(filename = paste0(project$folderpath.plots,"/","ldscoremethod.rg.","origHDL_liab.piecewise",".png"), width = 1200, height = 1400)
-  plotRg.origHDL_liab.piecewise
-dev.off()
-
-plotRg.origHDL_liab.jackknife<-project$functions$plot.rg.dot.multi(
-  S = project$mvLD$covstruct.origHDL_liab.jackknife$S,
-  S.se = project$mvLD$covstruct.origHDL_liab.jackknife$S.se,
-  S.std = project$mvLD$covstruct.origHDL_liab.jackknife$S_std,
-  S.std.se = project$mvLD$covstruct.origHDL_liab.jackknife$S_std.se,
-  plotTitle = "Original HDL using jackknife (observed scale)",
-  plotSubtitle = "LD-score regression method")
-plotRg.origHDL_liab.jackknife
-png(filename = paste0(project$folderpath.plots,"/","ldscoremethod.rg.","origHDL_liab.jackknife",".png"), width = 1200, height = 1400)
-  plotRg.origHDL_liab.jackknife
+plotRg.origHDL.liabilityScale
+png(filename = paste0(project$folderpath.plots,"/","ldscoremethod.rg.","origHDL.liabilityScale",".png"), width = 1200, height = 1400)
+  plotRg.origHDL.liabilityScale
 dev.off()
 
 
@@ -801,33 +768,91 @@ mean(project$mvLD$covstruct.HDL.piecewise$S.SE[lower.tri(project$mvLD$covstruct.
 #View(project$mvLD$covstruct.HDL.jackknife$S.SE)
 mean(project$mvLD$covstruct.HDL.jackknife$S.SE[lower.tri(project$mvLD$covstruct.HDL.jackknife$S.SE, diag = TRUE)])
 
-#View(project$mvLD$covstruct.origHDL.piecewise$S)
-#View(project$mvLD$covstruct.origHDL.piecewise$S.se)
-mean(project$mvLD$covstruct.origHDL.piecewise$S.se[lower.tri(project$mvLD$covstruct.origHDL.piecewise$S.se, diag = TRUE)])
+#View(project$mvLD$covstruct.origHDL$S)
+#View(project$mvLD$covstruct.origHDL$S.se)
+mean(project$mvLD$covstruct.origHDL$S.se[lower.tri(project$mvLD$covstruct.origHDL$S.se, diag = TRUE)])
 
-#View(project$mvLD$covstruct.origHDL_liab.piecewise$S)
-#View(project$mvLD$covstruct.origHDL_liab.piecewise$S.se)
-mean(project$mvLD$covstruct.origHDL_liab.piecewise$S.se[lower.tri(project$mvLD$covstruct.origHDL_liab.piecewise$S.se, diag = TRUE)])
+#View(project$mvLD$covstruct.origHDL.liabilityScale$S)
+#View(project$mvLD$covstruct.origHDL.liabilityScale$S.se)
+#mean(project$mvLD$covstruct.origHDL.liabilityScale$S.se[lower.tri(project$mvLD$covstruct.origHDL.liabilityScale$S.se, diag = TRUE)])
 
 
 ```
 
+## Overview of rG between selected traits
+```{r overview pairwise rG, fig.width=9, fig.height=6, out.width="1600px", out.height="1000px", purl=FALSE}
+library(corrplot) #do not run on cluster, does not work?
+
+palette<-colorRampPalette(c(theme.color$contrastDark3,theme.color$contrastLight3))
+
+project$rg_std<-project$mvLD$covstruct.mvLDSC$S_Stand
+
+rownames(project$rg_std)<-colnames(project$rg_std)
+
+project$plots.rG<-corrplot(
+  corr = project$rg_std,
+  order = "hclust",
+  hclust.method = "ward.D",
+  method = "square",
+  type="full",
+  addCoef.col = theme.color$contrastDark1,
+  addgrid.col = theme.color$contrastDark1,
+  col = palette(200),
+  is.corr = TRUE,
+  outline = TRUE,
+  addrect = 3,
+  rect.col = theme.color$contrastLight1,
+  rect.lwd = 10,
+  tl.cex = 3,
+  tl.col = theme.color$contrastDark2,
+  tl.srt = 75,
+  cl.cex = 2,
+  cl.ratio = 0.2,
+  number.cex = 1.9
+  )
+
+png(filename = paste0(project$folderpath.plots,"/","rg.png"), width = 1000, height = 800)
+corrplot(
+  corr = project$rg_std,
+  order = "hclust",
+  hclust.method = "ward.D",
+  method = "square",
+  type="full",
+  addCoef.col = theme.color$contrastDark1,
+  addgrid.col = theme.color$contrastDark1,
+  col = palette(200),
+  is.corr = TRUE,
+  outline = TRUE,
+  addrect = 3,
+  rect.col = theme.color$contrastLight1,
+  rect.lwd = 10,
+  tl.cex = 3,
+  tl.col = theme.color$contrastDark2,
+  tl.srt = 75,
+  cl.cex = 2,
+  cl.ratio = 0.2,
+  number.cex = 1.9
+  )
+dev.off()
+
+```
 
 
 # Improved annotation of chosen datasets
 
-```{r improved annotation of chosen datasets, fig.width=9, fig.height=6, out.width="1600px", out.height="1000px"}
-#skim(project$sumstats.sel)
-project$sumstats.sel.table<-project$sumstats.sel[,c("gwas_name.nice","dependent_variable","n_total","reference_year","samplePrevalence","populationPrevalence","h2.liability")]
+```{r improved annotation of chosen datasets, fig.width=10, fig.height=6, out.width="1600px", out.height="1000px"}
+
+project$sumstats.sel.table<-project$sumstats.sel[,c("gwas_name.nice","dependent_variable","n_case","n_control","reference_year","samplePrevalence","populationPrevalence","h2.liability_mvLDSC","h2.se.liability_mvLDSC","h2.liability_HDL.piecewise","h2.se.liability_HDL.piecewise","h2.observed_origHDL","h2.se.observed_origHDL","h2.liability_origHDL")]
 rownames(project$sumstats.sel.table)<-NULL #Remove the rowname column
-View(project$sumstats.sel)
+#View(project$sumstats.sel.table)
 #project$sumstats.sel.table
 
 project$plots.sumstats.sel.table<-project$sumstats.sel.table %>% 
   gt() %>% 
   fmt_number(columns = vars(samplePrevalence, populationPrevalence), decimals = 2) %>%
-  fmt_number(columns = vars(h2.liability), decimals = 3) %>%
-  fmt_number(columns = vars(n_total), decimals = 0) %>%
+  fmt_number(columns = vars(h2.liability_mvLDSC,h2.liability_HDL.piecewise,h2.observed_origHDL,h2.liability_origHDL,), decimals = 3) %>%
+  fmt_number(columns = vars(h2.se.liability_mvLDSC,h2.se.liability_HDL.piecewise,h2.se.observed_origHDL), decimals = 4) %>%
+  fmt_number(columns = vars(n_case,n_control), decimals = 0) %>%
   tab_header(
     title = "Selected GWAS summary statistics datasets"
   ) %>% cols_label(
@@ -835,12 +860,18 @@ project$plots.sumstats.sel.table<-project$sumstats.sel.table %>%
     #ancestry = "Ancestry",
     #sex = "Sex",
     dependent_variable = "Dependent variable",
-    n_total = "Total number of participants",
-    reference_year = "Reference year",
-    samplePrevalence = "Sample prevalence",
-    populationPrevalence = "Population prevalence",
-    h2.liability = html("h<sup>2</sup><sub>SNP,liability scale</sub>")
-    
+    n_case = "N case",
+    n_control = "N control",
+    reference_year = "Year",
+    samplePrevalence = html("Prevalence<sub>sample</sub>"),
+    populationPrevalence = html("Prevalence<sub>population</sub>"),
+    h2.liability_mvLDSC = html("h<sup>2</sup><sub>mvLDSC</sub>"),
+    h2.se.liability_mvLDSC = "se",
+    h2.liability_HDL.piecewise = html("h<sup>2</sup><sub>HDL(pw)</sub>"),
+    h2.se.liability_HDL.piecewise = "se",
+    h2.observed_origHDL = html("h<sup>2</sup><sub>oHDL,OS</sub>"),
+    h2.se.observed_origHDL = "se",
+    h2.liability_origHDL = html("h<sup>2</sup><sub>oHDL,LS</sub>")
   ) %>%
   tab_style(
     style = cell_text(size = px(12)),
@@ -855,5 +886,741 @@ project$plots.sumstats.sel.table
 
 gtsave(data = project$plots.sumstats.sel.table, filename = paste0(project$folderpath.plots,"/sumstats.sel.table.rtf"))
 
+
+```
+
+
+## Exploratory Factor Analysis and PCA
+EFA using the stats package using both orthogonal and oblique rotations with 3 factors. 4 factors are too many for 7 variables.
+
+In the case of orthogonal rotation the squared factor loadings represent the amount of explained variance. SS (sum of squares) loadings are the sum of these squared loadings and represents the amount of explained variance per factor.
+
+```{r EFA, fig.width=9, fig.height=6, out.width="1600px", out.height="1000px", purl=FALSE}
+
+project$plots.efa.plot.scree<-fa.parallel(project$mvLD$covstruct.mvLDSC$S_Stand, fa = "fa")
+png(filename = paste0(project$folderpath.plots,"/","efa.plot.scree.png"), width = 800, height = 500)
+fa.parallel(project$mvLD$covstruct.mvLDSC$S_Stand, fa = "fa")
+dev.off()
+
+
+project$mvLD$covstruct.mvLDSC$S.smooth<-as.matrix((nearPD(project$mvLD$covstruct.mvLDSC$S, corr = FALSE))$mat)
+
+#1 factor 
+print("1 factor******************")
+# 
+# print("Rotation: Promax (Oblique)")
+# EFA.promax<-factanal(
+#   covmat = mvLDSC$output$S.smooth,
+#   n.obs = max(mvLDSC$output$N),
+#   factors = 1,
+#   rotation = "promax"
+#   )
+# #print the loadings for each factor
+# print(EFA.promax$loadings, cutoff = 0.10)
+
+print("Rotation: Varimax (Orthogonal)")
+project$EFA$EFA.1F.varimax<-factanal(
+  covmat = project$mvLD$covstruct.mvLDSC$S.smooth,
+  n.obs = max(project$mvLD$covstruct.mvLDSC$N),
+  factors = 1,
+  rotation = "varimax"
+  )
+#print the loadings for each factor
+print(project$EFA$EFA.1F.varimax$loadings, cutoff = 0.10)
+
+
+print("2 factors*****************")
+
+print("Rotation: Promax (Oblique)")
+project$EFA$EFA.2F.promax<-factanal(
+  covmat = project$mvLD$covstruct.mvLDSC$S.smooth,
+  n.obs = max(project$mvLD$covstruct.mvLDSC$N),
+  factors = 2,
+  rotation = "promax"
+  )
+#print the loadings for each factor
+print(project$EFA$EFA.2F.promax$loadings, cutoff = 0.10)
+
+print("Rotation: Varimax (Orthogonal)")
+project$EFA$EFA.2F.varimax<-factanal(
+  covmat = project$mvLD$covstruct.mvLDSC$S.smooth,
+  n.obs = max(project$mvLD$covstruct.mvLDSC$N),
+  factors = 2,
+  rotation = "varimax"
+  )
+#print the loadings for each factor
+print(project$EFA$EFA.2F.varimax$loadings, cutoff = 0.10)
+
+
+print("3 factors*****************")
+
+print("Rotation: Promax (Oblique)")
+project$EFA$EFA.3F.promax<-factanal(
+  covmat = project$mvLD$covstruct.mvLDSC$S.smooth,
+  n.obs = max(project$mvLD$covstruct.mvLDSC$N),
+  factors = 3,
+  rotation = "promax"
+  )
+#print the loadings for each factor
+print(project$EFA$EFA.3F.promax$loadings, cutoff = 0.10)
+
+print("Rotation: Varimax (Orthogonal)")
+project$EFA$EFA.3F.varimax<-factanal(
+  covmat = project$mvLD$covstruct.mvLDSC$S.smooth,
+  n.obs = max(project$mvLD$covstruct.mvLDSC$N),
+  factors = 3,
+  rotation = "varimax"
+  )
+#print the loadings for each factor
+print(project$EFA$EFA.3F.varimax$loadings, cutoff = 0.10)
+
+print("Plain PCA")
+#project$EFA$EFA.3F.PCA<-prcomp(x = project$mvLD$covstruct.mvLDSC$S.smooth,center = FALSE)
+project$EFA$EFA.3F.PCA<-eigen(x = project$mvLD$covstruct.mvLDSC$S.smooth, symmetric = TRUE)
+#print the loadings for each principal component 1-3
+rownames(project$EFA$EFA.3F.PCA$vectors)<-make.names(rownames(project$mvLD$covstruct.mvLDSC$S.smooth))
+print(project$EFA$EFA.3F.PCA$vectors[,1:3], cutoff = 0.10)
+
+#create results table - manually!
+project$EFA$efa.table<-data.frame()
+project$EFA$initialNames<-c("nFactors","method","dof","cumulativeVariance")
+project$EFA$factorLoadingNames.F1<-c(
+  "F1.ALCD","F1.ANXI","F1.HEAL","F1.NEUR","F1.SUBJ","F1.TIRE","F1.DEPR"
+  )
+project$EFA$factorLoadingNames.F2<-c(
+  "F2.ALCD","F2.ANXI","F2.HEAL","F2.NEUR","F2.SUBJ","F2.TIRE","F2.DEPR"
+  )
+project$EFA$factorLoadingNames.F3<-c(
+  "F3.ALCD","F3.ANXI","F3.HEAL","F3.NEUR","F3.SUBJ","F3.TIRE","F3.DEPR"
+  )
+project$EFA$factorLoadingNames<-c(project$EFA$factorLoadingNames.F1,project$EFA$factorLoadingNames.F2,project$EFA$factorLoadingNames.F3)
+
+project$EFA$efa.table[1,project$EFA$initialNames]<-
+  list(
+  project$EFA$EFA.1F.varimax$factors,
+  "fa",
+  project$EFA$EFA.1F.varimax$dof,
+  0.581
+)
+project$EFA$efa.table[1,project$EFA$factorLoadingNames]<-NA_real_
+project$EFA$efa.table[1,project$EFA$factorLoadingNames.F1]<-project$EFA$EFA.1F.varimax$loadings[1:7,1]
+
+project$EFA$efa.table[nrow(project$EFA$efa.table)+1,project$EFA$initialNames]<-
+  list(
+  project$EFA$EFA.2F.promax$factors,
+  "fa,promax",
+  project$EFA$EFA.2F.promax$dof,
+  0.741
+)
+project$EFA$efa.table[nrow(project$EFA$efa.table),project$EFA$factorLoadingNames.F1]<-project$EFA$EFA.2F.promax$loadings[1:7,1]
+project$EFA$efa.table[nrow(project$EFA$efa.table),project$EFA$factorLoadingNames.F2]<-project$EFA$EFA.2F.promax$loadings[1:7,2]
+
+project$EFA$efa.table[nrow(project$EFA$efa.table)+1,project$EFA$initialNames]<-
+  list(
+  project$EFA$EFA.2F.varimax$factors,
+  "fa,varimax",
+  project$EFA$EFA.2F.varimax$dof,
+  0.711
+)
+project$EFA$efa.table[nrow(project$EFA$efa.table),project$EFA$factorLoadingNames.F1]<-project$EFA$EFA.2F.varimax$loadings[1:7,1]
+project$EFA$efa.table[nrow(project$EFA$efa.table),project$EFA$factorLoadingNames.F2]<-project$EFA$EFA.2F.varimax$loadings[1:7,2]
+
+project$EFA$efa.table[nrow(project$EFA$efa.table)+1,project$EFA$initialNames]<-
+  list(
+  project$EFA$EFA.3F.promax$factors,
+  "fa,promax",
+  project$EFA$EFA.3F.promax$dof,
+  0.750
+)
+project$EFA$efa.table[nrow(project$EFA$efa.table),project$EFA$factorLoadingNames.F1]<-project$EFA$EFA.3F.promax$loadings[1:7,1]
+project$EFA$efa.table[nrow(project$EFA$efa.table),project$EFA$factorLoadingNames.F2]<-project$EFA$EFA.3F.promax$loadings[1:7,2]
+project$EFA$efa.table[nrow(project$EFA$efa.table),project$EFA$factorLoadingNames.F3]<-project$EFA$EFA.3F.promax$loadings[1:7,3]
+
+project$EFA$efa.table[nrow(project$EFA$efa.table)+1,project$EFA$initialNames]<-
+  list(
+  project$EFA$EFA.3F.varimax$factors,
+  "fa,varimax",
+  project$EFA$EFA.3F.varimax$dof,
+  0.762
+)
+project$EFA$efa.table[nrow(project$EFA$efa.table),project$EFA$factorLoadingNames.F1]<-project$EFA$EFA.3F.varimax$loadings[1:7,1]
+project$EFA$efa.table[nrow(project$EFA$efa.table),project$EFA$factorLoadingNames.F2]<-project$EFA$EFA.3F.varimax$loadings[1:7,2]
+project$EFA$efa.table[nrow(project$EFA$efa.table),project$EFA$factorLoadingNames.F3]<-project$EFA$EFA.3F.varimax$loadings[1:7,3]
+
+project$EFA$efa.table[nrow(project$EFA$efa.table)+1,project$EFA$initialNames]<-
+  list(
+  3,
+  "PCA(1-3)",
+  0,
+  NA_real_
+)
+project$EFA$efa.table[nrow(project$EFA$efa.table),project$EFA$factorLoadingNames.F1]<-project$EFA$EFA.3F.PCA$vectors[1:7,1]
+project$EFA$efa.table[nrow(project$EFA$efa.table),project$EFA$factorLoadingNames.F2]<-project$EFA$EFA.3F.PCA$vectors[1:7,2]
+project$EFA$efa.table[nrow(project$EFA$efa.table),project$EFA$factorLoadingNames.F3]<-project$EFA$EFA.3F.PCA$vectors[1:7,3]
+
+#View(project$EFA$efa.table)
+
+project$plots.efa.results<-project$EFA$efa.table %>% 
+  gt() %>% 
+  fmt_number(columns = 4:ncol(project$EFA$efa.table), decimals = 2) %>%
+  fmt_number(columns = vars(nFactors,dof), decimals = 0) %>%
+  tab_header(
+    title = "Exploratory factor analysis"
+  ) %>% cols_label(
+    nFactors = "nf",
+    method = "method",
+    dof = "df",
+    cumulativeVariance = "cvar",
+    F1.ALCD = "ALCD", F1.ANXI="ANXI", F1.DEPR="DEPR", F1.HEAL="HEAL", F1.NEUR="NEUR", F1.SUBJ="SUBJ", F1.TIRE="TIRE",
+    F2.ALCD = "ALCD", F2.ANXI="ANXI", F2.DEPR="DEPR", F2.HEAL="HEAL", F2.NEUR="NEUR", F2.SUBJ="SUBJ", F2.TIRE="TIRE",
+    F3.ALCD = "ALCD", F3.ANXI="ANXI", F3.DEPR="DEPR", F3.HEAL="HEAL", F3.NEUR="NEUR", F3.SUBJ="SUBJ", F3.TIRE="TIRE"
+  ) %>%
+  tab_spanner(
+    label = "F1",
+    columns = vars(F1.ALCD, F1.ANXI, F1.DEPR, F1.HEAL, F1.NEUR, F1.SUBJ, F1.TIRE)
+  ) %>%
+  tab_spanner(
+    label = "F2",
+    columns = vars(F2.ALCD, F2.ANXI, F2.DEPR, F2.HEAL, F2.NEUR, F2.SUBJ, F2.TIRE)
+  ) %>%
+  tab_spanner(
+    label = "F3",
+    columns = vars(F3.ALCD, F3.ANXI, F3.DEPR, F3.HEAL, F3.NEUR, F3.SUBJ, F3.TIRE)
+  ) %>%
+  tab_style(
+    style = cell_text(size = px(12)),
+    locations = cells_column_labels(everything())       
+  ) %>%
+  tab_style(
+    style = cell_text(size = px(12),weight = "bold"),
+    locations = cells_body(everything())        
+  ) %>%
+  data_color(
+    columns = c(project$EFA$factorLoadingNames.F1,project$EFA$factorLoadingNames.F2,project$EFA$factorLoadingNames.F3),    #vars(population),
+    colors = scales::col_numeric(
+      palette = c(theme.color$contrastDark3,theme.color$contrastLight3),
+      domain = c(-1.2,1.2))
+  )
+
+project$plots.efa.results
+
+# png(filename = paste0(project$folderpath.plots,"/","efa.png"), width = 800, height = 500)
+# project$plots.efa.results
+# dev.off()
+
+
+gtsave(data = project$plots.efa.results, filename = paste0(project$folderpath.plots,"/efa.rtf"))
+gtsave(data = project$plots.efa.results, filename = paste0(project$folderpath.plots,"/efa.png"), vwidth="1450")
+
+
+```
+
+## Confirmatory Factor Analysis
+Here are models exploring situations where the loadings are reflecting the results from the EFA.
+
+### Define model actions
+Functions to evaluate a model and to construct a lavaan definition from a model load specification
+```{r CFA model actions, purl=FALSE}
+
+#THESE USE semPlate and DiagrammeR !!!!!
+#library(semPlate)
+library(DiagrammeR)
+
+project$functions$cfa.model.define<-function(code.indicator,allow_loading.table.indicator_factor, fix_loading.table.indicator_factor=NULL, special.orthogonal=FALSE){
+  #lavaan definition string
+  lds<-""
+  lds.factorSelf=""
+  lds.factorOther=""
+  
+  nFactors<-ncol(allow_loading.table.indicator_factor)
+  nIndicators<-nrow(allow_loading.table.indicator_factor)
+  
+  #factor loadings, factor variances
+  for(iFactor in 1:nFactors){
+    lds.factor=paste0("
+                      F",iFactor," =~ ")
+    
+    hasFactor=FALSE
+    for(iIndicator in 1:nIndicators){
+      if(allow_loading.table.indicator_factor[iIndicator,iFactor]==TRUE){
+        
+        if(hasFactor==TRUE)
+          lds.factor=paste0(lds.factor,"+")
+          
+        if(is.null(fix_loading.table.indicator_factor)==FALSE) {
+          #use fixed loadings
+          if(fix_loading.table.indicator_factor[iIndicator,iFactor]==TRUE) {
+              vFixLoading="1*" #show this for both cases for clarity
+          } else {
+            if(hasFactor==TRUE)
+              vFixLoading="" else
+              vFixLoading="NA*"
+          }
+        } else {
+          #do not use fixed loadings
+          if(hasFactor==TRUE)
+            vFixLoading="" else
+            vFixLoading="NA*"
+        }
+           
+        lds.factor=paste0(lds.factor,vFixLoading,code.indicator[iIndicator])
+        hasFactor=TRUE
+      }
+    }
+    if(hasFactor==TRUE){
+      lds=paste0(lds,lds.factor)
+      lds.factorSelf=paste0(lds.factorSelf,"
+                            F",iFactor,"~~1*F",iFactor)
+    }
+  }
+  
+indexFactor<-data.frame(index=c(1:nFactors))
+indexFactor<-indexFactor %>%
+inner_join(indexFactor, by = character())
+
+
+lds.factorOther=""
+
+for(iComb in 1:nrow(indexFactor)) {
+  row<-indexFactor[iComb,]
+  if(row$index.x==row$index.y || row$index.y < row$index.x)
+    next()
+  
+  if(special.orthogonal)
+    lds.factorOther=paste0(lds.factorOther,"
+                           F",row$index.x,"~~0*F",row$index.y) else
+    lds.factorOther=paste0(lds.factorOther,"
+                           F",row$index.x,"~~F",row$index.y)
+}
+  
+return(paste0(lds,lds.factorSelf,lds.factorOther))
+  
+ 
+}
+
+#test
+# lavaanDefinition<-project$functions$cfa.model.define(code.indicator = project$sumstats.sel$code.trait, allow_loading.table.indicator_factor = data.frame(
+#   F1=c(TRUE,TRUE,FALSE,TRUE,TRUE,TRUE,TRUE),
+#   F2=c(TRUE,FALSE,TRUE,FALSE,FALSE,TRUE,FALSE),
+#   F3=c(FALSE,TRUE,FALSE,TRUE,TRUE,FALSE,TRUE)                                                                           ),
+#   fix_loading.table.indicator_factor = data.frame(
+#   F1=c(FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE),
+#   F2=c(FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE),
+#   F3=c(FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE)                                                                           ),
+#   special.orthogonal = TRUE
+#   )
+
+# lavaanDefinition<-project$functions$cfa.model.define(code.indicator = project$sumstats.sel$code.trait, allow_loading.table.indicator_factor = data.frame(
+#   F1=c(TRUE,TRUE,FALSE,TRUE,TRUE,TRUE,TRUE),
+#   F2=c(TRUE,FALSE,TRUE,FALSE,FALSE,TRUE,FALSE),
+#   F3=c(FALSE,TRUE,FALSE,TRUE,TRUE,FALSE,TRUE)                                                                           ),
+#   fix_loading.table.indicator_factor = NULL,
+#   special.orthogonal = TRUE
+#   )
+
+
+project$functions$cfa.model.calculateLogicalLoadingsFromEFA<-function(loadings.table.indicator_factor,absCutoff){
+  return(as.data.frame(abs(loadings.table.indicator_factor) > absCutoff ))
+}
+
+#computes which of the second row (ANXI) loadings is the largest and sets the fixed loading logic
+project$functions$cfa.model.calculateLogicalFixedLoadingsFromEFA<-function(loadings.table.indicator_factor){
+  #loadings.table.indicator_factor=project$cfa.loadings.EFA[[1]]$loadings #TEST
+  toreturn<-data.frame(matrix(FALSE,ncol = ncol(loadings.table.indicator_factor),nrow = nrow(loadings.table.indicator_factor)))
+  toreturn[2,]<-(rank(x = -loadings.table.indicator_factor[2,],ties.method = "first")==1)
+  return(as.data.frame(toreturn))
+}
+
+project$functions$cfa.model.evaluate<-function(covstruc, model, estimation="ML", code="defaultEvaluatedModel"){
+  
+  uModel<-usermodel(covstruc = covstruc, estimation = estimation, model = model)
+    
+  uModel$results$Unstand_SE<-as.numeric(uModel$results$Unstand_SE)
+  uModel$results$STD_Genotype_SE<-as.numeric(uModel$results$STD_Genotype_SE)
+  
+  uModel$semResults<-semPlate::parseSEMResult(resultDf = uModel$results)
+  uModel$path.graph.dot<-semPlate::generateDOT(nodeDf = uModel$semResults$nodeDf, edgeDf = uModel$semResults$edgeDf)
+  
+  f<-file(paste0(project$folderpath.plots,"/figure.path_",code,".dot.gv"))
+  writeLines(uModel$path.graph.dot,f)
+  close(f)
+  
+  grViz(uModel$path.graph.dot)
+  
+  png(filename = paste0(project$folderpath.plots,"/figure.path_",code,".png"), width = 800, height = 500)
+  grViz(uModel$path.graph.dot)
+  dev.off()
+  
+  
+  tableModelFit<-uModel$modelfit %>% 
+  gt() %>% 
+  tab_header(
+    title = "Model fit",
+  )
+  tableModelFit
+  gtsave(data = tableModelFit, filename = paste0(project$folderpath.plots,"/table.modelFit_",code, ".rtf"))
+  
+  tableModelLoadings<-uModel$results %>% 
+  gt() %>% 
+  fmt_number(columns = vars(Unstand_Est,Unstand_SE,STD_Genotype,STD_Genotype_SE,STD_All), decimals = 2) %>%
+  fmt_scientific(columns = vars(p_value), decimals = 2) %>%
+  tab_header(
+    title = "Loadings",
+  )
+  tableModelLoadings
+  gtsave(data = tableModelLoadings, filename = paste0(project$folderpath.plots,"/table.modelLoadings_",code, ".rtf"))
+  return(uModel)
+    
+}
+
+```
+
+
+### Generate model configurations automatically from the EFA results
+Procedure to construct model load configurations from EFA loadings
+```{r Generate CFA model specifications, purl=FALSE}
+project$CFA$loadings.EFA=list(project$EFA$EFA.1F.varimax, project$EFA$EFA.2F.promax, project$EFA$EFA.2F.varimax, project$EFA$EFA.3F.promax, project$EFA$EFA.3F.varimax)
+project$CFA$loadings.EFA.rotMethod=list("varimax", "promax", "varimax", "promax", "varimax")
+
+#project$CFA$vLogicalFixedLoadings.FALSE=data.frame(matrix(FALSE,ncol = 3, nrow=3))
+project$CFA$vLogicalFixedLoadings.FALSE=NULL
+
+project$CFA$configurations<-data.frame()
+project$CFA$configurations.initialNames<-c("nLatentFactor","estimator","hasOrthogonalFactorCorrelations","hasFixedLoadings","logicalLoadings","logicalFixedLoadings","factanalRotation","factanalLoadingCutoff")
+
+project$CFA$configurations.factorLoadingNames.F1<-c(
+"F1.ALCD","F1.ANXI","F1.HEAL","F1.NEUR","F1.SUBJ","F1.TIRE","F1.DEPR"
+)
+project$CFA$configurations.factorLoadingNames.F2<-c(
+"F2.ALCD","F2.ANXI","F2.HEAL","F2.NEUR","F2.SUBJ","F2.TIRE","F2.DEPR"
+)
+project$CFA$configurations.factorLoadingNames.F3<-c(
+"F3.ALCD","F3.ANXI","F3.HEAL","F3.NEUR","F3.SUBJ","F3.TIRE","F3.DEPR"
+)
+project$CFA$configurations.factorLoadingNames<-c(project$CFA$configurations.factorLoadingNames.F1,project$CFA$configurations.factorLoadingNames.F2,project$CFA$configurations.factorLoadingNames.F3)
+
+iConfiguration=1
+for(iLoadings in 1:length(project$CFA$loadings.EFA)){
+  
+  #TEST
+  #iLoadings=1
+  
+  #set cutoff and rotation based on EFA method
+  vRotMethod = project$CFA$loadings.EFA.rotMethod[[iLoadings]]
+  vNFactors = ncol(project$CFA$loadings.EFA[[iLoadings]]$loadings)
+  if(vRotMethod=="varimax") {
+    vOrthogonal=TRUE
+    if(vNFactors==1 || vNFactors ==2)
+      vRotMethod.absCutoffs=project$cfa.absCutoff.2F.orth
+    else if(vNFactors==3)
+      vRotMethod.absCutoffs=project$cfa.absCutoff.3F.orth
+      
+  } else if (vRotMethod=="promax") {
+    vOrthogonal=FALSE
+    if(vNFactors==1)
+      vRotMethod.absCutoffs=project$cfa.absCutoff.2F.orth
+    else if(vNFactors==2)
+      vRotMethod.absCutoffs=project$cfa.absCutoff.2F.oblq 
+    else if(vNFactors==3)
+      vRotMethod.absCutoffs=project$cfa.absCutoff.3F.oblq
+  } else {
+    cat(vRotMethod," IS NOT A VALID ROTATION METHOD!")
+    return(1)
+  }
+  
+  
+  
+  for(vAbsCutoff in vRotMethod.absCutoffs){
+    
+    #TEST
+    #vAbsCutoff=0.35
+    
+    vLogicalLoadings<-project$functions$cfa.model.calculateLogicalLoadingsFromEFA(loadings.table.indicator_factor = project$CFA$loadings.EFA[[iLoadings]]$loadings, absCutoff = vAbsCutoff)
+    
+    vLogicalFixedLoadings.TRUE<-project$functions$cfa.model.calculateLogicalFixedLoadingsFromEFA(loadings.table.indicator_factor = project$CFA$loadings.EFA[[iLoadings]]$loadings)
+    
+    for(vEstimator in project$cfa.estimator){
+      #for(vOrthogonal in project$cfa.orthogonal){
+        for(vFixedLoadings in project$cfa.fixedLoadings){
+          
+          vLogicalFixedLoadings=project$CFA$vLogicalFixedLoadings.FALSE
+          if(vFixedLoadings)
+              vLogicalFixedLoadings=project$CFA$vLogicalFixedLoadings.TRUE else
+                vLogicalFixedLoadings=project$CFA$vLogicalFixedLoadings.FALSE
+          
+          #test
+          # iLoadings=1
+          # vEstimator=estimator[1]
+          # vOrthogonal=orthogonal[1]
+          # vFixedLoadings=fixedLoadings[1]
+          
+          #lc.logicalLoadings[iConfiguration]<-list(logicalLoadings)
+          #lc.logicalFixedLoadings[iConfiguration]<-list(logicalFixedLoadings)
+          
+          project$CFA$configurations[iConfiguration, project$CFA$configurations.initialNames]<-list(
+            ncol(vLogicalLoadings),
+            vEstimator,
+            vOrthogonal,
+            vFixedLoadings,
+            list(vLogicalLoadings),
+            list(vLogicalFixedLoadings),
+            vRotMethod,
+            vAbsCutoff
+          )
+            
+          
+          project$CFA$configurations[iConfiguration,project$CFA$configurations.factorLoadingNames.F1]<-vLogicalLoadings[,1]
+          if(ncol(vLogicalLoadings)>1)
+            project$CFA$configurations[iConfiguration,project$CFA$configurations.factorLoadingNames.F2]<-vLogicalLoadings[,2]
+          if(ncol(vLogicalLoadings)>2)
+            project$CFA$configurations[iConfiguration,project$CFA$configurations.factorLoadingNames.F3]<-vLogicalLoadings[,3]
+          
+          iConfiguration=iConfiguration+1
+          
+        }
+      #}
+    }
+  
+  }
+  
+}
+
+#View(project$CFA$configurations)
+
+```
+
+### Clean loading configurations
+Remove duplicate configurations
+```{r Clean CFA model configurations, purl=FALSE}
+
+project$CFA$configurations<-project$CFA$configurations %>%
+  mutate(
+    id = row_number()
+  )
+
+project$CFA$configurations.selected<-project$CFA$configurations[which(project$CFA$configurations$nLatentFactor>1 | (project$CFA$configurations$hasOrthogonalFactorCorrelations==TRUE)),] %>%
+  # filter(
+  #   (F1.ALCD | F2.ALCD | F3.ALCD ) & # must include all indicators - THIS IS NOT WORKING?
+  #     (F1.ANXI | F2.ANXI | F2.ANXI ) &
+  #       (F1.HEAL | F2.HEAL | F3.HEAL ) &
+  #         (F1.NEUR | F2.NEUR | F3.NEUR ) &
+  #           (F1.SUBJ | F2.SUBJ | F3.SUBJ ) &
+  #             (F1.TIRE | F2.TIRE | F3.TIRE ) &
+  #               (F1.DEPR | F2.DEPR | F3.DEPR )
+  #     ) %>%
+  distinct(nLatentFactor,estimator,hasOrthogonalFactorCorrelations,hasFixedLoadings,
+           F1.ALCD,F1.ANXI,F1.HEAL,F1.NEUR,F1.SUBJ,F1.TIRE,F1.DEPR,
+           F2.ALCD,F2.ANXI,F2.HEAL,F2.NEUR,F2.SUBJ,F2.TIRE,F2.DEPR,
+           F3.ALCD,F3.ANXI,F3.HEAL,F3.NEUR,F3.SUBJ,F3.TIRE,F3.DEPR,
+           .keep_all = TRUE) %>%
+  mutate(
+    id.selected = row_number()
+  ) %>%
+  #select(id,id.selected,project$cfa.lc.initialNames, project$cfa.lc.factorLoadingNames)
+  select(id,id.selected,project$CFA$configurations.initialNames, project$CFA$configurations.factorLoadingNames)
+
+#View(project$CFA$configurations.selected)
+
+```
+
+### Generate model definitions (and codes) for automatically created loading configurations
+Procedure to construct model definitions from previous configurations, and codes!
+```{r Generate model definitions, purl=FALSE}
+#iConfiguration=21
+icFrom=1
+icTo=nrow(project$CFA$configurations.selected)
+for(iConfiguration in icFrom:icTo) {
+  
+  cModel<-project$CFA$configurations.selected[iConfiguration,]
+  
+  logicalLoadings<-as.data.frame(project$CFA$configurations.selected[[iConfiguration,c("logicalLoadings")]])
+  hasOrthogonalFactorCorrelations<-project$CFA$configurations.selected[[iConfiguration,c("hasOrthogonalFactorCorrelations")]]
+  hasFixedLoadings<-project$CFA$configurations.selected[[iConfiguration,c("hasFixedLoadings")]]
+  logicalFixedLoadings<-project$CFA$configurations.selected[[iConfiguration,c("logicalFixedLoadings")]]
+  
+  configurationDefinition<-project$functions$cfa.model.define(
+    code.indicator = project$sumstats.sel$code.trait,
+    allow_loading.table.indicator_factor = logicalLoadings,
+    fix_loading.table.indicator_factor = logicalFixedLoadings,
+    special.orthogonal = hasOrthogonalFactorCorrelations
+    )
+  
+  project$CFA$configurations.selected[iConfiguration,c("definition")]<-configurationDefinition
+  project$CFA$configurations.selected[iConfiguration,c("code")]<-paste0(cModel$id.selected,"_F",cModel$nLatentFactor,".",cModel$estimator,".",cModel$factanalRotation,".",cModel$factanalLoadingCutoff,".",cModel$hasOrthogonalFactorCorrelations,cModel$hasFixedLoadings)
+}
+
+
+#View(project$CFA$configurations.selected)
+
+```
+
+
+
+### Run model actions and update result statistics
+Run the model actions on specified models
+```{r CFA model actions run, purl=FALSE}
+project$CFA$cfa.configurations.resultColumnNames<-c("chisq","df","p_chisq","AIC","CFI","SRMR")
+
+if (file.exists(paste0(project$folderpath.workingDirectory,"/","cfa.",project$setup.code,".Rds"))) {
+  project$CFA$cfa.configurations.result<-readRDS(file=paste0(project$folderpath.workingDirectory,"/","cfa.",project$setup.code,".Rds"))
+} else {
+  
+  print("Performing CFA - this might take a while")
+  
+  project$CFA$configurations.selected$fittedModelResults<-NA
+  
+  
+  iModel=1
+  for (iModel in 1:nrow(project$CFA$configurations.selected)) {
+  #for (iModel in 1:10) {
+    try(
+      {
+        
+    cModel<-project$CFA$configurations.selected[iModel,]
+    codeToUse<-cModel$code
+    
+    print("****EVALUATING MODEL****")
+    cat(iModel,codeToUse)
+    
+    uModel<-project$functions$cfa.model.evaluate(covstruc = project$mvLD$covstruct.mvLDSC, model = cModel$definition, estimation = cModel$estimator, code = codeToUse)
+    
+    #grViz(uModel$path.graph.dot)
+    project$CFA$configurations.selected[which(project$CFA$configurations.selected$id.selected==cModel$id.selected),project$CFA$cfa.configurations.resultColumnNames]<-uModel$modelfit[1,project$CFA$cfa.configurations.resultColumnNames]
+    project$CFA$configurations.selected[[which(project$CFA$configurations.selected$id.selected==cModel$id.selected),c("fittedModelResults")]]<-list(uModel)
+    
+      }
+      # error=function(cond){
+      #   message(paste0("There was an error evaluating the model with code: ",cModel$code))
+      #   message(cond)
+      #   next
+      # },
+      # warning=function(cond){
+      #   message(paste0("There was a warning evaluating the model with code: ",cModel$code))
+      #   message(cond)
+      #   next
+      # }
+    )
+    
+  }
+
+
+  project$CFA$cfa.configurations.result<-project$CFA$configurations.selected
+  #View(project$CFA$cfa.configurations.result)
+  #View(project$CFA$configurations.selected)
+  
+  saveRDS(object = project$CFA$cfa.configurations.result,file = paste0(project$folderpath.workingDirectory,"/","cfa.",project$setup.code,".Rds"))
+  print("CFA is done now and the result should have been saved into a file.")
+}
+
+```
+
+
+## Prepare summary statistics for latent factor GWAS
+The summary statistics is prepared for analysis by using the sumstats()-function of the GSEM package. Here reference alleles are standardised across all datasets, and SNP effects and their s.e. are scaled to match unit-variance phenotypes.
+```{r prepare summary statistics}
+#eval=FALSE
+#use ^this to knit without running the code in the chunk
+
+#we need to introduce checks of the summary statistics and which scale they are on
+# f.ex. Leo checks my s.e. 2 * pnorm(log(1.003) / 0.021644, mean = 0, lower.tail = FALSE)
+
+#View(project$sumstats.sel)
+#examine GWAS sumstats
+# gwas_ALCD03<-read.table(file = "/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/ALCD03_noMHC.sumstats.gz", header=T, quote="\"",fill=T,na.string=c(".",NA,"NA",""))
+# View(gwas_ALCD03)
+# gwas_ANXI03<-read.table(file = "/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/ANXI03_noMHC.sumstats.gz", header=T, quote="\"",fill=T,na.string=c(".",NA,"NA",""))
+# View(gwas_ANXI03)
+# gwas_DEPR05<-read.table(file = "/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/DEPR05_noMHC.sumstats.gz", header=T, quote="\"",fill=T,na.string=c(".",NA,"NA",""))
+# View(gwas_DEPR05)
+# gwas_HEAL01<-read.table(file = "/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/HEAL01_noMHC.sumstats.gz", header=T, quote="\"",fill=T,na.string=c(".",NA,"NA",""))
+# View(gwas_HEAL01)
+# gwas_NEUR01<-read.table(file = "/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/NEUR01_noMHC.sumstats.gz", header=T, quote="\"",fill=T,na.string=c(".",NA,"NA",""))
+# View(gwas_NEUR01)
+# gwas_SUBJ01<-read.table(file = "/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/SUBJ01_noMHC.sumstats.gz", header=T, quote="\"",fill=T,na.string=c(".",NA,"NA",""))
+# View(gwas_SUBJ01)
+# gwas_TIRE01<-read.table(file = "/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/TIRE01_noMHC.sumstats.gz", header=T, quote="\"",fill=T,na.string=c(".",NA,"NA",""))
+# View(gwas_TIRE01)
+# 
+# gwas_ALCD03$SE<-NA_real_
+# gwas_ANXI03$SE<-NA_real_
+# gwas_DEPR05$SE<-NA_real_
+# gwas_HEAL01$SE<-NA_real_
+# gwas_NEUR01$SE<-NA_real_
+# gwas_SUBJ01$SE<-NA_real_
+# gwas_TIRE01$SE<-NA_real_
+# 
+# write.table(x = gwas_ALCD03, file = "/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/ALCD03_noMHC_mod.sumstats", quote=TRUE )
+# write.table(x = gwas_ANXI03, file = "/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/ANXI03_noMHC_mod.sumstats", quote=TRUE )
+# write.table(x = gwas_DEPR05, file = "/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/DEPR05_noMHC_mod.sumstats", quote=TRUE )
+# write.table(x = gwas_HEAL01, file = "/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/HEAL01_noMHC_mod.sumstats", quote=TRUE )
+# write.table(x = gwas_NEUR01, file = "/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/NEUR01_noMHC_mod.sumstats", quote=TRUE )
+# write.table(x = gwas_SUBJ01, file = "/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/SUBJ01_noMHC_mod.sumstats", quote=TRUE )
+# write.table(x = gwas_TIRE01, file = "/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/TIRE01_noMHC_mod.sumstats", quote=TRUE )
+
+project$lfGWAS<-c()
+
+if (file.exists(paste0(project$folderpath.workingDirectory,"/","lfGWAS.sumstats.",project$setup.code,".Rds")) | project$seting.refreshPrepareSummaryStatistics) {
+  project$lfGWAS<-readRDS(file=paste0(project$folderpath.workingDirectory,"/","lfGWAS.sumstats.",project$setup.code,".Rds"))
+} else
+{
+  print("Preparing summary statistics for latent factor GWAS. This might take a while.")
+
+  project$lfGWAS$preparedSumstats<-c()
+# for(cCode in project$sumstats.sel$code)
+#     project$lfGWAS$trait<-c(project$lfGWAS$trait,paste0(project$folderpath.data.sumstats.munged,"/",cCode,project$filename.suffix.data.sumstats.munged,".gz"))
+
+project$lfGWAS$sumstats.prepared<-sumstats(
+  files=project$sumstats.sel$cleanedpath,
+  ref=project$filepath.genomeReference,
+  trait.names=project$sumstats.sel$code,
+  se.logit=project$sumstats.sel$se.logit,
+  OLS=project$sumstats.sel$dependent_variable.OLS,
+  linprob=NULL, #THIS SHOULD BE INVESTIGATED FURTHER, IF A LINEAR OLS ESTIMATOR ON A DICHOTOMOUS DEP. VARIABLE WAS USED FOR ANY OF THE DATSETS 
+  prop=NULL,
+  N=project$sumstats.sel$n_total,
+  info.filter=project$info.filter,
+  maf.filter=project$maf.filter,
+  keep.indel=FALSE,
+  parallel=FALSE,
+  cores=NULL
+  )
+
+  saveRDS(object = project$lfGWAS,file = paste0(project$folderpath.workingDirectory,"/","lfGWAS.sumstats.",project$setup.code,".Rds"))
+  print("Done summary statistics for latent factor GWAS. The result should have been saved to a file.")
+}
+
+```
+
+## Perform latent factor GWAS
+```{r latent factor GWAS}
+
+if(is.null(project$lfGWAS$userGWAS.correlated) | project$setting.refreshLatentFactorGWAS) {
+
+print("Performing latent factor GWAS. This will take a while.")
+
+#project$CFA$cfa.configurations.result[which(project$CFA$cfa.configurations.result$id==13),]  
+    
+project$lfGWAS$model<-"
+F1 =~ NA*ALCD+ANXI+DEPR+NEUR+SUBJ
+F2 =~ NA*ALCD+HEAL+TIRE
+F1~~1*F1
+F2~~1*F2
+
+F1~~F2
+
+F1~SNP
+F2~SNP
+
+"
+
+#nrow(project$lfGWAS$sumstats.prepared)
+
+project$lfGWAS$gwas<-userGWAS(covstruc = project$mvLD$covstruct.mvLDSC, SNPs = project$lfGWAS$sumstats.prepared, estimation = "ML", model = project$lfGWAS$model, modelchi = FALSE, printwarn = FALSE, sub=c("F1~SNP","F2~SNP"), cores = NULL, GC="standard")
+
+saveRDS(object = project$lfGWAS$gwas,file = paste0(project$folderpath.working_directory,"/","lfGWAS.gwas.",project$setup.code,".Rds"))
+
+print("DONE performing latent factor GWAS. The results should have been saved to a file.")
+
+}
 
 ```
