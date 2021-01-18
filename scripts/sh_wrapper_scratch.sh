@@ -31,15 +31,13 @@ module add apps/R/3.6.0
 # sbatch --time 23:59:00 --partition brc,shared --job-name="mvHDLt3" --ntasks 1 --cpus-per-task 5 --mem-per-cpu 5G --wrap="module add apps/R/3.6.0 && Rscript setup1.R -t 3" --output "setup1_t3.out" --error "setup1_t3.err"
 # sbatch --time 23:59:00 --partition brc,shared --job-name="mvHDLt2" --ntasks 1 --cpus-per-task 5 --mem-per-cpu 5G --wrap="module add apps/R/3.6.0 && Rscript setup1.R -t 2" --output "setup1_t2.out" --error "setup1_t2.err"
 
-sbatch --time 23:59:00 --partition brc,shared --job-name="GSEMGWAS" --ntasks 1 --cpus-per-task 2 --mem-per-cpu 6G --wrap="Rscript setup1.R -l cluster" --output "setup1.out" --error "setup1.err"
-
 sbatch --time 23:59:00 --partition brc,shared --job-name="mvHDLt2" --ntasks 1 --cpus-per-task 4 --mem-per-cpu 5G --wrap="Rscript setup1.R -t 2 -l cluster" --output "setup1.t2.out" --error "setup1.t2.err"
 sbatch --time 23:59:00 --partition brc,shared --job-name="mvHDLt3" --ntasks 1 --cpus-per-task 4 --mem-per-cpu 5G --wrap="Rscript setup1.R -t 3 -l cluster" --output "setup1.t3.out" --error "setup1.t3.err"
 sbatch --time 23:59:00 --partition brc,shared --job-name="mvHDLt4" --ntasks 1 --cpus-per-task 4 --mem-per-cpu 5G --wrap="Rscript setup1.R -t 4 -l cluster" --output "setup1.t4.out" --error "setup1.t4.err"
 sbatch --time 23:59:00 --partition brc,shared --job-name="mvHDLt5" --ntasks 1 --cpus-per-task 4 --mem-per-cpu 5G --wrap="Rscript setup1.R -t 5 -l cluster" --output "setup1.t5.out" --error "setup1.t5.err"
 sbatch --time 23:59:00 --partition brc,shared --job-name="mvHDLt6" --ntasks 1 --cpus-per-task 4 --mem-per-cpu 5G --wrap="Rscript setup1.R -t 6 -l cluster" --output "setup1.t6.out" --error "setup1.t6.err"
 
-
+sbatch --time 23:59:00 --partition brc,shared --job-name="GSEMGWAS" --ntasks 1 --cpus-per-task 6 --mem-per-cpu 8G --wrap="Rscript setup1.R -l cluster" --output "setup1_$(date +%Y%m%d).out.txt" --error "setup1_$(date +%Y%m%d).err.txt"
 
 
 

@@ -841,8 +841,9 @@ dev.off()
 # Improved annotation of chosen datasets
 
 ```{r improved annotation of chosen datasets, fig.width=10, fig.height=6, out.width="1600px", out.height="1000px"}
+#View(project$sumstats.sel)
 
-project$sumstats.sel.table<-project$sumstats.sel[,c("gwas_name.nice","dependent_variable","n_case","n_control","reference_year","samplePrevalence","populationPrevalence","h2.liability_mvLDSC","h2.se.liability_mvLDSC","h2.liability_HDL.piecewise","h2.se.liability_HDL.piecewise","h2.observed_origHDL","h2.se.observed_origHDL","h2.liability_origHDL")]
+project$sumstats.sel.table<-project$sumstats.sel[,c("gwas_name.nice","dependent_variable","n_case","n_control","reference_year","samplePrevalence","populationPrevalence","h2.liability_mvLDSC","h2.se.liability_mvLDSC","h2.liability_HDL.piecewise","h2.se.liability_HDL.piecewise","h2.liability_HDL.jackknife","h2.se.liability_HDL.jackknife","h2.observed_origHDL","h2.se.observed_origHDL","h2.liability_origHDL")]
 rownames(project$sumstats.sel.table)<-NULL #Remove the rowname column
 #View(project$sumstats.sel.table)
 #project$sumstats.sel.table
@@ -850,7 +851,7 @@ rownames(project$sumstats.sel.table)<-NULL #Remove the rowname column
 project$plots.sumstats.sel.table<-project$sumstats.sel.table %>% 
   gt() %>% 
   fmt_number(columns = vars(samplePrevalence, populationPrevalence), decimals = 2) %>%
-  fmt_number(columns = vars(h2.liability_mvLDSC,h2.liability_HDL.piecewise,h2.observed_origHDL,h2.liability_origHDL,), decimals = 3) %>%
+  fmt_number(columns = vars(h2.liability_mvLDSC,h2.liability_HDL.piecewise,h2.liability_HDL.jackknife,h2.observed_origHDL,h2.liability_origHDL,), decimals = 4) %>%
   fmt_number(columns = vars(h2.se.liability_mvLDSC,h2.se.liability_HDL.piecewise,h2.se.observed_origHDL), decimals = 4) %>%
   fmt_number(columns = vars(n_case,n_control), decimals = 0) %>%
   tab_header(
@@ -863,15 +864,17 @@ project$plots.sumstats.sel.table<-project$sumstats.sel.table %>%
     n_case = "N case",
     n_control = "N control",
     reference_year = "Year",
-    samplePrevalence = html("Prevalence<sub>sample</sub>"),
-    populationPrevalence = html("Prevalence<sub>population</sub>"),
+    samplePrevalence = html("Prev<sub>samp</sub>"),
+    populationPrevalence = html("Prev<sub>pop</sub>"),
     h2.liability_mvLDSC = html("h<sup>2</sup><sub>mvLDSC</sub>"),
     h2.se.liability_mvLDSC = "se",
-    h2.liability_HDL.piecewise = html("h<sup>2</sup><sub>HDL(pw)</sub>"),
+    h2.liability_HDL.piecewise = html("h<sup>2</sup><sub>HDLpw</sub>"),
     h2.se.liability_HDL.piecewise = "se",
-    h2.observed_origHDL = html("h<sup>2</sup><sub>oHDL,OS</sub>"),
+    h2.liability_HDL.jackknife = html("h<sup>2</sup><sub>HDLjn</sub>"),
+    h2.se.liability_HDL.jackknife = "se",
+    h2.observed_origHDL = html("h<sup>2</sup><sub>oHDL(obs)</sub>"),
     h2.se.observed_origHDL = "se",
-    h2.liability_origHDL = html("h<sup>2</sup><sub>oHDL,LS</sub>")
+    h2.liability_origHDL = html("h<sup>2</sup><sub>oHDL(liab)</sub>")
   ) %>%
   tab_style(
     style = cell_text(size = px(12)),
@@ -1559,9 +1562,7 @@ The summary statistics is prepared for analysis by using the sumstats()-function
 
 project$lfGWAS<-c()
 
-if (file.exists(paste0(project$folderpath.workingDirectory,"/","lfGWAS.sumstats.",project$setup.code,".Rds")) | project$seting.refreshPrepareSummaryStatistics) {
-  project$lfGWAS<-readRDS(file=paste0(project$folderpath.workingDirectory,"/","lfGWAS.sumstats.",project$setup.code,".Rds"))
-} else
+if (!file.exists(paste0(project$folderpath.workingDirectory,"/","lfGWAS.sumstats.",project$setup.code,".Rds")) | project$seting.refreshPrepareSummaryStatistics) 
 {
   print("Preparing summary statistics for latent factor GWAS. This might take a while.")
 
@@ -1587,20 +1588,38 @@ project$lfGWAS$sumstats.prepared<-sumstats(
 
   saveRDS(object = project$lfGWAS,file = paste0(project$folderpath.workingDirectory,"/","lfGWAS.sumstats.",project$setup.code,".Rds"))
   print("Done summary statistics for latent factor GWAS. The result should have been saved to a file.")
+} else {
+  project$lfGWAS<-readRDS(file=paste0(project$folderpath.workingDirectory,"/","lfGWAS.sumstats.",project$setup.code,".Rds"))
 }
 
 ```
 
 ## Perform latent factor GWAS
+If using HDL - do not use GC:
+https://rpubs.com/MichelNivard/640145
+
 ```{r latent factor GWAS}
 
-if(is.null(project$lfGWAS$userGWAS.correlated) | project$setting.refreshLatentFactorGWAS) {
+if (!file.exists(paste0(project$folderpath.workingDirectory,"/","lfGWAS.gwas.",project$setup.code,".Rds")) | project$setting.refreshLatentFactorGWAS) 
+{
 
 print("Performing latent factor GWAS. This will take a while.")
 
-#project$CFA$cfa.configurations.result[which(project$CFA$cfa.configurations.result$id==13),]  
-    
-project$lfGWAS$model<-"
+#project$CFA$cfa.configurations.result[which(project$CFA$cfa.configurations.result$id==13),]
+  
+project$lfGWAS$modelM2fP_0.3<-"
+F1 =~ NA*ALCD+ANXI+DEPR+NEUR+SUBJ
+F2 =~ NA*ALCD+HEAL+TIRE
+F1~~1*F1
+F2~~1*F2
+
+F1~~F2
+
+F1~SNP
+
+"
+
+project$lfGWAS$modelTemplate<-"
 F1 =~ NA*ALCD+ANXI+DEPR+NEUR+SUBJ
 F2 =~ NA*ALCD+HEAL+TIRE
 F1~~1*F1
@@ -1613,14 +1632,75 @@ F2~SNP
 
 "
 
-#nrow(project$lfGWAS$sumstats.prepared)
+project$lfGWAS$gwas<-userGWAS(covstruc = project$mvLD$covstruct.mvLDSC, SNPs = project$lfGWAS$sumstats.prepared, estimation = "ML", model = project$lfGWAS$modelM2fP_0.3, modelchi = FALSE, printwarn = TRUE, sub=c("F1~SNP"), GC="standard")
 
-project$lfGWAS$gwas<-userGWAS(covstruc = project$mvLD$covstruct.mvLDSC, SNPs = project$lfGWAS$sumstats.prepared, estimation = "ML", model = project$lfGWAS$model, modelchi = FALSE, printwarn = FALSE, sub=c("F1~SNP","F2~SNP"), cores = NULL, GC="standard")
+#project$lfGWAS$gwas<-userGWAS(covstruc = project$mvLD$covstruct.mvLDSC, SNPs = project$lfGWAS$sumstats.prepared, estimation = "ML", model = project$lfGWAS$modelM2fP_0.3, modelchi = FALSE, printwarn = TRUE, sub=c("F1~SNP","F2~SNP"), GC="standard")
 
-saveRDS(object = project$lfGWAS$gwas,file = paste0(project$folderpath.working_directory,"/","lfGWAS.gwas.",project$setup.code,".Rds"))
+saveRDS(object = project$lfGWAS$gwas,file = paste0(project$folderpath.workingDirectory,"/","lfGWAS.gwas.",project$setup.code,".Rds"))
 
 print("DONE performing latent factor GWAS. The results should have been saved to a file.")
 
+} else {
+  project$lfGWAS$gwas<-readRDS(file=paste0(project$folderpath.workingDirectory,"/","lfGWAS.gwas.",project$setup.code,".Rds"))
 }
+
+```
+
+```{r latent factor GWAS visualisation}
+
+#from https://www.r-graph-gallery.com/101_Manhattan_plot.html
+
+#View(project$lfGWAS$gwas[[1]])
+
+project$lfGWAS$gwas.for.display <- project$lfGWAS$gwas[[1]]
+
+project$lfGWAS$gwas.for.display <- project$lfGWAS$gwas.for.display %>% 
+  
+# Compute chromosome size
+group_by(CHR) %>% 
+summarise(BPmax.chr=max(BP)) %>% 
+
+# Calculate cumulative position of each chromosome
+mutate(BP.tot.chr=cumsum(as.numeric(BPmax.chr))-BPmax.chr) %>%
+select(-BPmax.chr) %>%
+
+# Add this info to the initial dataset
+left_join(project$lfGWAS$gwas.for.display, ., by=c("CHR"="CHR"))
+
+project$lfGWAS$gwas.for.display <- project$lfGWAS$gwas.for.display %>%
+# Add a cumulative position of each SNP
+arrange(CHR, BP) %>%
+mutate(BP.tot=BP+BP.tot.chr)
+
+#View(project$lfGWAS$gwas.for.display)
+
+axisdefinition = project$lfGWAS$gwas.for.display %>% group_by(CHR) %>% summarize(center=( max(BP.tot) + min(BP.tot) ) / 2 )
+
+project$plot.lfGWAS.F1 <- ggplot(project$lfGWAS$gwas.for.display, aes(x=BP.tot, y=-log10(Pval_Estimate))) +
+    
+    # Show all points
+    geom_point( aes(color=as.factor(CHR)), alpha=0.8, size=1.3) +
+    scale_color_manual(values = rep(c("grey", theme.color$contrastLight1), 22 )) +
+    
+    # custom X axis:
+    scale_x_continuous( label = axisdefinition$CHR, breaks= axisdefinition$center ) +
+    scale_y_continuous(expand = c(0, 0) ) +     # remove space between plot area and x axis
+  
+    geom_label_repel(data=subset(project$lfGWAS$gwas.for.display, -log10(Pval_Estimate)>5), aes(label=SNP), size=3) +
+  
+    # Custom the theme:
+    theme_bw() +
+    theme( 
+      legend.position="none",
+      panel.border = element_blank(),
+      panel.grid.major.x = element_blank(),
+      panel.grid.minor.x = element_blank()
+    )
+
+project$plot.lfGWAS.F1
+
+png(filename = paste0(project$folderpath.plots,"/","lfGWAS.F1",".png"), width = 1800, height = 1200)
+  project$plot.lfGWAS.F1
+dev.off()
 
 ```

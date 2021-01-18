@@ -1,4 +1,4 @@
-## ----package setup, echo=FALSE, warning=F-------------------------------------
+## ----package setup, echo=FALSE, warning=F------------------------------------------------------------------------
 
 #install.packages("skimr")
 #install.packages("psych")
@@ -37,7 +37,7 @@ library(stats)
 
 
 
-## ----command line setup-------------------------------------------------------
+## ----command line setup------------------------------------------------------------------------------------------
 clParser <- OptionParser()
 clParser <- add_option(clParser, c("-t", "--task"), type="integer", default=1,
                 help="Index of the explicit task to run separately:\n1: No task\n2:HDL Piecewise\n3:HDL Jackknife\n4:vLDSC\n5:original piecewise HDL\n6:original jackknife HDL [default %default]")
@@ -46,7 +46,7 @@ clParser <- add_option(clParser, c("-l", "--location"), type="character", defaul
 
 
 
-## ----settings-----------------------------------------------------------------
+## ----settings----------------------------------------------------------------------------------------------------
 project<-c() #create project metadata object
 project$clOptions<-parse_args(clParser)
 project$date.run<-Sys.Date()
@@ -151,14 +151,14 @@ setwd(dir = normalizePath(project$folderpath.workingDirectory))
 
 
 
-## ----additional source setup, echo=FALSE, warning=F---------------------------
+## ----additional source setup, echo=FALSE, warning=F--------------------------------------------------------------
 
 source(normalizePath(paste0(project$folderpath.scripts,"/","shru.R")))
 #source(normalizePath(paste0(project$folderpath.scripts,"/","hdl.mod.R")))
 
 
 
-## ----trait setup--------------------------------------------------------------
+## ----trait setup-------------------------------------------------------------------------------------------------
 #,echo=FALSE
 project$trait<-data.frame(
   code=c("ANXI","DEPR","BIPO","ALCD"),
@@ -179,7 +179,7 @@ project$trait
 
 
 
-## ----GWAS sumstat dataset setup-----------------------------------------------
+## ----GWAS sumstat dataset setup----------------------------------------------------------------------------------
 #, echo=FALSE
 
 project$sumstats<-read.table(paste0(project$folderpath.data,"/","ukbb_sumstats_download202005.csv"), header=T, quote="\"", sep = ",", fill=T, blank.lines.skip=T,as.is = c(2), strip.white = T)
@@ -326,7 +326,7 @@ saveRDS(project,file = paste0(project$folderpath.workingDirectory,"/","project."
 
 
 
-## ----GWAS sumstat dataset variable selection----------------------------------
+## ----GWAS sumstat dataset variable selection---------------------------------------------------------------------
 
 #selection based on specific traits
 project$sumstats.sel.code<-c("DEPR05","ANXI03","NEUR01","TIRE01","SUBJ01","ALCD03","HEAL01")
@@ -338,7 +338,7 @@ project$k.sel<-nrow(project$sumstats.sel)
 
 
 
-## ----multivariate LD----------------------------------------------------------
+## ----multivariate LD---------------------------------------------------------------------------------------------
 
 project$filepath.mvLD<-paste0(project$folderpath.workingDirectory,"/","mvLD.",project$setup.code,".Rds")
 project$filepath.mvLD.HDL.piecewise<-paste0(project$folderpath.workingDirectory,"/","mvLD.",project$setup.code,".HDL.piecewise.Rds")
@@ -563,7 +563,7 @@ gtsave(data = project$plots.sumstats.sel.table, filename = paste0(project$folder
 
 
 
-## ----prepare summary statistics-----------------------------------------------
+## ----prepare summary statistics----------------------------------------------------------------------------------
 #eval=FALSE
 #use ^this to knit without running the code in the chunk
 
@@ -637,15 +637,27 @@ project$lfGWAS$sumstats.prepared<-sumstats(
 
 
 
-## ----latent factor GWAS-------------------------------------------------------
+## ----latent factor GWAS------------------------------------------------------------------------------------------
 
 if(is.null(project$lfGWAS$userGWAS.correlated) | project$setting.refreshLatentFactorGWAS) {
 
 print("Performing latent factor GWAS. This will take a while.")
 
-#project$CFA$cfa.configurations.result[which(project$CFA$cfa.configurations.result$id==13),]  
-    
-project$lfGWAS$model<-"
+#project$CFA$cfa.configurations.result[which(project$CFA$cfa.configurations.result$id==13),]
+  
+project$lfGWAS$modelM2fP_0.3<-"
+F1 =~ NA*ALCD+ANXI+DEPR+NEUR+SUBJ
+F2 =~ NA*ALCD+HEAL+TIRE
+F1~~1*F1
+F2~~1*F2
+
+F1~~F2
+
+F1~SNP
+
+"
+
+project$lfGWAS$modelTemplate<-"
 F1 =~ NA*ALCD+ANXI+DEPR+NEUR+SUBJ
 F2 =~ NA*ALCD+HEAL+TIRE
 F1~~1*F1
@@ -658,11 +670,11 @@ F2~SNP
 
 "
 
-#nrow(project$lfGWAS$sumstats.prepared)
+project$lfGWAS$gwas<-userGWAS(covstruc = project$mvLD$covstruct.mvLDSC, SNPs = project$lfGWAS$sumstats.prepared, estimation = "ML", model = project$lfGWAS$modelM2fP_0.3, modelchi = FALSE, printwarn = TRUE, sub=c("F1~SNP"), GC="standard")
 
-project$lfGWAS$gwas<-userGWAS(covstruc = project$mvLD$covstruct.mvLDSC, SNPs = project$lfGWAS$sumstats.prepared, estimation = "ML", model = project$lfGWAS$model, modelchi = FALSE, printwarn = FALSE, sub=c("F1~SNP","F2~SNP"), cores = NULL, GC="standard")
+#project$lfGWAS$gwas<-userGWAS(covstruc = project$mvLD$covstruct.mvLDSC, SNPs = project$lfGWAS$sumstats.prepared, estimation = "ML", model = project$lfGWAS$modelM2fP_0.3, modelchi = FALSE, printwarn = TRUE, sub=c("F1~SNP","F2~SNP"), GC="standard")
 
-saveRDS(object = project$lfGWAS$gwas,file = paste0(project$folderpath.working_directory,"/","lfGWAS.gwas.",project$setup.code,".Rds"))
+saveRDS(object = project$lfGWAS$gwas,file = paste0(project$folderpath.workingDirectory,"/","lfGWAS.gwas.",project$setup.code,".Rds"))
 
 print("DONE performing latent factor GWAS. The results should have been saved to a file.")
 
