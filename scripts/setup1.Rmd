@@ -840,7 +840,7 @@ dev.off()
 
 # Improved annotation of chosen datasets
 
-```{r improved annotation of chosen datasets, fig.width=10, fig.height=6, out.width="1600px", out.height="1000px"}
+```{r improved annotation of chosen datasets, fig.width=10, fig.height=6, out.width="1600px", out.height="1000px", purl=FALSE}
 #View(project$sumstats.sel)
 
 project$sumstats.sel.table<-project$sumstats.sel[,c("gwas_name.nice","dependent_variable","n_case","n_control","reference_year","samplePrevalence","populationPrevalence","h2.liability_mvLDSC","h2.se.liability_mvLDSC","h2.liability_HDL.piecewise","h2.se.liability_HDL.piecewise","h2.liability_HDL.jackknife","h2.se.liability_HDL.jackknife","h2.observed_origHDL","h2.se.observed_origHDL","h2.liability_origHDL")]
@@ -1632,7 +1632,7 @@ F2~SNP
 
 "
 
-project$lfGWAS$gwas<-userGWAS(covstruc = project$mvLD$covstruct.mvLDSC, SNPs = project$lfGWAS$sumstats.prepared, estimation = "ML", model = project$lfGWAS$modelM2fP_0.3, modelchi = FALSE, printwarn = TRUE, sub=c("F1~SNP"), GC="standard")
+project$lfGWAS$gwas<-userGWAS(covstruc = project$mvLD$covstruct.mvLDSC, SNPs = project$lfGWAS$sumstats.prepared, estimation = "ML", model = project$lfGWAS$modelM2fP_0.3, modelchi = FALSE, printwarn = TRUE, sub=c("F1~SNP"), GC="none")
 
 #project$lfGWAS$gwas<-userGWAS(covstruc = project$mvLD$covstruct.mvLDSC, SNPs = project$lfGWAS$sumstats.prepared, estimation = "ML", model = project$lfGWAS$modelM2fP_0.3, modelchi = FALSE, printwarn = TRUE, sub=c("F1~SNP","F2~SNP"), GC="standard")
 
@@ -1646,7 +1646,7 @@ print("DONE performing latent factor GWAS. The results should have been saved to
 
 ```
 
-```{r latent factor GWAS visualisation}
+```{r latent factor GWAS visualisation, purl=FALSE}
 
 #from https://www.r-graph-gallery.com/101_Manhattan_plot.html
 
