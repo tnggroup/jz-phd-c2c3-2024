@@ -1,0 +1,38 @@
+── Attaching packages ─────────────────────────────────────── tidyverse 1.3.0 ──
+✔ ggplot2 3.3.2     ✔ purrr   0.3.4
+✔ tibble  3.0.4     ✔ dplyr   1.0.2
+✔ tidyr   1.1.2     ✔ stringr 1.4.0
+✔ readr   1.4.0     ✔ forcats 0.5.0
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ ggplot2::%+%()   masks psych::%+%()
+✖ ggplot2::alpha() masks psych::alpha()
+✖ tidyr::expand()  masks Matrix::expand()
+✖ dplyr::filter()  masks stats::filter()
+✖ dplyr::lag()     masks stats::lag()
+✖ tidyr::pack()    masks Matrix::pack()
+✖ tidyr::unpack()  masks Matrix::unpack()
+There were 24 warnings (use warnings() to see them)
+
+HDL: High-definition likelihood inference of genetic correlations and
+heritabilities (HDL)
+Version 1.3.8 (2020-07-12) installed
+Author: Zheng Ning, Xia Shen
+Maintainer: Zheng Ning <zheng.ning@ki.se>
+
+Tutorial: https://github.com/zhenin/HDL
+
+Use citation("HDL") to know how to cite this work.
+
+Warning message:
+In normalizePath(paste0(project$folderpath.scripts, "/", project$filename.rmd)) :
+  path[1]="/mnt/lustre/users/k19049801/project/JZ_GED_PHD_C1/scripts/setup1.Rmd": No such file or directory
+This is lavaan 0.6-7
+lavaan is BETA software! Please report any bugs.
+
+Attaching package: ‘lavaan’
+
+The following object is masked from ‘package:psych’:
+
+    cor2cov
+
+There were 19 warnings (use warnings() to see them)

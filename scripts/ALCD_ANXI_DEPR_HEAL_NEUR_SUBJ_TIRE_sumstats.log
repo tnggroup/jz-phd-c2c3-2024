@@ -1,0 +1,26 @@
+The preparation of 7 summary statistics for use in Genomic SEM began at: 2021-01-13 20:48:27
+Please note that the files should be in the same order that they were listed for the ldsc function
+Reading in reference file
+Applying MAF filer of 0.01 to the refernece file.
+Reading summary statistics for /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/ALCD03_noMHC_mod.sumstats /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/ANXI03_noMHC_mod.sumstats /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/DEPR05_noMHC_mod.sumstats /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/HEAL01_noMHC_mod.sumstats /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/NEUR01_noMHC_mod.sumstats /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/SUBJ01_noMHC_mod.sumstats /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/TIRE01_noMHC_mod.sumstats . Please note that this step usually takes a few minutes due to the size of summary statistic files.
+All files loaded into R!
+     
+     
+Preparing summary statistics for file: /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/ALCD03_noMHC_mod.sumstats
+Interpreting the SNP column as the SNP column.
+Interpreting the A1 column as the A1 column.
+Interpreting the A2 column as the A2 column.
+Interpreting the Z column as the effect column.
+Interpreting the SE column as the SE column.
+Interpreting the N column as the N (sample size) column.
+Cannot find P-value column, try renaming it P in the summary statistics file for:ALCD
+As the summary statistics file includes a sample size column, this is being used in place of the user provided sample size. If the user wishes to still use the provided sample size, as opposed to the sample size listed in the summary statistics file, please change the sample size column header to N2.However, we note that sample size is only used for LPM and OLS conversions.
+Merging file: /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/ALCD03_noMHC_mod.sumstatswith the reference file: /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/reference.1000G.maf.0.005.txt
+1213882 rows present in the full /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/ALCD03_noMHC_mod.sumstats summary statistics file.
+51468 rows were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/ALCD03_noMHC_mod.sumstats summary statistics file as the rsIDs for these SNPs were not present in the reference file.
+79768 rows were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/ALCD03_noMHC_mod.sumstats summary statistics file due to missing values in the effect column
+The effect column was determined NOT to be coded as an odds ratio (OR) for the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/ALCD03_noMHC_mod.sumstats summary statistics file based on the median of the effect column being close to 0.
+382 rows were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/ALCD03_noMHC_mod.sumstats summary statistics file due to effect values estimated at exactly 0 as this causes problems for matrix inversion necessary for later Genomic SEM analyses.
+No INFO column, cannot filter on INFO, which may influence results
+Performing transformation under the assumption that the effect column is either an odds ratio or logistic beta (please see output above to determine whether it was interpreted as an odds ratio) and the SE column is the SE of the odds ratio (i.e., NOT on the logistic scale) for: /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/ALCD03_noMHC_mod.sumstats
+0 SNPs are left in the summary statistics file /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/ALCD03_noMHC_mod.sumstats after QC and merging with the reference file.
