@@ -45,7 +45,8 @@ This analysis script is meant to contain most of the analysis steps performed in
 #install.packages("stats")
 #remove.packages("shru")
 #devtools::install_github("johanzvrskovec/shru",ref = 'main') #specify branch
-
+#install.packages("reticulate")
+#install.packages("readr")
 
 library(skimr)
 library(psych)
@@ -59,6 +60,8 @@ library(HDL)
 library(optparse)
 library(stats)
 library(shru)
+
+#library(reticulate)
 
 ```
 
@@ -107,11 +110,12 @@ project$folderpath<-normalizePath("~/King's College London/MT-Translational Neur
 project$folderpath<-normalizePath("/scratch/users/k19049801/project/JZ_GED_PHD_C1")
 }
 ##project working directory subfolders
-project$folderpath.workingDirectory<-normalizePath(paste0(project$folderpath,"/","workingDirectory"))
+project$folderpath.workingDirectory<-normalizePath(paste0(project$folderpath,"/","working_directory"))
 
 project$folderpath.scripts<-normalizePath(paste0(project$folderpath,"/","scripts"))
-#project$folderpath.include<-normalizePath(paste0(project$folderpath,"/","include"))
+project$folderpath.includedSoftware<-normalizePath(paste0(project$folderpath,"/","included_software"))
 project$folderpath.plots<-normalizePath(paste0(project$folderpath,"/","plots"))
+
 
 #general data folder
 if(project$host=="local") {
@@ -122,38 +126,52 @@ if(project$host=="local") {
 
 ##cleaned sumstats folder
 if(project$host=="local") {
-  project$folderpath.data.sumstats.cleaned<-normalizePath("~/Documents/local_db/JZ_GED_PHD_C1/data.sumstats.cleaned")
+  project$folderpath.data.sumstats.cleaned<-normalizePath(paste0(project$folderpath.data,"/gwas_sumstats/cleaned"))
 } else if (project$host=="cluster") {
   project$folderpath.data.sumstats.cleaned<-normalizePath("/mnt/lustre/groups/ukbiobank/sumstats/cleaned")
 }
 
 ##munged sumstats folder
+project$folderpath.data.sumstats.munged<-normalizePath(paste0(project$folderpath.data,"/gwas_sumstats/munged"))
+
+##imputed sumstats folder
+project$folderpath.data.sumstats.imputed<-normalizePath(paste0(project$folderpath.data,"/gwas_sumstats/imputed"))
+
+#python virtual environment folder
 if(project$host=="local") {
-  project$folderpath.data.sumstats.munged<-normalizePath("~/Documents/local_db/JZ_GED_PHD_C1/data.sumstats.mungedNoMHC")
+  project$folderpath.pythonVenv<-normalizePath("~/Documents/local_db/JZ_GED_PHD_C1/python-venv")
 } else if (project$host=="cluster") {
-  project$folderpath.data.sumstats.munged<-normalizePath("/mnt/lustre/groups/ukbiobank/sumstats/munged_noMHC")
+  project$folderpath.pythonVenv<-normalizePath(paste0(project$folderpath,"/","python-venv"))
 }
 
-project$filename.suffix.data.sumstats.munged<-"_noMHC.sumstats"
+##Reference SNP-list (HapMap3 SNPs for example). Used for munging sumstat SNP data.
+#project$filepath.SNPReference<-normalizePath(paste0(project$folderpath.data,"/","w_hm3.snplist.flaskapp2018")) #HapMap3 SNPs
+## Used in the preparation step for performing latent factor GWAS as reference for calculating SNP variance across traits.
+#project$filepath.SNPReference<-normalizePath(paste0(project$folderpath.data,"/","reference.1000G.maf.0.005.txt")) #1000 genomes phase 3
+project$filepath.SNPReference<-normalizePath(paste0(project$folderpath.data,"/","combined.hm3_1kg.snplist.jz2020.txt")) #custom hm3 + 1kg SNPs
+
+project$filename.suffix.data.sumstats.munged<-".gz"
+#project$filename.suffix.data.sumstats.munged<-"_noMHC.sumstats.gz"
+
+##Reference panel folder containing individual level data reference panel. Used for GWAS sumstat imputation tasks.
+#roject$folderpath.data.sumstatImp.genomeReference<-"/users/k1204688/brc_scratch/Public/1KG_Phase3/All"
+project$folderpath.data.sumstatImp.genomeReference<-"/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/data/reference.panel.1KG_Phase3.CLEANED.EUR.cM"
 
 ##LD scores datasets folders (these strings need to have a trailing slash for the GSEM LDSC to work)
 project$folderpath.data.mvLDSC.ld <- paste0(project$folderpath.data,"/eur_w_ld_chr/") #LD-scores
 project$folderpath.data.mvLDSC.wld <- paste0(project$folderpath.data,"/eur_w_ld_chr/") #Weights, if different from LD-scores
 
-##HLD reference panel
+##HDL LD scores reference
 if(project$host=="local") {
-  #use the smallest reference panel as default for local tests
-  project$folderpath.data.HLD.ld<-paste0(project$folderpath.data,"/UKB_array_SVD_eigen90_extraction/")
+  #use the smallest LD reference as default for local tests
+  project$folderpath.data.HDL.ld<-paste0(project$folderpath.data,"/UKB_array_SVD_eigen90_extraction/")
 } else if (project$host=="cluster") {
-  project$folderpath.data.HLD.ld<-paste0(project$folderpath.data,"/UKB_imputed_hm3_SVD_eigen99_extraction/")
+  project$folderpath.data.HDL.ld<-paste0(project$folderpath.data,"/UKB_imputed_hm3_SVD_eigen99_extraction/")
 }
   
 ##full script file paths
 project$filepath.rmd<-normalizePath(paste0(project$folderpath.scripts,"/",project$filename.rmd))
 project$filepath.r<-normalizePath(paste0(project$folderpath.scripts,"/",project$filename.r))
-
-##Reference file for calculating SNP variance across traits. Used in the preparation step for performing latent factor GWAS.
-project$filepath.genomeReference<-normalizePath(paste0(project$folderpath.data,"/","reference.1000G.maf.0.005.txt")) #1000 genomes phase 3
 
 ##CFA settings 
 project$cfa.absCutoff.2F.oblq=c(0.30,0.35,0.4) #for promax
@@ -168,9 +186,13 @@ project$cfa.fixedLoadings=c(FALSE)
 
 ##latent factor GWAS filter settings
 project$info.filter=.6
-project$maf.filter=0.01
+project$maf.filter=0.05
 
+#working directory in case of running as an R-script
 setwd(dir = normalizePath(project$folderpath.workingDirectory))
+
+#inactivated python environment until it is used
+#use_virtualenv(project$folderpath.pythonVenv)
 
 ```
 
@@ -195,6 +217,28 @@ knitr::purl(project$filename.rmd)
 #source(normalizePath(paste0(project$folderpath.scripts,"/","hdl.mod.R")))
 
 ```
+
+# Database connection to fetch trait and GWAS metadata - run from Rstudio .Rmd
+```{r metadata database load, include=FALSE, purl=FALSE, eval=FALSE}
+#install.packages('RPostgres')
+#library(RPostgres)
+#library(DBI)
+
+#project$phenodbcon <- dbConnect(RPostgres::Postgres(),
+                 #dbname = 'phenodb', 
+                 #host = '10.200.105.5', 
+                 #port = 5432,
+                 #user = 'johan',
+                 #password = rstudioapi::askForPassword(prompt = "Enter database password for specified user."))
+
+#project$phenodbres <- dbSendQuery(project$phenodbcon, "SELECT * FROM met.population")
+#resDf<-dbFetch(res)
+#dbClearResult(res)
+
+
+```
+
+
 
 # Trait setup
 ```{r trait setup}
@@ -273,7 +317,7 @@ mutate(
 ##Add sumstat file paths
 project$sumstats <- project$sumstats %>%
 mutate(
-  mungedpath=paste0(project$folderpath.data.sumstats.munged,"/",code,"_noMHC.sumstats.gz")
+  mungedpath=paste0(project$folderpath.data.sumstats.munged,"/",code,project$filename.suffix.data.sumstats.munged)
        )
 
 project$sumstats <- project$sumstats %>%
@@ -372,16 +416,103 @@ saveRDS(project,file = paste0(project$folderpath.workingDirectory,"/","project."
 #selection based on specific traits
 project$sumstats.sel.code<-c("DEPR05","ANXI03","NEUR01","TIRE01","SUBJ01","ALCD03","HEAL01")
 project$sumstats.sel<-project$sumstats[which(project$sumstats$code %in% project$sumstats.sel.code),]
-project$sumstats.sel$code_orig<-project$sumstats.sel$code
-project$sumstats.sel$code<-project$sumstats.sel$code.trait
+#project$sumstats.sel$code_orig<-project$sumstats.sel$code
+#project$sumstats.sel$code<-project$sumstats.sel$code.trait
 project$sumstats.sel[,c("code","n_total","pmid","reference_doi","samplePrevalence","populationPrevalence","mungedpath")]
 project$k.sel<-nrow(project$sumstats.sel)
 #View(project$sumstats.sel[,c("code","n_total","pmid","reference_doi","samplePrevalence","populationPrevalence","mungedpath")])
 
 
-write.table(project$sumstats.sel[,c("code_orig", "gwas_name","reference_year", "n_case","n_control","n_total","samplePrevalence","populationPrevalence", "reference_doi")], file = paste0(project$folderpath.workingDirectory,"/","project.",project$setup.code,".sumstatsinfo.csv"), quote = TRUE, sep = ",", eol = "\r", row.names = FALSE, col.names = TRUE)
+write.table(project$sumstats.sel[,c("code", "gwas_name","reference_year", "n_case","n_control","n_total","samplePrevalence","populationPrevalence", "reference_doi")], file = file.path(project$folderpath.workingDirectory,paste0("project.",project$setup.code,".sumstatinfo.tsv")), quote = TRUE, sep = "\t", row.names = FALSE, col.names = TRUE)
 
 ```
+
+# GWAS summary statistics munge - if needed
+```{r GWAS sumstat munge}
+if(project$clOptions$task=="munge"){
+
+  
+  #construct new reference
+  #library(readr)
+  #project$sumstats.reference.old<-read.table(project$filepath.SNPReference, header=T, quote="\"", fill=T, blank.lines.skip=T, strip.white = T,na.strings=c(".",NA,"NA",""))
+  #project$sumstats.reference.old<-data.table::fread(project$filepath.SNPReference,header=T,data.table=F)
+  
+  #refaddition<-as.data.frame(data.table::fread("/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/munged/ref.snps.not.in.REF1KG.txt",header=F,data.table=F))
+  #refaddition<-data.table::fread(normalizePath(paste0(project$folderpath.data,"/","w_hm3.snplist.flaskapp2018")),header=T,data.table=F)
+  #colnames(refaddition)<-c("SNP")
+  
+  #diff<-setdiff(refaddition[,c("SNP","A1","A2")],project$sumstats.reference.old[,c("SNP","A1","A2")])
+  #diff<-data.frame(SNP=setdiff(refaddition[,c("SNP")],project$sumstats.reference.old[,c("SNP")]),CHR=NA,BP=NA,MAF=NA,A1=NA,A2=NA)
+  #nrow(diff)
+  #project$sumstats.reference.new<-rbind(project$sumstats.reference.old,diff)
+  #project$sumstats.reference.new<-unique(project$sumstats.reference.new2)
+  #View(project$sumstats.reference.old)
+  #View(project$sumstats.reference.new)
+  #View(project$sumstats.reference.new2)
+  #View(project$sumstats.reference.new3)
+  
+  #data.table::fwrite(x = project$sumstats.reference.new, file = paste0(project$folderpath.workingDirectory,"/","combined.hm3_1kg.snplist.jz2020.txt"))
+
+  #special munge of the 1KG reference SNP stats
+  # munge.mod(files = c(project$filepath.genomeReference),
+  #           hm3 = project$filepath.SNPReference,
+  #           trait.names=c("REF1KG"),
+  #           info.filter=project$info.filter,
+  #           maf.filter=project$maf.filter,
+  #           path.dir.output = project$folderpath.data.sumstats.munged,
+  #           N = 2504
+  #             ) 
+  
+  
+  #experiment to load extended reference panel
+  #Folder:
+  #"/users/k19049801/project/JZ_GED_PHD_C1/data/UKB_imputed_hm3_SVD_eigen99_extraction"
+  #Files:
+  #UKB_snp_counter_imputed.RData
+  #UKB_snp_list_imputed.vector_form.RData
+  #snp.dictionary.imputed.rda
+  
+  #munging with no filters applied
+  munge.mod(files = project$sumstats.sel$cleanedpath,
+            hm3 = project$filepath.SNPReference,
+            trait.names=project$sumstats.sel$code,
+            info.filter=0,
+            maf.filter=0,
+            path.dir.output = project$folderpath.data.sumstats.munged,
+            doChrSplit = TRUE
+              ) 
+    
+    
+    quit(save = "no")
+  }
+
+```
+
+# GWAS summary statistics imputation - if needed
+```{r GWAS sumstat imputation}
+if(project$clOptions$task=="impute"){
+#Using RAISS
+#https://gitlab.pasteur.fr/statistical-genetics/raiss
+#https://statistical-genetics.pages.pasteur.fr/raiss/
+
+
+#Using ImpG
+#https://bogdan.dgsom.ucla.edu/pages/impg/
+#https://github.com/huwenboshi/ImpG
+  
+#reticulate::import("raiss")
+#py$raiss$
+
+# system2(command = "awk",
+#         args = c("BEGIN{mkdir -p ../data/gwas_sumstats/imputed/$1;} for( chr=1; chr<24; chr++){raiss --chrom $chr --gwas '$1' --ref-folder '../data/reference.panel.1KG_Phase3.CLEANED.EUR.cM' --ld-folder '../data/reference.panel.1KG_Phase3.CLEANED.EUR.cM' --zscore-folder '../data/gwas_sumstats/munged/$1.chr' --output-folder '../data/gwas_sumstats/imputed/$1' --l2-regularization 0.01 --eigen-threshold 0.05 --R2-threshold 0.3;}
+# ",
+# "project.setup2.sumstatinfo.tsv"))
+  
+  quit(save = "no")
+}
+
+```
+
 
 
 # Multivariate LD
@@ -433,7 +564,7 @@ if (file.exists(project$filepath.mvLD)) {
                                   sample.prev = project$sumstats.sel$samplePrevalence,
                                   population.prev = project$sumstats.sel$populationPrevalence,
                                   trait.names=project$sumstats.sel$code,
-                                  LD.path=project$folderpath.data.HLD.ld,
+                                  LD.path=project$folderpath.data.HDL.ld,
                                   method = "piecewise")
     
     saveRDS(object = project$mvLD$covstruct.HDL.piecewise,file = project$filepath.mvLD.HDL.piecewise)
@@ -447,7 +578,7 @@ if (file.exists(project$filepath.mvLD)) {
                                 sample.prev = project$sumstats.sel$samplePrevalence,
                                 population.prev = project$sumstats.sel$populationPrevalence,
                                 trait.names=project$sumstats.sel$code,
-                                LD.path=project$folderpath.data.HLD.ld,
+                                LD.path=project$folderpath.data.HDL.ld,
                                 method = "jackknife")
   
     saveRDS(object = project$mvLD$covstruct.HDL.jackknife,file = project$filepath.mvLD.HDL.jackknife)
@@ -459,7 +590,7 @@ if (file.exists(project$filepath.mvLD)) {
     #run HDL original (using the original jackknife procedure)
     project$mvLD$covstruct.origHDL<-hdl.original(traits = project$sumstats.sel$mungedpath,
                                 trait.names=project$sumstats.sel$code,
-                                LD.path=project$folderpath.data.HLD.ld, liabilityScale = FALSE)
+                                LD.path=project$folderpath.data.HDL.ld, liabilityScale = FALSE)
 
     saveRDS(object = project$mvLD$covstruct.origHDL,file = project$filepath.mvLD.origHDL)
     quit(save = "no")
@@ -471,7 +602,7 @@ if (file.exists(project$filepath.mvLD)) {
                                 sample.prev = project$sumstats.sel$samplePrevalence,
                                 population.prev = project$sumstats.sel$populationPrevalence,
                                 trait.names=project$sumstats.sel$code,
-                                LD.path=project$folderpath.data.HLD.ld, liabilityScale = TRUE)
+                                LD.path=project$folderpath.data.HDL.ld, liabilityScale = TRUE)
     
     saveRDS(object = project$mvLD$covstruct.origHDL.liabilityScale,file = project$filepath.mvLD.origHDL.liabilityScale)
     quit(save = "no")
@@ -1573,7 +1704,7 @@ if (!file.exists(paste0(project$folderpath.workingDirectory,"/","lfGWAS.sumstats
 
   project$lfGWAS$preparedSumstats<-c()
 # for(cCode in project$sumstats.sel$code)
-#     project$lfGWAS$trait<-c(project$lfGWAS$trait,paste0(project$folderpath.data.sumstats.munged,"/",cCode,project$filename.suffix.data.sumstats.munged,".gz"))
+#     project$lfGWAS$trait<-c(project$lfGWAS$trait,paste0(project$folderpath.data.sumstats.munged,"/",cCode,project$filename.suffix.data.sumstats.munged))
 
 project$lfGWAS$sumstats.prepared<-sumstats(
   files=project$sumstats.sel$cleanedpath,
