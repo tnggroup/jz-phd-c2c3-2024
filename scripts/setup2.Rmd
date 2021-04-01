@@ -158,8 +158,8 @@ project$filename.suffix.data.sumstats.munged<-".gz"
 project$folderpath.data.sumstatImp.genomeReference<-"/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/data/reference.panel.1KG_Phase3.CLEANED.EUR.cM"
 
 ##LD scores datasets folders (these strings need to have a trailing slash for the GSEM LDSC to work)
-project$folderpath.data.mvLDSC.ld <- paste0(project$folderpath.data,"/eur_w_ld_chr/") #LD-scores
-project$folderpath.data.mvLDSC.wld <- paste0(project$folderpath.data,"/eur_w_ld_chr/") #Weights, if different from LD-scores
+project$folderpath.data.mvLDSC.ld <- paste0(project$folderpath.data,"/reference.panel.1KG_Phase3.CLEANED.EUR.cM/") #LD-scores
+project$folderpath.data.mvLDSC.wld <- paste0(project$folderpath.data,"/reference.panel.1KG_Phase3.CLEANED.EUR.cM/") #Weights, if different from LD-scores
 
 ##HDL LD scores reference
 if(project$host=="local") {
@@ -173,20 +173,14 @@ if(project$host=="local") {
 project$filepath.rmd<-normalizePath(paste0(project$folderpath.scripts,"/",project$filename.rmd))
 project$filepath.r<-normalizePath(paste0(project$folderpath.scripts,"/",project$filename.r))
 
-##CFA settings 
-project$cfa.absCutoff.2F.oblq=c(0.30,0.35,0.4) #for promax
-project$cfa.absCutoff.2F.orth=c(0.35,0.4,0.45) #for varimax
-project$cfa.absCutoff.3F.oblq=c(0.2,0.3,0.4) #for promax
-project$cfa.absCutoff.3F.orth=c(0.2,0.3,0.4,0.5) #for varimax
-
-project$cfa.estimator=c("ML")
-#project$cfa.estimator=c("ML","DWLS")
-#project$cfa.orthogonal=c(TRUE,FALSE) #not used
-project$cfa.fixedLoadings=c(FALSE) 
+##CFA settings
+project$CFA<-c()
+project$CFA$estimator=c("ML")
+#project$CFA$estimator=c("ML","DWLS")
 
 ##latent factor GWAS filter settings
-project$info.filter=.6
-project$maf.filter=0.05
+project$lfGWAS$info.filter=.6
+project$lfGWAS$maf.filter=0.05
 
 #working directory in case of running as an R-script
 setwd(dir = normalizePath(project$folderpath.workingDirectory))
@@ -623,7 +617,7 @@ if (file.exists(project$filepath.mvLD)) {
     
     #save the mvLD output
     saveRDS(object = project$mvLD,file = project$filepath.mvLD)
-    print("Multivariate LD correction is done now and the resulting covariance structure should have been saved into a file.")
+    print("Multivariate LD correction is done now and the resulting covariance structure should have been saved to a file.")
     
     #remove intermediate results
     #file.remove(project$filepath.mvLD.HDL.piecewise)
@@ -1034,13 +1028,21 @@ In the case of orthogonal rotation the squared factor loadings represent the amo
 
 ```{r EFA, fig.width=9, fig.height=6, out.width="1600px", out.height="1000px", purl=FALSE}
 
-project$plots.efa.plot.scree<-fa.parallel(project$mvLD$covstruct.mvLDSC$S_Stand, fa = "fa")
-png(filename = paste0(project$folderpath.plots,"/","efa.plot.scree.png"), width = 800, height = 500)
-fa.parallel(project$mvLD$covstruct.mvLDSC$S_Stand, fa = "fa")
-dev.off()
+project$filepath.efa<-file.path(project$folderpath.workingDirectory,paste0("efa.",project$setup.code,".Rds"))
 
+
+if (file.exists(project$filepath.efa)) {
+print("Using existing EFA results from previous run.")
+project$EFA<-readRDS(file=project$filepath.efa)
+} else {
 
 project$mvLD$covstruct.mvLDSC$S.smooth<-as.matrix((nearPD(project$mvLD$covstruct.mvLDSC$S, corr = FALSE))$mat)
+
+project$plots.efa.plot.scree<-fa.parallel(project$mvLD$covstruct.mvLDSC$S.smooth, fa = "fa")
+png(filename = paste0(project$folderpath.plots,"/","efa.plot.scree.png"), width = 800, height = 500)
+fa.parallel(project$mvLD$covstruct.mvLDSC$S.smooth, fa = "fa")
+dev.off()
+
 
 #1 factor 
 print("1 factor******************")
@@ -1117,6 +1119,15 @@ project$EFA$EFA.3F.PCA<-eigen(x = project$mvLD$covstruct.mvLDSC$S.smooth, symmet
 #print the loadings for each principal component 1-3
 rownames(project$EFA$EFA.3F.PCA$vectors)<-make.names(rownames(project$mvLD$covstruct.mvLDSC$S.smooth))
 print(project$EFA$EFA.3F.PCA$vectors[,1:3], cutoff = 0.10)
+
+
+#save the EFA output
+saveRDS(object = project$EFA,file = project$filepath.efa)
+print("EFA is done now and the results should have been saved to a file.")
+
+
+}
+
 
 #create results table - manually!
 project$EFA$efa.table<-data.frame()
@@ -1250,165 +1261,118 @@ gtsave(data = project$plots.efa.results, filename = paste0(project$folderpath.pl
 gtsave(data = project$plots.efa.results, filename = paste0(project$folderpath.plots,"/efa.png"), vwidth="1450")
 
 
+
 ```
 
 ## Confirmatory Factor Analysis
 Here are models exploring situations where the loadings are reflecting the results from the EFA.
 
-### Define model actions
-Functions to evaluate a model and to construct a lavaan definition from a model load specification
-```{r CFA model actions, purl=FALSE}
+### Create and evaluate CFA models
+
+```{r CFA}
 
 #THESE USE shru::semplate and DiagrammeR !!!!!
 
-library(DiagrammeR)
-
-project$functions$cfa.model.define<-function(code.indicator,allow_loading.table.indicator_factor, fix_loading.table.indicator_factor=NULL, special.orthogonal=FALSE){
-  #lavaan definition string
-  lds<-""
-  lds.factorSelf=""
-  lds.factorOther=""
-  
-  nFactors<-ncol(allow_loading.table.indicator_factor)
-  nIndicators<-nrow(allow_loading.table.indicator_factor)
-  
-  #factor loadings, factor variances
-  for(iFactor in 1:nFactors){
-    lds.factor=paste0("
-                      F",iFactor," =~ ")
-    
-    hasFactor=FALSE
-    for(iIndicator in 1:nIndicators){
-      if(allow_loading.table.indicator_factor[iIndicator,iFactor]==TRUE){
-        
-        if(hasFactor==TRUE)
-          lds.factor=paste0(lds.factor,"+")
-          
-        if(is.null(fix_loading.table.indicator_factor)==FALSE) {
-          #use fixed loadings
-          if(fix_loading.table.indicator_factor[iIndicator,iFactor]==TRUE) {
-              vFixLoading="1*" #show this for both cases for clarity
-          } else {
-            if(hasFactor==TRUE)
-              vFixLoading="" else
-              vFixLoading="NA*"
-          }
-        } else {
-          #do not use fixed loadings
-          if(hasFactor==TRUE)
-            vFixLoading="" else
-            vFixLoading="NA*"
-        }
-           
-        lds.factor=paste0(lds.factor,vFixLoading,code.indicator[iIndicator])
-        hasFactor=TRUE
-      }
-    }
-    if(hasFactor==TRUE){
-      lds=paste0(lds,lds.factor)
-      lds.factorSelf=paste0(lds.factorSelf,"
-                            F",iFactor,"~~1*F",iFactor)
-    }
-  }
-  
-indexFactor<-data.frame(index=c(1:nFactors))
-indexFactor<-indexFactor %>%
-inner_join(indexFactor, by = character())
+#library(DiagrammeR)
 
 
-lds.factorOther=""
-
-for(iComb in 1:nrow(indexFactor)) {
-  row<-indexFactor[iComb,]
-  if(row$index.x==row$index.y || row$index.y < row$index.x)
-    next()
-  
-  if(special.orthogonal)
-    lds.factorOther=paste0(lds.factorOther,"
-                           F",row$index.x,"~~0*F",row$index.y) else
-    lds.factorOther=paste0(lds.factorOther,"
-                           F",row$index.x,"~~F",row$index.y)
-}
-  
-return(paste0(lds,lds.factorSelf,lds.factorOther))
-  
- 
-}
 
 #test
-# lavaanDefinition<-project$functions$cfa.model.define(code.indicator = project$sumstats.sel$code.trait, allow_loading.table.indicator_factor = data.frame(
+# lavaanDefinition<-semplate$generateLavaanCFAModel(code.indicator = project$sumstats.sel$code, allow_loading.table.indicator_factor = data.frame(
 #   F1=c(TRUE,TRUE,FALSE,TRUE,TRUE,TRUE,TRUE),
 #   F2=c(TRUE,FALSE,TRUE,FALSE,FALSE,TRUE,FALSE),
-#   F3=c(FALSE,TRUE,FALSE,TRUE,TRUE,FALSE,TRUE)                                                                           ),
+#   F3=c(FALSE,TRUE,FALSE,TRUE,TRUE,FALSE,TRUE)),
 #   fix_loading.table.indicator_factor = data.frame(
 #   F1=c(FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE),
 #   F2=c(FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE),
 #   F3=c(FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE)                                                                           ),
-#   special.orthogonal = TRUE
+#   special.orthogonal = FALSE
 #   )
 
-# lavaanDefinition<-project$functions$cfa.model.define(code.indicator = project$sumstats.sel$code.trait, allow_loading.table.indicator_factor = data.frame(
-#   F1=c(TRUE,TRUE,FALSE,TRUE,TRUE,TRUE,TRUE),
-#   F2=c(TRUE,FALSE,TRUE,FALSE,FALSE,TRUE,FALSE),
-#   F3=c(FALSE,TRUE,FALSE,TRUE,TRUE,FALSE,TRUE)                                                                           ),
-#   fix_loading.table.indicator_factor = NULL,
-#   special.orthogonal = TRUE
+# lavaanDefinitionSafe<-"F1 =~ NA*ALCD03+ANXI03+DEPR05+HEAL01+NEUR01+SUBJ01+TIRE01
+# F1~~1*F1"
+# 
+# lavaanDefinitionSafe2 <- "
+# F1 =~ NA*ALCD03+ANXI03+DEPR05+NEUR01+SUBJ01
+# F2 =~ NA*ALCD03+HEAL01+TIRE01
+# F1~~1*F1
+# F2~~1*F2
+# F1~~F2"
+
+# lavaanDefinition<-semplate$generateLavaanCFAModel(
+#   code.indicator = project$sumstats.sel$code, 
+#   allow_loading.table.indicator_factor = data.frame(
+#     F1=c(TRUE,TRUE,FALSE,TRUE,TRUE,TRUE,TRUE),
+#     F2=c(TRUE,FALSE,TRUE,FALSE,FALSE,TRUE,FALSE),
+#     F3=c(FALSE,TRUE,FALSE,TRUE,TRUE,FALSE,TRUE)
+#     ),
+#     fix_loading.table.indicator_factor = NULL,
+#     special.orthogonal = FALSE
 #   )
 
 
-project$functions$cfa.model.calculateLogicalLoadingsFromEFA<-function(loadings.table.indicator_factor,absCutoff){
-  return(as.data.frame(abs(loadings.table.indicator_factor) > absCutoff ))
+#testmodel<-semplate$evaluateGenomicSEM(covstruc = project$mvLD$covstruct.mvLDSC, model = lavaanDefinitionSafe2, parseResults = TRUE)
+
+#testmodel<-usermodel(covstruc = project$mvLD$covstruct.mvLDSC, estimation = "ML", model = lavaanDefinitionSafe)
+
+#project$CFA<-c()
+project$CFA$nFactors=3
+project$CFA$nIndicators=length(project$sumstats.sel$code)
+project$CFA$indicatorLocks<-as.data.frame(matrix(data=0, nrow = project$CFA$nIndicators, ncol = project$CFA$nFactors))
+row.names(project$CFA$indicatorLocks)<-project$sumstats.sel$code
+project$CFA$indicatorLocks[2,]<-c(1,1,0)
+project$CFA$indicatorLocks[3,]<-c(0,1,1)
+# ill<-c()
+# tIndicatorLocks<-as.data.frame(t(indicatorLocks))
+# for(nRow in 1:nrow(indicatorLocks)){
+#   ill<-c(ill,tIndicatorLocks[,nRow])
+# }
+# ill
+
+
+project$CFA$sessionIndicatorLoadingPatterns<-c(project$CFA,semplate$generateIndicatorLoadingPatterns(nFactors = project$CFA$nFactors, nIndicators = project$CFA$nIndicators, indicatorLocksDf = project$CFA$indicatorLocks, searchBitValues = 0:1000))
+#View(project$indicatorLoadingPatterns$totalBitIndicatorLoadings)
+
+if(is.null(project$CFA$models)){
+  project$CFA$models<-data.frame(nModel=c(),code=c(),lModel=c())
+  #project$CFA$models$code<-NA_character_
+  #project$CFA$models$lModel<-NA_character_
+  
 }
 
-#computes which of the second row (ANXI) loadings is the largest and sets the fixed loading logic
-project$functions$cfa.model.calculateLogicalFixedLoadingsFromEFA<-function(loadings.table.indicator_factor){
-  #loadings.table.indicator_factor=project$cfa.loadings.EFA[[1]]$loadings #TEST
-  toreturn<-data.frame(matrix(FALSE,ncol = ncol(loadings.table.indicator_factor),nrow = nrow(loadings.table.indicator_factor)))
-  toreturn[2,]<-(rank(x = -loadings.table.indicator_factor[2,],ties.method = "first")==1)
-  return(as.data.frame(toreturn))
+sessionPatternLength<-length(project$CFA$sessionIndicatorLoadingPatterns$indicatorLoadingsMatrix)
+for(nSessioPattern in 1:sessionPatternLength){
+  #new model row
+  project$CFA$models[nrow(project$CFA$models)+1,]<-NA
+  nModel=nrow(project$CFA$models)
+  #nModel
+  project$CFA$models[nModel,c("nModel")]<-nModel
+  #code
+  project$CFA$models[nModel,c("code")]<-project$CFA$sessionIndicatorLoadingPatterns$totalBitValues[nSessioPattern]
+  #searchBitValue
+  project$CFA$models[nModel,c("searchBitValue")]<-project$CFA$sessionIndicatorLoadingPatterns$searchBitValues[nSessioPattern]
+  
+  cIndicatorLoadings<-as.data.frame(project$CFA$sessionIndicatorLoadingPatterns$indicatorLoadingsMatrix[[nSessioPattern]])
+  
+  #further filter rules
+  hasIndicatorsLoaded <- apply(cIndicatorLoadings, 1, FUN = any)
+  if(all(hasIndicatorsLoaded)){
+    project$CFA$models[nModel,c("lModel")]<- semplate$generateLavaanCFAModel(code.indicator = project$sumstats.sel$code, allow_loading.table.indicator_factor = as.data.frame(project$CFA$sessionIndicatorLoadingPatterns$indicatorLoadingsMatrix[[nSessioPattern]]), special.orthogonal = FALSE)
+    
+    #compute result here?
+  }
+  else {
+    #not a valid model
+    project$CFA$models[nModel,c("lModel")]<-NA_character_
+  }
+  
+  
 }
 
-project$functions$cfa.model.evaluate<-function(covstruc, model, estimation="ML", code="defaultEvaluatedModel"){
-  
-  uModel<-usermodel(covstruc = covstruc, estimation = estimation, model = model)
-    
-  uModel$results$Unstand_SE<-as.numeric(uModel$results$Unstand_SE)
-  uModel$results$STD_Genotype_SE<-as.numeric(uModel$results$STD_Genotype_SE)
-  
-  uModel$semResults<-semplate$parseSEMResult(resultDf = uModel$results)
-  uModel$path.graph.dot<-semplate$generateDOT(nodeDf = uModel$semResults$nodeDf, edgeDf = uModel$semResults$edgeDf)
-  
-  f<-file(paste0(project$folderpath.plots,"/figure.path_",code,".dot.gv"))
-  writeLines(uModel$path.graph.dot,f)
-  close(f)
-  
-  grViz(uModel$path.graph.dot)
-  
-  png(filename = paste0(project$folderpath.plots,"/figure.path_",code,".png"), width = 800, height = 500)
-  grViz(uModel$path.graph.dot)
-  dev.off()
-  
-  
-  tableModelFit<-uModel$modelfit %>% 
-  gt() %>% 
-  tab_header(
-    title = "Model fit",
-  )
-  tableModelFit
-  gtsave(data = tableModelFit, filename = paste0(project$folderpath.plots,"/table.modelFit_",code, ".rtf"))
-  
-  tableModelLoadings<-uModel$results %>% 
-  gt() %>% 
-  fmt_number(columns = vars(Unstand_Est,Unstand_SE,STD_Genotype,STD_Genotype_SE,STD_All), decimals = 2) %>%
-  fmt_scientific(columns = vars(p_value), decimals = 2) %>%
-  tab_header(
-    title = "Loadings",
-  )
-  tableModelLoadings
-  gtsave(data = tableModelLoadings, filename = paste0(project$folderpath.plots,"/table.modelLoadings_",code, ".rtf"))
-  return(uModel)
-    
-}
+View(project$CFA$models)
+
+
+
 
 ```
 

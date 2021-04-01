@@ -132,8 +132,8 @@ project$filename.suffix.data.sumstats.munged<-".gz"
 project$folderpath.data.sumstatImp.genomeReference<-"/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/data/reference.panel.1KG_Phase3.CLEANED.EUR.cM"
 
 ##LD scores datasets folders (these strings need to have a trailing slash for the GSEM LDSC to work)
-project$folderpath.data.mvLDSC.ld <- paste0(project$folderpath.data,"/eur_w_ld_chr/") #LD-scores
-project$folderpath.data.mvLDSC.wld <- paste0(project$folderpath.data,"/eur_w_ld_chr/") #Weights, if different from LD-scores
+project$folderpath.data.mvLDSC.ld <- paste0(project$folderpath.data,"/reference.panel.1KG_Phase3.CLEANED.EUR.cM/") #LD-scores
+project$folderpath.data.mvLDSC.wld <- paste0(project$folderpath.data,"/reference.panel.1KG_Phase3.CLEANED.EUR.cM/") #Weights, if different from LD-scores
 
 ##HDL LD scores reference
 if(project$host=="local") {
@@ -363,7 +363,7 @@ project$k.sel<-nrow(project$sumstats.sel)
 #View(project$sumstats.sel[,c("code","n_total","pmid","reference_doi","samplePrevalence","populationPrevalence","mungedpath")])
 
 
-write.table(project$sumstats.sel[,c("code", "gwas_name","reference_year", "n_case","n_control","n_total","samplePrevalence","populationPrevalence", "reference_doi")], file = file.path(project$folderpath.workingDirectory,paste0("project.",project$setup.code,".sumstatinfo.tsv")), quote = TRUE, sep = "\t", eol = "\r", row.names = FALSE, col.names = TRUE)
+write.table(project$sumstats.sel[,c("code", "gwas_name","reference_year", "n_case","n_control","n_total","samplePrevalence","populationPrevalence", "reference_doi")], file = file.path(project$folderpath.workingDirectory,paste0("project.",project$setup.code,".sumstatinfo.tsv")), quote = TRUE, sep = "\t", row.names = FALSE, col.names = TRUE)
 
 
 
@@ -441,10 +441,10 @@ if(project$clOptions$task=="impute"){
 #reticulate::import("raiss")
 #py$raiss$
 
-system2(command = "awk",
-        args = c("mkdir -p ../data/gwas_sumstats/imputed/$1; for( chr=1; chr<24; chr++){raiss --chrom $chr --gwas '$1' --ref-folder '../data/reference.panel.1KG_Phase3.CLEANED.EUR.cM' --ld-folder '../data/reference.panel.1KG_Phase3.CLEANED.EUR.cM' --zscore-folder '../data/gwas_sumstats/munged/$1.chr' --output-folder '../data/gwas_sumstats/imputed/$1' --l2-regularization 0.01 --eigen-threshold 0.05 --R2-threshold 0.3;}
-",
-"project.setup2.sumstatinfo.tsv"))
+# system2(command = "awk",
+#         args = c("BEGIN{mkdir -p ../data/gwas_sumstats/imputed/$1;} for( chr=1; chr<24; chr++){raiss --chrom $chr --gwas '$1' --ref-folder '../data/reference.panel.1KG_Phase3.CLEANED.EUR.cM' --ld-folder '../data/reference.panel.1KG_Phase3.CLEANED.EUR.cM' --zscore-folder '../data/gwas_sumstats/munged/$1.chr' --output-folder '../data/gwas_sumstats/imputed/$1' --l2-regularization 0.01 --eigen-threshold 0.05 --R2-threshold 0.3;}
+# ",
+# "project.setup2.sumstatinfo.tsv"))
   
   quit(save = "no")
 }
@@ -554,7 +554,7 @@ if (file.exists(project$filepath.mvLD)) {
     
     #save the mvLD output
     saveRDS(object = project$mvLD,file = project$filepath.mvLD)
-    print("Multivariate LD correction is done now and the resulting covariance structure should have been saved into a file.")
+    print("Multivariate LD correction is done now and the resulting covariance structure should have been saved to a file.")
     
     #remove intermediate results
     #file.remove(project$filepath.mvLD.HDL.piecewise)
