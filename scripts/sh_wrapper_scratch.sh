@@ -5,6 +5,7 @@ module add apps/R/3.6.0
 
 srun -p brc,shared --ntasks 1 --cpus-per-task 3 --mem 8G --pty /bin/bash
 
+
 sbatch --time 23:59:00 --partition brc,shared --job-name="GSEMGWAS" --ntasks 1 --cpus-per-task 6 --mem-per-cpu 8G --wrap="Rscript setup1.R -l cluster" --output "setup1_$(date +%Y%m%d).out.txt" --error "setup1_$(date +%Y%m%d).err.txt"
 
 sbatch --time 23:59:00 --partition brc,shared --job-name="mvLD.mvLDSC" --ntasks 1 --cpus-per-task 3 --mem-per-cpu 12G --wrap="Rscript setup2.R -t mvLD.mvLDSC -l cluster" --output "setup2.mvLD.mvLDSC.out" --error "setup2.mvLD.mvLDSC.err"
@@ -31,3 +32,28 @@ sbatch --time 23:59:00 --partition brc,shared --job-name="impALCD03" --ntasks 1 
 
 #awk -f ../../../../scripts/merge.imputed.dataset.awk z_${dscode}_1.txt z_${dscode}_2.txt z_${dscode}_3.txt z_${dscode}_4.txt z_${dscode}_5.txt z_${dscode}_6.txt z_${dscode}_7.txt z_${dscode}_8.txt z_${dscode}_9.txt z_${dscode}_10.txt z_${dscode}_11.txt z_${dscode}_12.txt z_${dscode}_13.txt z_${dscode}_14.txt z_${dscode}_15.txt z_${dscode}_1.txt z_${dscode}_1.txt z_${dscode}_1.txt z_${dscode}_1.txt z_${dscode}_1.txt z_${dscode}_1.txt z_${dscode}_1.txt
 dscode=ALCD03; awk -v prefix="z_${dscode}_" -v suffix=".txt" -f ../../../../scripts/merge.imputed.dataset.awk > $dscode;
+
+sbatch --time 23:59:00 --partition brc,shared --job-name="gsem1" --ntasks 1 --cpus-per-task 3 --mem 16G --wrap="Rscript setup2.R -t cfa -a 0:9999 -l cluster" --output "setup2.cfa.1.out" --error "setup2.cfa.1.err"
+sbatch --time 23:59:00 --partition brc,shared --job-name="gsem2" --ntasks 1 --cpus-per-task 3 --mem 16G --wrap="Rscript setup2.R -t cfa -a 10000:19999 -l cluster" --output "setup2.cfa.2.out" --error "setup2.cfa.2.err"
+sbatch --time 23:59:00 --partition brc,shared --job-name="gsem3" --ntasks 1 --cpus-per-task 3 --mem 16G --wrap="Rscript setup2.R -t cfa -a 20000:29999 -l cluster" --output "setup2.cfa.3.out" --error "setup2.cfa.3.err"
+sbatch --time 23:59:00 --partition brc,shared --job-name="gsem4" --ntasks 1 --cpus-per-task 3 --mem 16G --wrap="Rscript setup2.R -t cfa -a 30000:39999 -l cluster" --output "setup2.cfa.4.out" --error "setup2.cfa.4.err"
+sbatch --time 23:59:00 --partition brc,shared --job-name="gsem5" --ntasks 1 --cpus-per-task 3 --mem 16G --wrap="Rscript setup2.R -t cfa -a 40000:49999 -l cluster" --output "setup2.cfa.5.out" --error "setup2.cfa.5.err"
+sbatch --time 23:59:00 --partition brc,shared --job-name="gsem6" --ntasks 1 --cpus-per-task 3 --mem 16G --wrap="Rscript setup2.R -t cfa -a 50000:59999 -l cluster" --output "setup2.cfa.6.out" --error "setup2.cfa.6.err"
+sbatch --time 23:59:00 --partition brc,shared --job-name="gsem7" --ntasks 1 --cpus-per-task 3 --mem 16G --wrap="Rscript setup2.R -t cfa -a 60000:69999 -l cluster" --output "setup2.cfa.7.out" --error "setup2.cfa.7.err"
+sbatch --time 23:59:00 --partition brc,shared --job-name="gsem8" --ntasks 1 --cpus-per-task 3 --mem 16G --wrap="Rscript setup2.R -t cfa -a 70000:79999 -l cluster" --output "setup2.cfa.8.out" --error "setup2.cfa.8.err"
+sbatch --time 23:59:00 --partition brc,shared --job-name="gsem9" --ntasks 1 --cpus-per-task 3 --mem 16G --wrap="Rscript setup2.R -t cfa -a 80000:89999 -l cluster" --output "setup2.cfa.9.out" --error "setup2.cfa.9.err"
+sbatch --time 23:59:00 --partition brc,shared --job-name="gsem10" --ntasks 1 --cpus-per-task 3 --mem 16G --wrap="Rscript setup2.R -t cfa -a 90000:99999 -l cluster" --output "setup2.cfa.10.out" --error "setup2.cfa.10.err"
+sbatch --time 23:59:00 --partition brc,shared --job-name="gsem11" --ntasks 1 --cpus-per-task 3 --mem 16G --wrap="Rscript setup2.R -t cfa -a 100000:109999 -l cluster" --output "setup2.cfa.11.out" --error "setup2.cfa.11.err"
+sbatch --time 23:59:00 --partition brc,shared --job-name="gsem12" --ntasks 1 --cpus-per-task 3 --mem 16G --wrap="Rscript setup2.R -t cfa -a 110000:119999 -l cluster" --output "setup2.cfa.12.out" --error "setup2.cfa.12.err"
+sbatch --time 23:59:00 --partition brc,shared --job-name="gsem13" --ntasks 1 --cpus-per-task 3 --mem 16G --wrap="Rscript setup2.R -t cfa -a 120000:131072 -l cluster" --output "setup2.cfa.13.out" --error "setup2.cfa.13.err"
+
+#first run
+#for gsemi in `seq 0 999 131072`; do gsemi2=$((gsemi+999)); sbatch --time 23:59:00 --partition brc,shared --job-name="gsem" --ntasks 1 --cpus-per-task 3 --mem 16G --wrap="Rscript setup2.R -t cfa -a $gsemi:$gsemi2 -l cluster" --output "setup2.cfa.$gsemi-$gsemi2.out" --error "setup2.cfa.$gsemi-$gsemi2.err"; done
+#second run
+for gsemi in `seq 0 1000 32768`; do gsemi2=$((gsemi+1000)); sbatch --time 23:59:00 --partition brc,shared --job-name="gsem" --ntasks 1 --cpus-per-task 3 --mem 16G --wrap="Rscript setup2.R -t cfa -a $gsemi:$gsemi2 -l cluster" --output "setup2.cfa.$gsemi-$gsemi2.out" --error "setup2.cfa.$gsemi-$gsemi2.err"; done
+#third run
+for gsemi in `seq 0 500 4096`; do gsemi2=$((gsemi+500)); sbatch --time 23:59:00 --partition brc,shared --job-name="gsem" --ntasks 1 --cpus-per-task 3 --mem 16G --wrap="Rscript setup2.R -t cfa -a $gsemi:$gsemi2 -l cluster" --output "setup2.cfa.$gsemi-$gsemi2.out" --error "setup2.cfa.$gsemi-$gsemi2.err"; done
+
+sbatch --time 23:59:00 --partition brc,shared --job-name="prepgwas" --ntasks 1 --cpus-per-task 4 --mem 64G --wrap="Rscript setup2.R -l cluster" --output "setup2.prepgwas.out" --error "setup2.prepgwas.err"
+
+sbatch --time 2-00:00:00 --partition brc,shared --job-name="gsemgwas" --ntasks 1 --cpus-per-task 24 --mem-per-cpu 6G --oversubscribe --wrap="Rscript setup2.R -l cluster" --output "setup2.gsemgwas.$(date +%Y%m%d).out.txt" --error "setup2.gsemgwas.$(date +%Y%m%d).err.txt"

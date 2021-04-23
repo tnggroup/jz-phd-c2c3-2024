@@ -47,6 +47,9 @@ clParser <- add_option(clParser, c("-t", "--task"), type="character", default="0
 clParser <- add_option(clParser, c("-l", "--location"), type="character", default="local",
                 help="The place where the code is run [local,cluster] [default %default]")
 
+clParser <- add_option(clParser, c("-a", "--task_argument"), type="character", default=NA,
+                help="General purpose argument for tasks [default %default]")
+
 
 
 ## ----settings----------------------------------------------------------------------------------------------------------
@@ -147,20 +150,15 @@ if(project$host=="local") {
 project$filepath.rmd<-normalizePath(paste0(project$folderpath.scripts,"/",project$filename.rmd))
 project$filepath.r<-normalizePath(paste0(project$folderpath.scripts,"/",project$filename.r))
 
-##CFA settings 
-project$cfa.absCutoff.2F.oblq=c(0.30,0.35,0.4) #for promax
-project$cfa.absCutoff.2F.orth=c(0.35,0.4,0.45) #for varimax
-project$cfa.absCutoff.3F.oblq=c(0.2,0.3,0.4) #for promax
-project$cfa.absCutoff.3F.orth=c(0.2,0.3,0.4,0.5) #for varimax
-
-project$cfa.estimator=c("ML")
-#project$cfa.estimator=c("ML","DWLS")
-#project$cfa.orthogonal=c(TRUE,FALSE) #not used
-project$cfa.fixedLoadings=c(FALSE) 
+##CFA settings
+project$CFA<-c()
+project$CFA$estimator=c("ML")
+#project$CFA$estimator=c("ML","DWLS")
+project$CFA$nFactors=3
 
 ##latent factor GWAS filter settings
-project$info.filter=.6
-project$maf.filter=0.05
+project$lfGWAS$info.filter=.6
+project$lfGWAS$maf.filter=0.01
 
 #working directory in case of running as an R-script
 setwd(dir = normalizePath(project$folderpath.workingDirectory))
@@ -176,8 +174,7 @@ setwd(dir = normalizePath(project$folderpath.workingDirectory))
 
 ## ----additional source setup, echo=FALSE, warning=F--------------------------------------------------------------------
 
-#source(normalizePath(paste0(project$folderpath.scripts,"/","shru.R")))
-#source(normalizePath(paste0(project$folderpath.scripts,"/","hdl.mod.R")))
+source(normalizePath(file.path(project$folderpath.scripts,"sumstats.mod-jz.R")))
 
 
 
@@ -390,8 +387,15 @@ if(project$clOptions$task=="munge"){
   #View(project$sumstats.reference.new2)
   #View(project$sumstats.reference.new3)
   
-  #data.table::fwrite(x = project$sumstats.reference.new, file = paste0(project$folderpath.workingDirectory,"/","combined.hm3_1kg.snplist.jz2020.txt"))
+  
 
+  #write.table(x = project$sumstats.reference.new,file = file.path(project$folderpath.workingDirectory,"/","combined.hm3_1kg.snplist.jz2020.txt"), quote = FALSE, row.names = F)
+  #faster alt - produces a comma separated version?
+  #data.table::fwrite(x = project$sumstats.reference.new, file = )
+  
+  #read in again as
+  #project$sumstats.reference.new<-read.table(project$filepath.SNPReference, header=T, quote="\"", fill=T, blank.lines.skip=T, strip.white = T,na.strings=c(".",NA,"NA",""))
+  
   #special munge of the 1KG reference SNP stats
   # munge.mod(files = c(project$filepath.genomeReference),
   #           hm3 = project$filepath.SNPReference,
@@ -418,7 +422,7 @@ if(project$clOptions$task=="munge"){
             info.filter=0,
             maf.filter=0,
             path.dir.output = project$folderpath.data.sumstats.munged,
-            doChrSplit = TRUE
+            doChrSplit = FALSE
               ) 
     
     
@@ -617,11 +621,264 @@ project$sumstats.sel$h2.liability_origHDL<-diag(project$mvLD$covstruct.origHDL.l
 
 
 
+## ----CFA---------------------------------------------------------------------------------------------------------------
+
+#THESE USE shru::semplate and DiagrammeR !!!!!
+
+#library(DiagrammeR)
+
+#test
+# lavaanDefinition<-semplate$generateLavaanCFAModel(code.indicator = project$sumstats.sel$code, allow_loading.table.indicator_factor = data.frame(
+#   F1=c(TRUE,TRUE,FALSE,TRUE,TRUE,TRUE,TRUE),
+#   F2=c(TRUE,FALSE,TRUE,FALSE,FALSE,TRUE,FALSE),
+#   F3=c(FALSE,TRUE,FALSE,TRUE,TRUE,FALSE,TRUE)),
+#   fix_loading.table.indicator_factor = data.frame(
+#   F1=c(FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE),
+#   F2=c(FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE),
+#   F3=c(FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE)                                                                           ),
+#   special.orthogonal = FALSE
+#   )
+
+# lavaanDefinitionSafe<-"F1 =~ NA*ALCD03+ANXI03+DEPR05+HEAL01+NEUR01+SUBJ01+TIRE01
+# F1~~1*F1"
+# 
+# lavaanDefinitionSafe2 <- "
+# F1 =~ NA*ALCD03+ANXI03+DEPR05+NEUR01+SUBJ01
+# F2 =~ NA*ALCD03+HEAL01+TIRE01
+# F1~~1*F1
+# F2~~1*F2
+# F1~~F2"
+
+# lavaanDefinition<-semplate$generateLavaanCFAModel(
+#   allow_loading.table.indicator_factor = data.frame(
+#     F1=c(TRUE,TRUE,FALSE,TRUE,TRUE,TRUE,TRUE),
+#     F2=c(TRUE,FALSE,TRUE,FALSE,FALSE,TRUE,FALSE),
+#     F3=c(FALSE,TRUE,FALSE,TRUE,TRUE,FALSE,TRUE)
+#     ),
+#   indicatorArgs = data.frame(codeIndicator=project$sumstats.sel$code,residualSizeLimit=NA),
+#   orthogonal = FALSE
+#   )
+
+# lavaanDefinitionManualSafe="
+# F1 =~ NA*ALCD03+ANXI03+DEPR05+NEUR01+SUBJ01
+# F2 =~ NA*ALCD03+HEAL01+TIRE01
+# F1~~1*F1
+# F2~~1*F2
+# F1~~F2"
+
+# lavaanDefinitionManual='
+# #F1 =~ NA*ANXI03+DEPR05+label(HEAL01.res)*HEAL01+start(0.5)*HEAL01+SUBJ01+TIRE01
+# F1 =~ NA*ANXI03+DEPR05+label(HEAL01.res)*HEAL01+SUBJ01+TIRE01
+# F2 =~ NA*ANXI03+DEPR05+HEAL01+NEUR01+SUBJ01
+# F3 =~ NA*ALCD03+ANXI03+DEPR05
+# 
+# #HEAL01 ~~ label(HEAL01.res)*HEAL01 + start(0.5)*HEAL01
+# 
+# F1~~1*F1
+# F2~~1*F2
+# F3~~1*F3
+# F1~~F2
+# F1~~F3
+# F2~~F3
+# 
+# #label(HEAL01.res)^2<1
+# 
+# '
+# 
+# lavaanDefinitionManual='
+# F1 =~ NA*ALCD03+ANXI03+DEPR05+NEUR01+SUBJ01
+# F2 =~ NA*ALCD03+HEAL01+TIRE01
+# 
+# ALCD03~~r1*ALCD03
+# ANXI03~~r2*ANXI03
+# DEPR05~~r3*DEPR05
+# HEAL01~~r4*HEAL01
+# NEUR01~~r5*NEUR01
+# SUBJ01~~r6*SUBJ01
+# TIRE01~~r7*TIRE01
+# 
+# F1~~1*F1
+# F2~~1*F2
+# 
+# F1~~F2
+# 
+# abs(r2)<0.1
+# r2>0.01
+# abs(r3)<0.1
+# r3>0.01
+# r7>0.01
+# '
+# 
+# cModelResults<-usermodel.mod(covstruc = project$mvLD$covstruct.mvLDSC,
+#         model=lavaanDefinitionManual,
+#                                               #model = project$CFA$models[nModel,c("lModel")],
+#         estimation = project$CFA$estimator,
+#         fix_resid = FALSE
+#         )
+# cModelResults$modelfit
+
+# library(tidySEM)
+# sem_graph_layout <- get_layout("", "F1", "","","","F2","",
+#                   "V1", "V2", "V3", "V4", "V5", "V6", "V7", 
+#                   "VF1", "VF2", "VF3", "VF4", "VF5", "VF6", "VF7", rows = 3)
+# sem_graph_layout <- get_layout("", "F1", "","","","F2","",
+#                   "V1", "V2", "V3", "V4", "V5", "V6", "V7", rows = 2)
+# graph_sem(model=cModelResults$lresults, layout = sem_graph_layout)
+# graph_sem(model=cModelResults$lresults)
+
+#test
+# project$clOptions$task="cfa"
+# project$clOptions$task_argument="0:499"
+
+project$sumstats.sel$residualSizeLimitMax<-NA_real_
+project$sumstats.sel$residualSizeLimitMax[which(project$sumstats.sel$code=="ANXI03" | project$sumstats.sel$code=="DEPR05")]<-0.10
+#(1/project$sumstats.sel$h2.se.liability_mvLDSC^2)/sum(1/project$sumstats.sel$h2.se.liability_mvLDSC^2)+0.01
+
+project$filepath.cfa<-file.path(project$folderpath.workingDirectory,paste0("cfa.",project$setup.code,".Rds"))
+
+if (file.exists(project$filepath.cfa)) {
+print("Using existing CFA results from previous run and appending to these if needed.")
+project$CFA<-readRDS(file=project$filepath.cfa)
+} else {
+  project$CFA$nIndicators=length(project$sumstats.sel$code)
+  project$CFA$indicatorLocks<-as.data.frame(matrix(data=0, nrow = project$CFA$nIndicators, ncol = project$CFA$nFactors))
+  row.names(project$CFA$indicatorLocks)<-project$sumstats.sel$code
+  #project$CFA$indicatorLocks[1,]<-c(1,0,1) #ALCD03
+  project$CFA$indicatorLocks[2,]<-c(1,1,1) #ANXI03
+  project$CFA$indicatorLocks[3,]<-c(1,1,1) #DEPR05
+  #project$CFA$indicatorLocks[4,]<-c(1,0,0) #HEAL01
+  project$CFA$indicatorLocks[5,]<-c(1,1,1) #NEUR01
+  #project$CFA$indicatorLocks[6,]<-c(1,0,0) #SUBJ01
+  #project$CFA$indicatorLocks[7,]<-c(1,1,1) #TIRE01
+  
+  project$CFA$models<-data.frame(nModel=c(),code=c(),lModel=c(),lResults=c())
+  
+  project$CFA$resultColumnNames<-c("chisq","df","p_chisq","AIC","CFI","SRMR")
+  
+  project$CFA$maximumLoadingPatternNumber<-2^((project$CFA$nFactors*project$CFA$nIndicators)-sum(project$CFA$indicatorLocks))
+  
+  #defaults
+  project$CFA$sessionLoadingPatternStartNumber<-min(c(0,project$CFA$maximumLoadingPatternNumber))
+  project$CFA$sessionLoadingPatternEndNumber<-min(c(99,project$CFA$maximumLoadingPatternNumber))
+  
+  #load intermediate results
+  if(!project$clOptions$task=="cfa"){
+    project$CFA$modelsIntermediate<-list.files(path = project$folderpath.workingDirectory, pattern = paste0("^cfa\\.",project$setup.code,"\\..+\\.Rds"), full.names = T, ignore.case=T)
+    for(cModelsIntermediateFilePath in project$CFA$modelsIntermediate){
+      cModelsIntermediate<-readRDS(file=cModelsIntermediateFilePath)
+      project$CFA$models<-rbind(project$CFA$models,cModelsIntermediate$models)
+    }
+    nModel=nrow(project$CFA$models)
+    if(nModel>0){
+      saveRDS(object = project$CFA,file = file.path(project$folderpath.workingDirectory,paste0("cfa.",project$setup.code,".Rds")))
+    }
+  }
+}
+
+cat("The maximum CFA loading pattern bit value for this setup is ",project$CFA$maximumLoadingPatternNumber)
+
+nModel=nrow(project$CFA$models)
+if(nModel <1 || max(project$CFA$models$searchBitValue) < project$CFA$maximumLoadingPatternNumber) {
+  
+if(project$clOptions$task=="cfa" & !is.na(project$clOptions$task_argument)){
+  taskargs<-as.integer(unlist(noquote(strsplit(project$clOptions$task_argument,":",fixed = TRUE))))
+  project$CFA$sessionLoadingPatternStartNumber<-min(c(taskargs[1],project$CFA$maximumLoadingPatternNumber))
+  project$CFA$sessionLoadingPatternEndNumber<-min(c(taskargs[2],project$CFA$maximumLoadingPatternNumber))
+} else if(nModel>0){
+    project$CFA$sessionLoadingPatternStartNumber<-min(c(max(project$CFA$models$searchBitValue)+1,project$CFA$maximumLoadingPatternNumber))
+    project$CFA$sessionLoadingPatternEndNumber<-min(c(project$CFA$sessionLoadingPatternStartNumber+499,project$CFA$maximumLoadingPatternNumber))
+  }
+  
+  project$CFA$sessionIndicatorLoadingPatterns<-semplate$generateIndicatorLoadingPatterns(nFactors = project$CFA$nFactors, nIndicators = project$CFA$nIndicators, indicatorLocksDf = project$CFA$indicatorLocks, searchBitValues = project$CFA$sessionLoadingPatternStartNumber:project$CFA$sessionLoadingPatternEndNumber)
+  #View(project$CFA$sessionIndicatorLoadingPatterns$indicatorLoadings)
+  #View(project$CFA$sessionIndicatorLoadingPatterns$indicatorLoadingsMatrix)
+  
+  
+  sessionPatternLength<-nrow(project$CFA$sessionIndicatorLoadingPatterns$indicatorLoadings)
+  cat("Analysing ",sessionPatternLength, "models...")
+  
+  for(nSessioPattern in 1:sessionPatternLength){
+    #new model row
+    
+    #test
+    #nSessioPattern=1
+    nModel=nModel+1
+    project$CFA$models[nModel,]<-NA
+    
+    #nModel
+    project$CFA$models[nModel,c("nModel")]<-nModel
+    #code
+    project$CFA$models[nModel,c("totalBitValue")]<-project$CFA$sessionIndicatorLoadingPatterns$totalBitValues[nSessioPattern]
+    #searchBitValue
+    project$CFA$models[nModel,c("searchBitValue")]<-project$CFA$sessionIndicatorLoadingPatterns$searchBitValues[nSessioPattern]
+    
+    project$CFA$models[nModel,c("code")]<-paste0("M",project$CFA$nFactors,"-",project$CFA$nIndicators,
+    ".",project$CFA$estimator,
+    ".",project$CFA$sessionIndicatorLoadingPatterns$totalBitValues[nSessioPattern])
+    
+    cIndicatorLoadings<-as.data.frame(project$CFA$sessionIndicatorLoadingPatterns$indicatorLoadingsMatrix[[nSessioPattern]])
+    row.names(cIndicatorLoadings)<-project$sumstats.sel$code
+    
+    
+    #further filter rules
+    indicatorsLoadedOnFactors <- apply(cIndicatorLoadings, 1, FUN = any)
+    factorsHasIndicatorsLoaded <- apply(cIndicatorLoadings, 2, FUN = any)
+  
+    #init columns
+    project$CFA$models[nModel,c("lModel")]<-NA_character_
+    project$CFA$models[nModel,c("lResults")]<-NA
+    project$CFA$models[nModel,project$CFA$resultColumnNames]<-NA
+    
+    if(all(indicatorsLoadedOnFactors) & all(factorsHasIndicatorsLoaded)){
+      project$CFA$models[nModel,c("lModel")]<- semplate$generateLavaanCFAModel(
+        allow_loading.table.indicator_factor = cIndicatorLoadings, indicatorArgs = project$sumstats.sel[,c("code","residualSizeLimitMax")],
+        universalResidualLimitMin = 0.0001,
+        orthogonal = FALSE
+        )
+      
+      #evaluate model
+      cat(project$CFA$models[nModel,c("code")], "\t:",project$CFA$models[nModel,c("searchBitValue")],"/",project$CFA$maximumLoadingPatternNumber)
+      cModelResults=usermodel.mod(covstruc = project$mvLD$covstruct.mvLDSC,
+          model = project$CFA$models[nModel,c("lModel")],
+          estimation = project$CFA$estimator,
+          fix_resid = FALSE
+          )
+      
+      project$CFA$models[[nModel,c("lResults")]]=list(cModelResults)
+      if(!is.null(cModelResults$modelfit)){
+        project$CFA$models[nModel,project$CFA$resultColumnNames]<-cModelResults$modelfit[1,project$CFA$resultColumnNames]
+      }
+      
+      
+    }
+  }
+  
+  
+  if(project$clOptions$task=="cfa" & !is.na(project$clOptions$task_argument)){
+    saveRDS(object = project$CFA,file = file.path(project$folderpath.workingDirectory,paste0("cfa.",project$setup.code,".",project$CFA$sessionLoadingPatternStartNumber,"-",project$CFA$sessionLoadingPatternEndNumber,".Rds")))
+  } else {
+    saveRDS(object = project$CFA,file = file.path(project$folderpath.workingDirectory,paste0("cfa.",project$setup.code,".Rds")))
+  }
+  
+  print("CFA for this session is now done and the result should have been saved into a file.")
+  
+}
 
 
 
+#View(project$CFA$models)
+#project$CFA$models$lModel[which(project$CFA$models$nModel==3)]
+if(project$clOptions$task=="cfa"){quit(save = "no")}
 
 
+
+## ----CFA select--------------------------------------------------------------------------------------------------------
+
+project$CFA$models.selected<-project$CFA$models[which(project$CFA$models$CFI>0 & project$CFA$models$AIC<100),c("totalBitValue","code","lModel",project$CFA$resultColumnNames)]
+#View(project$CFA$models.selected)
+project$CFA$model.bestFitting<-project$CFA$models[which(project$CFA$models$totalBitValue==1945431),] #this is a manual setting after choosing the best fitting model from the previous results 
+
+project$CFA$model.bestFitting
 
 
 
@@ -634,95 +891,97 @@ project$sumstats.sel$h2.liability_origHDL<-diag(project$mvLD$covstruct.origHDL.l
 #we need to introduce checks of the summary statistics and which scale they are on
 # f.ex. Leo checks my s.e. 2 * pnorm(log(1.003) / 0.021644, mean = 0, lower.tail = FALSE)
 
-#View(project$sumstats.sel)
-#examine GWAS sumstats
-# gwas_ALCD03<-read.table(file = "/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/ALCD03_noMHC.sumstats.gz", header=T, quote="\"",fill=T,na.string=c(".",NA,"NA",""))
-# View(gwas_ALCD03)
-# gwas_ANXI03<-read.table(file = "/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/ANXI03_noMHC.sumstats.gz", header=T, quote="\"",fill=T,na.string=c(".",NA,"NA",""))
-# View(gwas_ANXI03)
-# gwas_DEPR05<-read.table(file = "/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/DEPR05_noMHC.sumstats.gz", header=T, quote="\"",fill=T,na.string=c(".",NA,"NA",""))
-# View(gwas_DEPR05)
-# gwas_HEAL01<-read.table(file = "/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/HEAL01_noMHC.sumstats.gz", header=T, quote="\"",fill=T,na.string=c(".",NA,"NA",""))
-# View(gwas_HEAL01)
-# gwas_NEUR01<-read.table(file = "/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/NEUR01_noMHC.sumstats.gz", header=T, quote="\"",fill=T,na.string=c(".",NA,"NA",""))
-# View(gwas_NEUR01)
-# gwas_SUBJ01<-read.table(file = "/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/SUBJ01_noMHC.sumstats.gz", header=T, quote="\"",fill=T,na.string=c(".",NA,"NA",""))
-# View(gwas_SUBJ01)
-# gwas_TIRE01<-read.table(file = "/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/TIRE01_noMHC.sumstats.gz", header=T, quote="\"",fill=T,na.string=c(".",NA,"NA",""))
-# View(gwas_TIRE01)
-# 
-# gwas_ALCD03$SE<-NA_real_
-# gwas_ANXI03$SE<-NA_real_
-# gwas_DEPR05$SE<-NA_real_
-# gwas_HEAL01$SE<-NA_real_
-# gwas_NEUR01$SE<-NA_real_
-# gwas_SUBJ01$SE<-NA_real_
-# gwas_TIRE01$SE<-NA_real_
-# 
-# write.table(x = gwas_ALCD03, file = "/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/ALCD03_noMHC_mod.sumstats", quote=TRUE )
-# write.table(x = gwas_ANXI03, file = "/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/ANXI03_noMHC_mod.sumstats", quote=TRUE )
-# write.table(x = gwas_DEPR05, file = "/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/DEPR05_noMHC_mod.sumstats", quote=TRUE )
-# write.table(x = gwas_HEAL01, file = "/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/HEAL01_noMHC_mod.sumstats", quote=TRUE )
-# write.table(x = gwas_NEUR01, file = "/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/NEUR01_noMHC_mod.sumstats", quote=TRUE )
-# write.table(x = gwas_SUBJ01, file = "/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/SUBJ01_noMHC_mod.sumstats", quote=TRUE )
-# write.table(x = gwas_TIRE01, file = "/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data.sumstats.mungedNoMHC/TIRE01_noMHC_mod.sumstats", quote=TRUE )
-
 project$lfGWAS<-c()
 
-if (!file.exists(paste0(project$folderpath.workingDirectory,"/","lfGWAS.sumstats.",project$setup.code,".Rds")) | project$seting.refreshPrepareSummaryStatistics) 
+if (!file.exists(file.path(project$folderpath.workingDirectory,paste0("lfGWAS.sumstats.",project$setup.code,".Rds"))) | project$seting.refreshPrepareSummaryStatistics) 
 {
   print("Preparing summary statistics for latent factor GWAS. This might take a while.")
 
-  project$lfGWAS$preparedSumstats<-c()
-# for(cCode in project$sumstats.sel$code)
-#     project$lfGWAS$trait<-c(project$lfGWAS$trait,paste0(project$folderpath.data.sumstats.munged,"/",cCode,project$filename.suffix.data.sumstats.munged))
 
-project$lfGWAS$sumstats.prepared<-sumstats(
-  files=project$sumstats.sel$cleanedpath,
-  ref=project$filepath.genomeReference,
+  project$lfGWAS$sumstats<-sumstats.mod(
+  filenames=project$sumstats.sel$cleanedpath,
+  ref=project$filepath.SNPReference,
   trait.names=project$sumstats.sel$code,
   se.logit=project$sumstats.sel$se.logit,
   OLS=project$sumstats.sel$dependent_variable.OLS,
   linprob=NULL, #THIS SHOULD BE INVESTIGATED FURTHER, IF A LINEAR OLS ESTIMATOR ON A DICHOTOMOUS DEP. VARIABLE WAS USED FOR ANY OF THE DATSETS 
   prop=NULL,
   N=project$sumstats.sel$n_total,
-  info.filter=project$info.filter,
-  maf.filter=project$maf.filter,
+  info.filter=NULL,
+  maf.filter=NULL,
   keep.indel=FALSE,
-  parallel=FALSE,
+  parallel=FALSE, #The default = T eats lots of memory at once.
   cores=NULL
+  #num = 1 #test
   )
 
-  saveRDS(object = project$lfGWAS,file = paste0(project$folderpath.workingDirectory,"/","lfGWAS.sumstats.",project$setup.code,".Rds"))
+#Error in files[[i]]$effect[[1]] : subscript out of bounds
+
+  saveRDS(object = project$lfGWAS$sumstats,file = file.path(project$folderpath.workingDirectory,paste0("lfGWAS.sumstats.",project$setup.code,".Rds")))
   print("Done summary statistics for latent factor GWAS. The result should have been saved to a file.")
 } else {
-  project$lfGWAS<-readRDS(file=paste0(project$folderpath.workingDirectory,"/","lfGWAS.sumstats.",project$setup.code,".Rds"))
+  project$lfGWAS$sumstats<-readRDS(file=file.path(project$folderpath.workingDirectory,paste0("lfGWAS.sumstats.",project$setup.code,".Rds")))
 }
 
 
 
 ## ----latent factor GWAS------------------------------------------------------------------------------------------------
-#HERE!!!
-#Further filtering if needed
-#View(project$CFA$cfa.configurations.result)
-project$lfGWAS$model.configurations<-project$CFA$cfa.configurations.result[
-  which(project$CFA$cfa.configurations.result$hasFixedLoadings==FALSE & project$CFA$cfa.configurations.result$estimator=="ML" & project$CFA$cfa.configurations.result$AIC<500),]
-#View(project$lfGWAS$model.configurations)
 
-if (!file.exists(paste0(project$folderpath.workingDirectory,"/","lfGWAS.gwas.",project$setup.code,".Rds")) | project$setting.refreshLatentFactorGWAS) 
-{
+#inactivated
+if(!is.null(project$lfGWAS$sumstats)){
+  
+  #specified manually here
+  project$CFA$lfGWAS$lmodel<-"
+  F1 =~ NA*ALCD03+ANXI03+DEPR05+NEUR01+TIRE01
+  F2 =~ NA*ANXI03+DEPR05+HEAL01+NEUR01+TIRE01
+  F3 =~ NA*ANXI03+DEPR05+NEUR01+SUBJ01+TIRE01
+  ALCD03~~r1*ALCD03
+  ANXI03~~r2*ANXI03
+  DEPR05~~r3*DEPR05
+  HEAL01~~r4*HEAL01
+  NEUR01~~r5*NEUR01
+  SUBJ01~~r6*SUBJ01
+  TIRE01~~r7*TIRE01
+  F1~~1*F1
+  F2~~1*F2
+  F3~~1*F3
+  F1~~F2
+  F1~~F3
+  F2~~F3
+  
+  F1~SNP
+  F2~SNP
+  F3~SNP
+  
+  
+  r1>1e-04
+  abs(r2)<0.1
+  r2>1e-04
+  abs(r3)<0.1
+  r3>1e-04
+  r4>1e-04
+  r5>1e-04
+  r6>1e-04
+  r7>1e-04
+  "
+  
+  if (!file.exists(file.path(project$folderpath.workingDirectory,paste0("lfGWAS.gwas.",project$setup.code,".Rds"))) | project$setting.refreshLatentFactorGWAS) 
+  {
+  
+  print("Performing latent factor GWAS. This will take a while.")
+  
+  #project$lfGWAS$sumstats.test<-project$lfGWAS$sumstats[which(project$lfGWAS$sumstats$CHR=='22'),]
+    
+  project$lfGWAS$gwas<-userGWAS(covstruc = project$mvLD$covstruct.mvLDSC, SNPs = project$lfGWAS$sumstats, estimation = "ML", model = project$CFA$lfGWAS$lmodel, modelchi = FALSE, printwarn = TRUE, sub=c("F1~SNP", "F2~SNP","F3~SNP"), GC="none")
+  
+  saveRDS(object = project$lfGWAS$gwas,file = file.path(project$folderpath.workingDirectory,paste0("lfGWAS.gwas.",project$setup.code,".Rds")))
+  
+  print("DONE performing latent factor GWAS. The results should have been saved to a file.")
+  
+  } else {
+    project$lfGWAS$gwas<-readRDS(file=file.path(project$folderpath.workingDirectory,paste0("lfGWAS.gwas.",project$setup.code,".Rds")))
+  }
 
-print("Performing latent factor GWAS. This will take a while.")
-
-#Perform the GWAS here - use the semplate function!
-#semplate$factorGWAS(modelDefinitionDf = project$lfGWAS$model.configurations,covstruc = )
-
-saveRDS(object = project$lfGWAS$gwas,file = paste0(project$folderpath.workingDirectory,"/","lfGWAS.gwas.",project$setup.code,".Rds"))
-
-print("DONE performing latent factor GWAS. The results should have been saved to a file.")
-
-} else {
-  project$lfGWAS$gwas<-readRDS(file=paste0(project$folderpath.workingDirectory,"/","lfGWAS.gwas.",project$setup.code,".Rds"))
 }
 
 
