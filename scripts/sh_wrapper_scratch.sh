@@ -3,8 +3,10 @@
 module add apps/R/3.6.0
 #module add apps/R/3.6.3
 
+#ok for smaller work
 srun -p brc,shared --ntasks 1 --cpus-per-task 3 --mem 8G --pty /bin/bash
-
+#ok for ldsc munge using 1KG
+srun -p brc,shared --ntasks 1 --cpus-per-task 3 --mem 16G --pty /bin/bash
 
 sbatch --time 23:59:00 --partition brc,shared --job-name="GSEMGWAS" --ntasks 1 --cpus-per-task 6 --mem-per-cpu 8G --wrap="Rscript setup1.R -l cluster" --output "setup1_$(date +%Y%m%d).out.txt" --error "setup1_$(date +%Y%m%d).err.txt"
 
@@ -57,3 +59,9 @@ for gsemi in `seq 0 500 4096`; do gsemi2=$((gsemi+500)); sbatch --time 23:59:00 
 sbatch --time 23:59:00 --partition brc,shared --job-name="prepgwas" --ntasks 1 --cpus-per-task 4 --mem 64G --wrap="Rscript setup2.R -l cluster" --output "setup2.prepgwas.out" --error "setup2.prepgwas.err"
 
 sbatch --time 2-00:00:00 --partition brc,shared --job-name="gsemgwas" --ntasks 1 --cpus-per-task 24 --mem-per-cpu 6G --oversubscribe --wrap="Rscript setup2.R -l cluster" --output "setup2.gsemgwas.$(date +%Y%m%d).out.txt" --error "setup2.gsemgwas.$(date +%Y%m%d).err.txt"
+
+sbatch --time 2-00:00:00 --partition brc,shared --job-name="mvLD.mvLDSC" --ntasks 1 --cpus-per-task 3 --mem 64G --wrap="Rscript setup3.R -t mvLD.mvLDSC -l cluster" --output "setup3.mvLD.mvLDSC.out" --error "setup3.mvLD.mvLDSC.err"
+sbatch --time 23:59:00 --partition brc,shared --job-name="LDSC" --ntasks 1 --cpus-per-task 3 --mem 16G --wrap="sh setup3.ldsc.sh" --output "setup3LDSC.out" --error "setup3LDSC.err"
+
+sbatch --time 23:59:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 3 --mem 12G --wrap="Rscript setup3.R -t munge -l cluster" --output "setup3.munge.$(date +%Y%m%d).out.txt"
+
