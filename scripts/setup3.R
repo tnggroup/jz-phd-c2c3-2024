@@ -1,29 +1,4 @@
----
-title: "JZ_GED_PHD_C1 Analysis Setup 3"
-author: "Johan Zvrskovec"
-date: "23/04/2021"
-output:
-  html_document:
-    fig_height: 6
-    fig_width: 9
-  pdf_document: default
-  word_document:
-    fig_height: 6
-    fig_width: 9
----
-
-```{r clean, include=FALSE, purl=FALSE}
-rm(list = ls(all.names = TRUE)) #will clear all objects includes hidden objects.
-#gc() #free up memory and report the memory usage.
-```
-
-# Title
-**High Definition Latent Factor GWAS of Psychiatric Disorders Implicates Biological Mechanisms of Anxiety and Mood Disorders**
-
-This analysis script is meant to contain most of the analysis steps performed in the project. It is run either as Rmd chunks in order, or as an R-script produced by the knitr::purl command further down. Run from the command line it takes command line arguments as seen in the command line setup below. It can be instructed (through command line arguments) to run in two run modes configured for running either locally on my laptop or on the HPC cluster. Some parts of the script can be run separately as a specific task (controlled by the command line arguments). So far is the Multivariate LD block recommended to be run on a HPC cluster and this block is also subdivided into different tasks intended to be run separately. The results of these separate tasks are to be loaded by a general run of the script to be included in the later analysis. When this has been done once, the final LD results will be saved to a file for subsequent runs of the script to rely on without having to run the LD step again. Remove (or rename) the LD results for the procedure to start anew.
-
-
-```{r package setup, echo=FALSE, warning=F}
+## ----package setup, echo=FALSE, warning=F-----------------------------------------------------
 
 #install.packages("skimr")
 #install.packages("psych")
@@ -65,9 +40,9 @@ library(shru)
 
 #library(reticulate)
 
-```
 
-```{r command line setup}
+
+## ----command line setup-----------------------------------------------------------------------
 clParser <- OptionParser()
 clParser <- add_option(clParser, c("-t", "--task"), type="character", default="0",
                 help="Index of the explicit task to run separately:\n0: No task\nmvLD.mvLDSC:multivariate LDSC\nmvLD.HDL.piecewise:HDL Piecewise\nmvLD.HDL.jackknife:HDL Jackknife\nmvLD.origHDL:original HDL(jackknife)\nmvLD.origHDL.liabilityScale:original HDL with applied liability scale [default %default]")
@@ -77,10 +52,9 @@ clParser <- add_option(clParser, c("-l", "--location"), type="character", defaul
 clParser <- add_option(clParser, c("-a", "--task_argument"), type="character", default=NA,
                 help="General purpose argument for tasks [default %default]")
 
-```
 
-# Script settings
-```{r settings}
+
+## ----settings---------------------------------------------------------------------------------
 project<-c() #create project metadata object
 project$clOptions<-parse_args(clParser)
 project$date.run<-Sys.Date()
@@ -194,43 +168,21 @@ setwd(dir = normalizePath(project$folderpath.workingDirectory))
 #inactivated python environment until it is used
 #use_virtualenv(project$folderpath.pythonVenv)
 
-```
 
 
-```{r knitr setup, include=FALSE, purl=FALSE}
-knitr::opts_chunk$set(echo = TRUE,comment=NA,prompt=FALSE,cache=FALSE)
-knitr::opts_knit$set(root.dir=normalizePath(project$folderpath.workingDirectory))
-
-```
 
 
-```{r purl export, include=FALSE, purl=FALSE, eval=FALSE}
-#running this will produce an R-script with the same name as the Rmd-file. Used for running the program on computational clusters (Rosalind), when the code just has to be run rather than creating a knitted output.
-knitr::purl(project$filename.rmd)
-  
-```
 
 
-```{r additional source setup, echo=FALSE, warning=F}
+## ----additional source setup, echo=FALSE, warning=F-------------------------------------------
 
 #source(normalizePath(file.path(project$folderpath.scripts,"sumstats.mod-jz.R")))
 
-```
 
 
-```{r old anxi rg analysis of gwas sumstats, purl=FALSE, eval=FALSE}
-project$rg_anxi<-read.table(file.path(project$folderpath.data,"ANXI03_gc.txt"), header=T, quote="", sep = "") %>%
-extract(col = p2, into = "code", regex = "_noMHC/(.*)_noMHC.sumstats.", remove = F, )
 
-project$rg_anxi<- project$rg_anxi[which(project$rg_anxi$p<.00001),]
-project$rg_anxi$rg.abs<-abs(project$rg_anxi$rg)
 
-#View(project$rg_anxi)
-
-```
-
-# Database connection to fetch trait and GWAS metadata - run from Rstudio .rmd
-```{r sumstat metadata database load}
+## ----sumstat metadata database load-----------------------------------------------------------
 project$filepath.sumstats<-file.path(project$folderpath.workingDirectory,paste0("sumstats.",project$setup.code,".Rds"))
 if (file.exists(project$filepath.sumstats)) {
   print("Loading summary statistics metadata from previously stored file.")
@@ -263,12 +215,9 @@ write.table(project$sumstats, file = file.path(project$folderpath.workingDirecto
 
 
 
-```
 
 
-
-# Trait setup
-```{r trait setup}
+## ----trait setup------------------------------------------------------------------------------
 #,echo=FALSE
 project$trait<-data.frame(phenotype_id=c())
 
@@ -314,9 +263,9 @@ project$trait[nrow(project$trait),c("referenceDOI")]<-"https://doi.org/10.1093/e
 
 project$trait
 
-```
-# GWAS summary statistics dataset setup
-```{r GWAS sumstat dataset setup}
+
+
+## ----GWAS sumstat dataset setup---------------------------------------------------------------
 #, echo=FALSE
 
 
@@ -430,11 +379,9 @@ project$sumstats<-project$sumstats[order(project$sumstats$code),]
 
 #View(project$sumstats)
 
-```
 
 
-# GWAS summary statistics variable selection and project configuration
-```{r GWAS sumstat dataset variable selection}
+## ----GWAS sumstat dataset variable selection--------------------------------------------------
 
 #selection based on specific traits
 project$sumstats.sel.code<-c("ADHD05","ALCD03","ANXI03","AUTI07","BIPO02", "DEPR05","DEPR08","HEAL01","INCO03","INSO02", "MIGR01","NEUR01","RISK02","RISK03","SCHI04","SUBJ01","TIRE01")
@@ -534,10 +481,9 @@ write.table(project$sumstats.sel[,c("code", "name","year", "n_case","n_control",
 
 #View(project$sumstats.sel)
 
-```
 
-# GWAS summary statistics munge - if needed
-```{r GWAS sumstat munge}
+
+## ----GWAS sumstat munge-----------------------------------------------------------------------
 if(project$clOptions$task=="munge"){
 
   
@@ -624,10 +570,9 @@ if(project$clOptions$task=="munge"){
     quit(save = "no")
   }
 
-```
 
-# GWAS summary statistics imputation - if needed - NOT WORKING
-```{r GWAS sumstat imputation}
+
+## ----GWAS sumstat imputation------------------------------------------------------------------
 if(project$clOptions$task=="impute"){
 #Using RAISS
 #https://gitlab.pasteur.fr/statistical-genetics/raiss
@@ -649,16 +594,9 @@ if(project$clOptions$task=="impute"){
   quit(save = "no")
 }
 
-```
 
 
-
-# Multivariate LD
-The multivariate LDSC and HDL procedure calculates genetic correlations between the different traits and estimates of correlation standard errors, producing S (variances and covariances = heritabilities and coheritabilities) and V (diagonal: squared standard errors of elements in S. Off-diagonal: Covariances of elements in S - "dependencies between estimation errors used to model dependencies due to sample overlap") matrices used later in the Genomic SEM model fitting.
-
-HDL is an improved method to account for linkage disequilibrium while estimating genetic effects from GWAS.
-
-```{r multivariate LD}
+## ----multivariate LD--------------------------------------------------------------------------
 
 project$filepath.mvLD<-file.path(project$folderpath.workingDirectory,paste0("mvLD.",project$setup.code,".Rds"))
 project$filepath.mvLD.mvLDSC<-file.path(project$folderpath.workingDirectory,paste0("mvLD.",project$setup.code,".mvLDSC.Rds"))
@@ -741,155 +679,15 @@ project$sumstats.sel$h2.se.liability_mvLDSC<-diag(project$mvLD$covstruct.mvLDSC$
 #View(project$sumstats.sel)
 
   
-```
 
 
-## Overview of rG between selected traits
-```{r overview pairwise rG, fig.width=9, fig.height=6, out.width="1600px", out.height="1000px", purl=FALSE}
-library(corrplot) #do not run on cluster, does not work?
-
-palette<-colorRampPalette(c(theme.color$contrastDark3,theme.color$contrastLight3))
 
 
-# project$rg_std<-paste0(project$mvLD$covstruct.mvLDSC$S_Stand,"\n(",project$mvLD$covstruct.mvLDSC$S_Stand.SE,")")
-# project$rg_std.abs<-paste0(abs(project$mvLD$covstruct.mvLDSC$S_Stand),"\n(",project$mvLD$covstruct.mvLDSC$S_Stand.SE,")")
-project$rg_std<-project$mvLD$covstruct.mvLDSC$S_Stand
-project$rg_std.uppCI<-project$mvLD$covstruct.mvLDSC$S_Stand + 1.96 * project$mvLD$covstruct.mvLDSC$S_Stand.SE
-project$rg_std.lowCI<-project$mvLD$covstruct.mvLDSC$S_Stand - 1.96 * project$mvLD$covstruct.mvLDSC$S_Stand.SE
-project$rg_std.abs<-abs(project$mvLD$covstruct.mvLDSC$S_Stand)
-project$rg_std.abs.uppCI<-abs(project$mvLD$covstruct.mvLDSC$S_Stand) + 1.96 * project$mvLD$covstruct.mvLDSC$S_Stand.SE
-project$rg_std.abs.lowCI<-abs(project$mvLD$covstruct.mvLDSC$S_Stand) - 1.96 * project$mvLD$covstruct.mvLDSC$S_Stand.SE
-
-rownames(project$rg_std)<-colnames(project$rg_std)
-rownames(project$rg_std.abs)<-colnames(project$rg_std.abs)
-
-png(filename = file.path(project$folderpath.plots,"rg.png"), width = 1200, height = 1000)
-corrplot(
-  corr = project$rg_std,
-  uppCI.mat = project$rg_std.uppCI,
-  lowCI.mat = project$rg_std.lowCI,
-  plotCI = "circle",
-  order = "hclust",
-  hclust.method = "ward.D",
-  method = "square",
-  type="full",
-  addCoef.col = theme.color$contrastDark1,
-  addgrid.col = theme.color$contrastDark1,
-  col = palette(200),
-  is.corr = T,
-  outline = T,
-  addrect = 4,
-  rect.col = theme.color$contrastLight1,
-  rect.lwd = 6,
-  tl.cex = 3,
-  tl.col = theme.color$contrastDark2,
-  tl.srt = 75,
-  cl.cex = 2,
-  cl.ratio = 0.2,
-  number.cex = 1.5
-  )
-dev.off()
-
-png(filename = file.path(project$folderpath.plots,"rg.abs.png"), width = 1200, height = 1000)
-corrplot(
-  corr = project$rg_std.abs,
-  uppCI.mat = project$rg_std.abs.uppCI,
-  lowCI.mat = project$rg_std.abs.lowCI,
-  plotCI = "circle",
-  order = "hclust",
-  hclust.method = "ward.D",
-  method = "square",
-  type="full",
-  addCoef.col = theme.color$contrastDark1,
-  addgrid.col = theme.color$contrastDark1,
-  col = palette(200),
-  is.corr = F,
-  outline = T,
-  addrect = 4,
-  rect.col = theme.color$contrastLight1,
-  rect.lwd = 6,
-  tl.cex = 3,
-  tl.col = theme.color$contrastDark2,
-  tl.srt = 75,
-  cl.cex = 2,
-  cl.ratio = 0.2,
-  number.cex = 1.5
-  )
-dev.off()
-
-```
 
 
-# Improved annotation of chosen datasets
-
-```{r improved annotation of chosen datasets, fig.width=10, fig.height=6, out.width="1600px", out.height="1000px", purl=FALSE}
-#View(project$sumstats.sel)
-
-project$sumstats.sel.table<-project$sumstats.sel[,c("name.nice","code","n_case","n_control","year","samplePrevalence","populationPrevalence","h2.liability_mvLDSC","h2.se.liability_mvLDSC")]
-rownames(project$sumstats.sel.table)<-NULL #Remove the rowname column
-#View(project$sumstats.sel.table)
-#project$sumstats.sel.table
-
-project$plots.sumstats.sel.table<-project$sumstats.sel.table %>% 
-  gt() %>% 
-  fmt_number(columns = vars(samplePrevalence), decimals = 3) %>%
-  fmt_number(columns = vars(h2.liability_mvLDSC), decimals = 3) %>%
-  fmt_number(columns = vars(populationPrevalence,h2.se.liability_mvLDSC), decimals = 4) %>%
-  fmt_number(columns = vars(n_case,n_control), decimals = 0) %>%
-  tab_header(
-    title = "Selected GWAS summary statistics datasets"
-  ) %>% cols_label(
-    name.nice  = "Trait",
-    code = "Code",
-    #ancestry = "Ancestry",
-    #sex = "Sex",
-    n_case = "N case",
-    n_control = "N control",
-    year = "Year",
-    samplePrevalence = html("Prev<sub>sample</sub>"),
-    populationPrevalence = html("Prev<sub>population</sub>"),
-    h2.liability_mvLDSC = html("h<sup>2</sup><sub>mvLDSC</sub>"),
-    h2.se.liability_mvLDSC = "se"
-  ) %>%
-  tab_style(
-    style = cell_text(size = px(12)),
-    locations = cells_column_labels(everything())       
-  ) %>%
-  tab_style(
-    style = cell_text(size = px(12),weight = "bold"),
-    locations = cells_body(everything())        
-  )
-
-project$plots.sumstats.sel.table
-
-gtsave(data = project$plots.sumstats.sel.table, filename = paste0(project$folderpath.plots,"/sumstats.sel.table.rtf"))
 
 
-```
-
-
-## EFA
-I am using EFA as a compliment to the previous genetic correlation matrix to visualise possible cluster patterns.
-
-```{r PCA, fig.width=9, fig.height=6, out.width="1600px", out.height="1000px", purl=FALSE}
-
-project$mvLD$covstruct.mvLDSC$S.smooth<-as.matrix((nearPD(project$mvLD$covstruct.mvLDSC$S, corr = FALSE))$mat)
-
-project$plots.efa.plot.scree<-fa.parallel(project$mvLD$covstruct.mvLDSC$S.smooth, fa = "fa")
-png(filename = file.path(project$folderpath.plots,"efa.plot.scree.png"), width = 800, height = 500)
-fa.parallel(project$mvLD$covstruct.mvLDSC$S.smooth, fa = "fa")
-dev.off()
-
-
-psych::fa(r = project$mvLD$covstruct.mvLDSC$S.smooth,nfactors = 7, rotate = 'varimax', symmetric = T, warnings = T, fm='ols', max.iter = 1000)
-
-
-factanal(covmat = project$mvLD$covstruct.mvLDSC$S.smooth, factors = 7, rotation = 'varimax')
-
-```
-
-## Hierarchical clustering of dataset abs(correlations)
-```{r clustering}
+## ----clustering-------------------------------------------------------------------------------
 
 #saving clustering results between runs as to always use the same randomised start
 project$filepath.clustering<-file.path(project$folderpath.workingDirectory,paste0("clustering.",project$setup.code,".Rds"))
@@ -926,15 +724,9 @@ cat("\nResiduals\n")
 project$clustering$centerDistance
 
 
-```
 
-## Confirmatory Factor Analysis
 
-Exploratory CFA.
-
-### Create and evaluate CFA models
-
-```{r CFA}
+## ----CFA--------------------------------------------------------------------------------------
 
 # testing tidySEM
 # library(tidySEM)
@@ -1140,23 +932,18 @@ if(project$clOptions$task=="cfa" & !is.na(project$clOptions$task_argument)){
 #project$CFA$models$lModel[which(project$CFA$models$nModel==57 & project$CFA$models$code=="M3-17.ML._-1107563521_389110_0_0_0_0_0_0_")]
 if(project$clOptions$task=="cfa"){quit(save = "no")}
 
-```
 
-### Investigate CFA results
 
-```{r CFA investigate}
+## ----CFA investigate--------------------------------------------------------------------------
 
 project$CFA$models.selected<-project$CFA$models.selected<-project$CFA$models[which(project$CFA$models$SRMR<1),c("totalBitValue","code","lModel",project$CFA$resultColumnNames)]
 project$CFA$models.selected<-project$CFA$models[which(project$CFA$models$AIC<100),c("totalBitValue","code","lModel",project$CFA$resultColumnNames)]
 #View(project$CFA$models.selected)
 
 
-```
 
 
-### Select CFA results
-
-```{r CFA select}
+## ----CFA select-------------------------------------------------------------------------------
 
 View(project$CFA$models.selected<-project$CFA$models[which(project$CFA$models$SRMR<1),c("totalBitValue","code","lModel",project$CFA$resultColumnNames)])
 project$CFA$models.selected<-project$CFA$models[which(project$CFA$models$AIC<100),c("totalBitValue","code","lModel",project$CFA$resultColumnNames)]
@@ -1165,49 +952,11 @@ project$CFA$model.bestFitting<-project$CFA$models[which(project$CFA$models$total
 
 project$CFA$model.bestFitting
 
-```
-
-### Plot CFA results
-
-```{r CFA visualise, fig.width=9, fig.height=6, out.width="1600px", out.height="1000px", purl=FALSE}
-#devtools::install_github("cjvanlissa/tidySEM")
-library(tidySEM)
-library(DiagrammeR)
-
-#project$CFA$model.bestFitting$lModel
-#project$CFA$model.bestFitting$lResults
-
-project$CFA$semGraphLayout <- get_layout("F1", "", "","F2","","","F3",
-                  "ALCD03", "ANXI03", "DEPR05", "HEAL01", "NEUR01", "SUBJ01", "TIRE01",
-                  "", "", "", "", "", "", "", rows = 3)
-# sem_graph_layout <- get_layout("", "F1", "","","","F2","",
-#                   "V1", "V2", "V3", "V4", "V5", "V6", "V7", rows = 2)
-
-project$CFA$model.bestFitting$lModel
-
-cModelResults=usermodel.mod(covstruc = project$mvLD$covstruct.mvLDSC,
-          model = project$CFA$model.bestFitting$lModel,
-          estimation = project$CFA$estimator,
-          fix_resid = F,
-          parseResults=T,
-          generateDOT=T
-          )
-
-cModelResults$modelfit
-
-
-graph_sem(model=project$CFA$model.bestFitting$lRsults$lresults, layout = project$CFA$semGraphLayout)
-# graph_sem(model=cModelResults$lresults)
-
-grViz(semplate$parseAndPrintGenomicSEMResult(resultDf = cModelResults$results))
-
-```
 
 
 
-## Prepare summary statistics for latent factor GWAS
-The summary statistics is prepared for analysis by using the sumstats()-function of the GSEM package. Here reference alleles are standardised across all datasets, and SNP effects and their s.e. are scaled to match unit-variance phenotypes.
-```{r prepare summary statistics}
+
+## ----prepare summary statistics---------------------------------------------------------------
 #eval=FALSE
 #use ^this to knit without running the code in the chunk
 
@@ -1246,14 +995,9 @@ if (!file.exists(file.path(project$folderpath.workingDirectory,paste0("lfGWAS.su
   project$lfGWAS$sumstats<-readRDS(file=file.path(project$folderpath.workingDirectory,paste0("lfGWAS.sumstats.",project$setup.code,".Rds")))
 }
 
-```
 
-## Perform latent factor
-If using HDL - do not use GC:
-https://rpubs.com/MichelNivard/640145
-"... Note that with out of sample LD hdl() may esitmate somewhat lower heritability, and a higher intercept, this means you should NOT use the intercept to shrink effect sizes if you run a GWAS in GenomicSEM."
 
-```{r latent factor GWAS}
+## ----latent factor GWAS-----------------------------------------------------------------------
 
 #inactivated
 if(!is.null(project$lfGWAS$sumstats)){
@@ -1312,194 +1056,4 @@ if(!is.null(project$lfGWAS$sumstats)){
 
 }
 
-```
 
-```{r latent factor GWAS visualisation, purl=FALSE}
-
-#install.packages("qqman")
-
-
-#from https://www.r-graph-gallery.com/101_Manhattan_plot.html
-
-#View(project$lfGWAS$gwas[[1]])
-for(igwas in 1:length(project$lfGWAS$gwas)){
-  project$lfGWAS$gwas.for.display <- project$lfGWAS$gwas[[igwas]]
-  
-  #top SNPs
-  #View(project$lfGWAS$gwas.for.display[order(project$lfGWAS$gwas.for.display$Pval_Estimate),c("SNP","CHR","MAF","Pval_Estimate")])
-  
-  project$lfGWAS$gwas.for.display <- project$lfGWAS$gwas.for.display %>% 
-    
-  # Compute chromosome size
-  group_by(CHR) %>% 
-  summarise(BPmax.chr=max(BP)) %>% 
-  
-  # Calculate cumulative position of each chromosome
-  mutate(BP.tot.chr=cumsum(as.numeric(BPmax.chr))-BPmax.chr) %>%
-  select(-BPmax.chr) %>%
-  
-  # Add this info to the initial dataset
-  left_join(project$lfGWAS$gwas.for.display, ., by=c("CHR"="CHR"))
-  
-  project$lfGWAS$gwas.for.display <- project$lfGWAS$gwas.for.display %>%
-  # Add a cumulative position of each SNP
-  arrange(CHR, BP) %>%
-  mutate(BP.tot=BP+BP.tot.chr)
-  
-  #View(project$lfGWAS$gwas.for.display)
-  
-  axisdefinition = project$lfGWAS$gwas.for.display %>% group_by(CHR) %>% summarize(center=( max(BP.tot) + min(BP.tot) ) / 2 )
-  
-  project$plot.lfGWAS <- ggplot(project$lfGWAS$gwas.for.display, aes(x=BP.tot, y=-log10(Pval_Estimate))) +
-      
-      # Show all points
-      geom_point( aes(color=as.factor(CHR)), alpha=0.8, size=1.3) +
-      scale_color_manual(values = rep(c("grey", theme.color$contrastLight1), 22 )) +
-      
-      # custom X axis:
-      scale_x_continuous( label = axisdefinition$CHR, breaks= axisdefinition$center ) +
-      scale_y_continuous(expand = c(0, 0) ) +     # remove space between plot area and x axis
-    
-      geom_label_repel(data=subset(project$lfGWAS$gwas.for.display, -log10(Pval_Estimate)>5), aes(label=SNP), size=3) +
-    
-      # Custom the theme:
-      theme_bw() +
-      theme( 
-        legend.position="none",
-        panel.border = element_blank(),
-        panel.grid.major.x = element_blank(),
-        panel.grid.minor.x = element_blank()
-      )
-  
-  project$plot.lfGWAS
-  
-  qqman::qq(project$lfGWAS$gwas.for.display$Pval_Estimate)
-  
-  png(filename = file.path(project$folderpath.plots,paste0("lfGWAS.",igwas,".png")), width = 1800, height = 1200)
-    project$plot.lfGWAS
-  dev.off()
-  
-  png(filename = file.path(project$folderpath.plots,paste0("lfGWAS.",igwas,".qq.png")), width = 800, height = 600)
-    qqman::qq(project$lfGWAS$gwas.for.display$Pval_Estimate)
-  dev.off()
-
-}
-
-```
-
-```{r mvLD including latent factors, purl=FALSE}
-if (!file.exists(file.path(project$folderpath.workingDirectory,paste0("mvLD2.",project$setup.code,".Rds")))){
-  
-
-
-for(igwas in 1:length(project$lfGWAS$gwas)){
-  #test
-  #igwas<-1
-  fcode<-paste0("F",igwas)
-  if(length(which(project$sumstats.sel$code==fcode))<1){
-    project$sumstats.sel[nrow(project$sumstats.sel)+1,c("code")]<-c(fcode)
-    project$sumstats.sel[which(project$sumstats.sel$code==fcode),c("cleanedpath")]<-file.path(project$folderpath.workingDirectory,fcode)
-  }
-  
-  
-  cGWAS<-project$lfGWAS$gwas[[igwas]]
-  cGWAS$Z<-cGWAS$Z_Estimate
-  cGWAS$P<-cGWAS$Pval_Estimate
-  write.table(x = cGWAS[c("SNP","CHR",	"BP",	"MAF",	"A1",	"A2", "SE",	"Z","P")],file = file.path(project$folderpath.workingDirectory,fcode),sep="\t", quote = FALSE, row.names = F)
-}
-  
-#munge #ERROR HERE!!!
-munge.mod(files = project$sumstats.sel[length(project$sumstats.sel.code)+1:nrow(project$sumstats.sel),c("cleanedpath")],
-            hm3 = project$filepath.SNPReference,
-            trait.names=project$sumstats.sel$code,
-            info.filter=0,
-            maf.filter=0,
-            path.dir.output = project$folderpath.data.sumstats.munged,
-            doChrSplit = FALSE,
-            N = sum(as.numeric(project$sumstats.sel$n_total),na.rm = T)
-              ) 
-    
-
-#run mvLDSC
-#system(command = paste0("touch 4.txt"))
-project$mvLD$covstruct.mvLDSC<-ldsc(traits = project$sumstats.sel$mungedpath,
-                                sample.prev =  project$sumstats.sel$samplePrevalence,
-                                population.prev = project$sumstats.sel$populationPrevalence,
-                                trait.names = project$sumstats.sel$code,
-                                ld = project$folderpath.data.mvLDSC.ld,
-                                wld = project$folderpath.data.mvLDSC.ld,
-                                ldsc.log = project$setup.code.date,
-                                stand = TRUE
-                                )
-saveRDS(object = project$mvLD$covstruct.mvLDSC,file = file.path(project$folderpath.workingDirectory,paste0("mvLD2.",project$setup.code,".Rds")))
-
-} 
-
-```
-
-```{r gSEM TEST scratch area, include=FALSE, eval=FALSE, purl=FALSE}
-project$CFA$test<-c()
-
-max(project$mvLD$covstruct.mvLDSC$S.smooth-project$mvLD$covstruct.mvLDSC$S.orig)
-
-#project$mvLD$covstruct.mvLDSC$S<-project$mvLD$covstruct.mvLDSC$S.smooth
-#project$mvLD$covstruct.mvLDSC$S<-project$mvLD$covstruct.mvLDSC$S.orig
-
-
-project$CFA$test$lmodel<-"
-F1=~NA*ALCD03+ANXI03+AUTI07+BIPO02+DEPR05+DEPR08+HEAL01+INCO03+INSO02+MIGR01+NEUR01+SCHI04+SUBJ01+TIRE01
-F2=~NA*ADHD05+AUTI07+INCO03+INSO02+RISK02+RISK03
-ADHD05~~r1*ADHD05
-ALCD03~~r2*ALCD03
-ANXI03~~r3*ANXI03
-AUTI07~~r4*AUTI07
-BIPO02~~r5*BIPO02
-DEPR05~~r6*DEPR05
-DEPR08~~r7*DEPR08
-HEAL01~~r8*HEAL01
-INCO03~~r9*INCO03
-INSO02~~r10*INSO02
-MIGR01~~r11*MIGR01
-NEUR01~~r12*NEUR01
-RISK02~~r13*RISK02
-RISK03~~r14*RISK03
-SCHI04~~r15*SCHI04
-SUBJ01~~r16*SUBJ01
-TIRE01~~r17*TIRE01
-
-F1~~1*F1
-F2~~1*F2
-#F3~~1*F3
-
-F1~~F2
-#F1~~F3
-#F2~~F3
-#r1>1e-04
-#r2>1e-04
-#r3>1e-04
-#r4>1e-04
-#r5>1e-04
-#r6>1e-04
-#r7>1e-04
-#r8>1e-04
-#r9>1e-04
-#r10>1e-04
-#r11>1e-04
-#r12>1e-04
-#r13>1e-04
-#r14>1e-04
-#r15>1e-04
-#r16>1e-04
-#r17>1e-04
-"
-  
-  #project$lfGWAS$sumstats.test<-project$lfGWAS$sumstats[which(project$lfGWAS$sumstats$CHR=='22'),]
-    
-  project$test$gwasResults=usermodel.mod(covstruc = project$mvLD$covstruct.mvLDSC,
-          model = project$CFA$test$lmodel,
-          estimation = project$CFA$estimator,
-          fix_resid = FALSE, CFIcalc = F, imp_cov = T
-          )
-  
-
-```

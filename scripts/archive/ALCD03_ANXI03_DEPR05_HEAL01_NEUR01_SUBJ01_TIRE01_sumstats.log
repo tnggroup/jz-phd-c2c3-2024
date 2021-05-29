@@ -1,0 +1,164 @@
+The preparation of 7 summary statistics for use in Genomic SEM began at: 2021-04-20 16:08:11
+Please note that the files should be in the same order that they were listed for the ldsc function
+Reading in reference file
+     
+     
+Preparing summary statistics for file: /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/ALCD03.gz
+Interpreting the SNP column as the SNP column.
+Interpreting the A1 column as the A1 column.
+Interpreting the A2 column as the A2 column.
+Interpreting the BETA column as the effect column.
+Interpreting the SE column as the SE column.
+Interpreting the P column as the P column.
+Interpreting the N column as the N (sample size) column.
+Interpreting the  NCAS  column as the N_CAS (sample size for cases) column.
+Interpreting the  NCON  column as the N_CON (sample size for controls) column.
+As the file includes both N_CAS and N_CON columns, the summation of these two columns will be used as the total sample size
+As the summary statistics file includes a sample size column, this is being used in place of the user provided sample size. If the user wishes to still use the provided sample size, as opposed to the sample size listed in the summary statistics file, please change the sample size column header to N2.However, we note that sample size is only used for LPM and OLS conversions.
+Merging file /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/ALCD03.gzwith the reference file: /Users/jakz/Documents/local_db/JZ_GED_PHD_C1/data/combined.hm3_1kg.snplist.jz2020.txt
+8982924 rows present in the full /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/ALCD03.gz summary statistics file.
+1043492 rows were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/ALCD03.gz summary statistics file as the rsIDs for these SNPs were not present in the reference file.
+The effect column was determined NOT to be coded as an odds ratio (OR) for the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/ALCD03.gz summary statistics file based on the median of the effect column being close to 0.
+3095 rows were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/ALCD03.gz summary statistics file due to effect values estimated at exactly 0 as this causes problems for matrix inversion necessary for later Genomic SEM analyses.
+18569 row(s) were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/ALCD03.gz summary statistics file due to the effect allele (A1) column not matching A1 or A2 in the reference file.
+No INFO column, cannot filter on INFO, which may influence results
+Performing transformation under the assumption that the effect column is either an odds ratio or logistic beta (please see output above to determine whether it was interpreted as an odds ratio) and the SE column is a logistic SE (i.e., NOT the SE of the odds ratio) for: /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/ALCD03.gz
+7917768 SNPs are left in the summary statistics file /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/ALCD03.gz after QC and merging with the reference file.
+     
+     
+Preparing summary statistics for file: /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/ANXI03.gz
+Interpreting the SNP column as the SNP column.
+Interpreting the A1 column as the A1 column.
+Interpreting the A2 column as the A2 column.
+Interpreting the OR column as the effect column.
+Interpreting the INFO column as the INFO column.
+Interpreting the SE column as the SE column.
+Interpreting the P column as the P column.
+Interpreting the N column as the N (sample size) column.
+Interpreting the  NCAS  column as the N_CAS (sample size for cases) column.
+Interpreting the  NCON  column as the N_CON (sample size for controls) column.
+As the file includes both N_CAS and N_CON columns, the summation of these two columns will be used as the total sample size
+As the summary statistics file includes a sample size column, this is being used in place of the user provided sample size. If the user wishes to still use the provided sample size, as opposed to the sample size listed in the summary statistics file, please change the sample size column header to N2.However, we note that sample size is only used for LPM and OLS conversions.
+Merging file /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/ANXI03.gzwith the reference file: /Users/jakz/Documents/local_db/JZ_GED_PHD_C1/data/combined.hm3_1kg.snplist.jz2020.txt
+7794483 rows present in the full /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/ANXI03.gz summary statistics file.
+255499 rows were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/ANXI03.gz summary statistics file as the rsIDs for these SNPs were not present in the reference file.
+The effect column was determined to be coded as an odds ratio (OR) for the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/ANXI03.gz summary statistics file based on the median of the effect column being close to 1. Please ensure the interpretation of this column as an OR is correct.
+19020 row(s) were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/ANXI03.gz summary statistics file due to the effect allele (A1) column not matching A1 or A2 in the reference file.
+3 row(s) were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/ANXI03.gz summary statistics file due to the other allele (A2) column not matching A1 or A2 in the reference file.
+No INFO column, cannot filter on INFO, which may influence results
+Performing transformation under the assumption that the effect column is either an odds ratio or logistic beta (please see output above to determine whether it was interpreted as an odds ratio) and the SE column is the SE of the odds ratio (i.e., NOT on the logistic scale) for: /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/ANXI03.gz
+7519961 SNPs are left in the summary statistics file /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/ANXI03.gz after QC and merging with the reference file.
+367314 rows were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/ANXI03.gz summary statistics file as the rsIDs for these SNPs were not present for the other summary statistics.
+     
+     
+Preparing summary statistics for file: /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/DEPR05.gz
+Interpreting the SNP column as the SNP column.
+Interpreting the A1 column as the A1 column.
+Interpreting the A2 column as the A2 column.
+Interpreting the OR column as the effect column.
+Interpreting the INFO column as the INFO column.
+Interpreting the SE column as the SE column.
+Interpreting the P column as the P column.
+Interpreting the N column as the N (sample size) column.
+Interpreting the  NCAS  column as the N_CAS (sample size for cases) column.
+Interpreting the  NCON  column as the N_CON (sample size for controls) column.
+As the file includes both N_CAS and N_CON columns, the summation of these two columns will be used as the total sample size
+As the summary statistics file includes a sample size column, this is being used in place of the user provided sample size. If the user wishes to still use the provided sample size, as opposed to the sample size listed in the summary statistics file, please change the sample size column header to N2.However, we note that sample size is only used for LPM and OLS conversions.
+Merging file /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/DEPR05.gzwith the reference file: /Users/jakz/Documents/local_db/JZ_GED_PHD_C1/data/combined.hm3_1kg.snplist.jz2020.txt
+11178065 rows present in the full /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/DEPR05.gz summary statistics file.
+2746898 rows were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/DEPR05.gz summary statistics file as the rsIDs for these SNPs were not present in the reference file.
+The effect column was determined to be coded as an odds ratio (OR) for the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/DEPR05.gz summary statistics file based on the median of the effect column being close to 1. Please ensure the interpretation of this column as an OR is correct.
+12794 rows were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/DEPR05.gz summary statistics file due to effect values estimated at exactly 0 as this causes problems for matrix inversion necessary for later Genomic SEM analyses.
+29522 row(s) were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/DEPR05.gz summary statistics file due to the effect allele (A1) column not matching A1 or A2 in the reference file.
+3 row(s) were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/DEPR05.gz summary statistics file due to the other allele (A2) column not matching A1 or A2 in the reference file.
+No INFO column, cannot filter on INFO, which may influence results
+Performing transformation under the assumption that the effect column is either an odds ratio or logistic beta (please see output above to determine whether it was interpreted as an odds ratio) and the SE column is the SE of the odds ratio (i.e., NOT on the logistic scale) for: /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/DEPR05.gz
+8388848 SNPs are left in the summary statistics file /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/DEPR05.gz after QC and merging with the reference file.
+1353066 rows were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/DEPR05.gz summary statistics file as the rsIDs for these SNPs were not present for the other summary statistics.
+     
+     
+Preparing summary statistics for file: /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/HEAL01.gz
+Interpreting the SNP column as the SNP column.
+Interpreting the A1 column as the A1 column.
+Interpreting the A2 column as the A2 column.
+Interpreting the BETA column as the effect column.
+Interpreting the P column as the P column.
+Interpreting the N column as the N (sample size) column.
+As the summary statistics file includes a sample size column, this is being used in place of the user provided sample size. If the user wishes to still use the provided sample size, as opposed to the sample size listed in the summary statistics file, please change the sample size column header to N2.However, we note that sample size is only used for LPM and OLS conversions.
+Merging file /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/HEAL01.gzwith the reference file: /Users/jakz/Documents/local_db/JZ_GED_PHD_C1/data/combined.hm3_1kg.snplist.jz2020.txt
+17344508 rows present in the full /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/HEAL01.gz summary statistics file.
+8109468 rows were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/HEAL01.gz summary statistics file as the rsIDs for these SNPs were not present in the reference file.
+The effect column was determined NOT to be coded as an odds ratio (OR) for the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/HEAL01.gz summary statistics file based on the median of the effect column being close to 0.
+An OLS transformation is being used for file: /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/HEAL01.gz
+26568 row(s) were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/HEAL01.gz summary statistics file due to the effect allele (A1) column not matching A1 or A2 in the reference file.
+7 row(s) were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/HEAL01.gz summary statistics file due to the other allele (A2) column not matching A1 or A2 in the reference file.
+No INFO column, cannot filter on INFO, which may influence results
+9208448 SNPs are left in the summary statistics file /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/HEAL01.gz after QC and merging with the reference file.
+2180078 rows were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/HEAL01.gz summary statistics file as the rsIDs for these SNPs were not present for the other summary statistics.
+     
+     
+Preparing summary statistics for file: /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/NEUR01.gz
+Interpreting the SNP column as the SNP column.
+Interpreting the A1 column as the A1 column.
+Interpreting the A2 column as the A2 column.
+Interpreting the BETA column as the effect column.
+Interpreting the SE column as the SE column.
+Interpreting the P column as the P column.
+Interpreting the N column as the N (sample size) column.
+As the summary statistics file includes a sample size column, this is being used in place of the user provided sample size. If the user wishes to still use the provided sample size, as opposed to the sample size listed in the summary statistics file, please change the sample size column header to N2.However, we note that sample size is only used for LPM and OLS conversions.
+Merging file /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/NEUR01.gzwith the reference file: /Users/jakz/Documents/local_db/JZ_GED_PHD_C1/data/combined.hm3_1kg.snplist.jz2020.txt
+6524432 rows present in the full /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/NEUR01.gz summary statistics file.
+173929 rows were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/NEUR01.gz summary statistics file as the rsIDs for these SNPs were not present in the reference file.
+The effect column was determined NOT to be coded as an odds ratio (OR) for the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/NEUR01.gz summary statistics file based on the median of the effect column being close to 0.
+475011 rows were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/NEUR01.gz summary statistics file due to effect values estimated at exactly 0 as this causes problems for matrix inversion necessary for later Genomic SEM analyses.
+An OLS transformation is being used for file: /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/NEUR01.gz
+16943 row(s) were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/NEUR01.gz summary statistics file due to the effect allele (A1) column not matching A1 or A2 in the reference file.
+No INFO column, cannot filter on INFO, which may influence results
+5858549 SNPs are left in the summary statistics file /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/NEUR01.gz after QC and merging with the reference file.
+490410 rows were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/NEUR01.gz summary statistics file as the rsIDs for these SNPs were not present for the other summary statistics.
+     
+     
+Preparing summary statistics for file: /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/SUBJ01.gz
+Interpreting the SNP column as the SNP column.
+Interpreting the A1 column as the A1 column.
+Interpreting the A2 column as the A2 column.
+Interpreting the BETA column as the effect column.
+Interpreting the SE column as the SE column.
+Interpreting the P column as the P column.
+Interpreting the N column as the N (sample size) column.
+As the summary statistics file includes a sample size column, this is being used in place of the user provided sample size. If the user wishes to still use the provided sample size, as opposed to the sample size listed in the summary statistics file, please change the sample size column header to N2.However, we note that sample size is only used for LPM and OLS conversions.
+Merging file /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/SUBJ01.gzwith the reference file: /Users/jakz/Documents/local_db/JZ_GED_PHD_C1/data/combined.hm3_1kg.snplist.jz2020.txt
+2268674 rows present in the full /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/SUBJ01.gz summary statistics file.
+32117 rows were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/SUBJ01.gz summary statistics file as the rsIDs for these SNPs were not present in the reference file.
+The effect column was determined NOT to be coded as an odds ratio (OR) for the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/SUBJ01.gz summary statistics file based on the median of the effect column being close to 0.
+204625 rows were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/SUBJ01.gz summary statistics file due to effect values estimated at exactly 0 as this causes problems for matrix inversion necessary for later Genomic SEM analyses.
+An OLS transformation is being used for file: /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/SUBJ01.gz
+16929 row(s) were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/SUBJ01.gz summary statistics file due to the effect allele (A1) column not matching A1 or A2 in the reference file.
+No INFO column, cannot filter on INFO, which may influence results
+2015003 SNPs are left in the summary statistics file /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/SUBJ01.gz after QC and merging with the reference file.
+180304 rows were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/SUBJ01.gz summary statistics file as the rsIDs for these SNPs were not present for the other summary statistics.
+     
+     
+Preparing summary statistics for file: /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/TIRE01.gz
+Interpreting the SNP column as the SNP column.
+Interpreting the A1 column as the A1 column.
+Interpreting the A2 column as the A2 column.
+Interpreting the BETA column as the effect column.
+Interpreting the P column as the P column.
+Interpreting the N column as the N (sample size) column.
+As the summary statistics file includes a sample size column, this is being used in place of the user provided sample size. If the user wishes to still use the provided sample size, as opposed to the sample size listed in the summary statistics file, please change the sample size column header to N2.However, we note that sample size is only used for LPM and OLS conversions.
+Merging file /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/TIRE01.gzwith the reference file: /Users/jakz/Documents/local_db/JZ_GED_PHD_C1/data/combined.hm3_1kg.snplist.jz2020.txt
+17344604 rows present in the full /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/TIRE01.gz summary statistics file.
+8109530 rows were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/TIRE01.gz summary statistics file as the rsIDs for these SNPs were not present in the reference file.
+The effect column was determined NOT to be coded as an odds ratio (OR) for the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/TIRE01.gz summary statistics file based on the median of the effect column being close to 0.
+An OLS transformation is being used for file: /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/TIRE01.gz
+26576 row(s) were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/TIRE01.gz summary statistics file due to the effect allele (A1) column not matching A1 or A2 in the reference file.
+7 row(s) were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/TIRE01.gz summary statistics file due to the other allele (A2) column not matching A1 or A2 in the reference file.
+No INFO column, cannot filter on INFO, which may influence results
+9208468 SNPs are left in the summary statistics file /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/TIRE01.gz after QC and merging with the reference file.
+7373771 rows were removed from the /Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/TIRE01.gz summary statistics file as the rsIDs for these SNPs were not present for the other summary statistics.
+     
+After merging across all summary statistics using listwise deletion, performing QC, and merging with the reference file, there are 1834697 SNPs left in the final multivariate summary statistics file
+Sumstats finished running at 2021-04-20 16:25:39
+Running sumstats for all files took 17 minutes and 27.4695420265198 seconds
+Please check the log file ALCD03_ANXI03_DEPR05_HEAL01_NEUR01_SUBJ01_TIRE01_sumstats.log to ensure that all columns were interpreted correctly and no warnings were issued for any of the summary statistics files.

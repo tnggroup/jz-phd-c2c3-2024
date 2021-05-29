@@ -60,8 +60,12 @@ sbatch --time 23:59:00 --partition brc,shared --job-name="prepgwas" --ntasks 1 -
 
 sbatch --time 2-00:00:00 --partition brc,shared --job-name="gsemgwas" --ntasks 1 --cpus-per-task 24 --mem-per-cpu 6G --oversubscribe --wrap="Rscript setup2.R -l cluster" --output "setup2.gsemgwas.$(date +%Y%m%d).out.txt" --error "setup2.gsemgwas.$(date +%Y%m%d).err.txt"
 
+#setup3
+
 sbatch --time 2-00:00:00 --partition brc,shared --job-name="mvLD.mvLDSC" --ntasks 1 --cpus-per-task 3 --mem 64G --wrap="Rscript setup3.R -t mvLD.mvLDSC -l cluster" --output "setup3.mvLD.mvLDSC.out" --error "setup3.mvLD.mvLDSC.err"
 sbatch --time 23:59:00 --partition brc,shared --job-name="LDSC" --ntasks 1 --cpus-per-task 3 --mem 16G --wrap="sh setup3.ldsc.sh" --output "setup3LDSC.out" --error "setup3LDSC.err"
 
-sbatch --time 23:59:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 3 --mem 12G --wrap="Rscript setup3.R -t munge -l cluster" --output "setup3.munge.$(date +%Y%m%d).out.txt"
-
+sbatch --time 23:59:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 3 --mem 40G --wrap="Rscript setup3.R -t munge -l cluster" --output "setup3.munge.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition brc,shared --job-name="mvLD.mvLDSC" --ntasks 1 --cpus-per-task 3 --mem 64G --wrap="Rscript setup3.R -t mvLD.mvLDSC -l cluster" --output "setup3.mvLD.mvLDSC.$(date +%Y%m%d).out.txt"
+gsemi=0; gsemi2=$((gsemi+250-1)); sbatch --time 2-00:00:00 --partition brc,shared --job-name="gsem" --ntasks 1 --cpus-per-task 2 --mem 16G --wrap="Rscript setup3.R -t cfa -a $gsemi:$gsemi2 -l cluster" --output "setup3.cfa.$gsemi-$gsemi2.out.txt";
+for gsemi in `seq 250 250 $((4096+1))`; do gsemi2=$((gsemi+250-1)); sbatch --time 2-00:00:00 --partition brc,shared --job-name="gsem" --ntasks 1 --cpus-per-task 2 --mem 16G --wrap="Rscript setup3.R -t cfa -a $gsemi:$gsemi2 -l cluster" --output "setup3.cfa.$gsemi-$gsemi2.out.txt"; done
