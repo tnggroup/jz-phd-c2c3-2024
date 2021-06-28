@@ -66,6 +66,19 @@ sbatch --time 2-00:00:00 --partition brc,shared --job-name="mvLD.mvLDSC" --ntask
 sbatch --time 23:59:00 --partition brc,shared --job-name="LDSC" --ntasks 1 --cpus-per-task 3 --mem 16G --wrap="sh setup3.ldsc.sh" --output "setup3LDSC.out" --error "setup3LDSC.err"
 
 sbatch --time 23:59:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 3 --mem 40G --wrap="Rscript setup3.R -t munge -l cluster" --output "setup3.munge.$(date +%Y%m%d).out.txt"
+sbatch --time 23:00:00 --partition brc,shared --job-name="preplfgwas" --ntasks 1 --cpus-per-task 2 --mem 64G --wrap="Rscript setup3.R -t preplfgwas -l cluster" --output "setup3.lfGWAS.sumstats.$(date +%Y%m%d).out.txt"
 sbatch --time 2-00:00:00 --partition brc,shared --job-name="mvLD.mvLDSC" --ntasks 1 --cpus-per-task 3 --mem 64G --wrap="Rscript setup3.R -t mvLD.mvLDSC -l cluster" --output "setup3.mvLD.mvLDSC.$(date +%Y%m%d).out.txt"
 gsemi=0; gsemi2=$((gsemi+250-1)); sbatch --time 2-00:00:00 --partition brc,shared --job-name="gsem" --ntasks 1 --cpus-per-task 2 --mem 16G --wrap="Rscript setup3.R -t cfa -a $gsemi:$gsemi2 -l cluster" --output "setup3.cfa.$gsemi-$gsemi2.out.txt";
 for gsemi in `seq 250 250 $((4096+1))`; do gsemi2=$((gsemi+250-1)); sbatch --time 2-00:00:00 --partition brc,shared --job-name="gsem" --ntasks 1 --cpus-per-task 2 --mem 16G --wrap="Rscript setup3.R -t cfa -a $gsemi:$gsemi2 -l cluster" --output "setup3.cfa.$gsemi-$gsemi2.out.txt"; done
+sbatch --time 23:00:00 --partition brc,shared --job-name="gsem" --ntasks 1 --cpus-per-task 2 --mem 16G --wrap="Rscript setup3.R -t cfa -l cluster" --output "setup3.cfa.$(date +%Y%m%d).out.txt"
+
+sbatch --time 2-00:00:00 --partition brc,shared --job-name="lfgwas" --ntasks 1 --cpus-per-task 2 --mem 16G --wrap="Rscript setup3.R -t lfgwas -a 1 -l cluster" --output "setup3.lfgwas.chr1.$(date +%Y%m%d).out.txt"
+for chr in 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22; do sbatch --time 2-00:00:00 --partition brc,shared --job-name="lfgwas" --ntasks 1 --cpus-per-task 2 --mem 16G --wrap="Rscript setup3.R -t lfgwas -a $chr -l cluster" --output "setup3.lfgwas.chr$chr.$(date +%Y%m%d).out.txt"; done
+
+#run lf1 chr1 first as a test
+lf=1;for chr in 1; do sbatch --time 2-00:00:00 --partition brc,shared --job-name="lga_$lf:$chr" --ntasks 1 --cpus-per-task 2 --mem 16G --wrap="Rscript setup3.R -t lfgwas -a $lf:$chr -l cluster" --output "setup3.lfgwas.F$lf.chr$chr.$(date +%Y%m%d).out.txt"; done
+lf=1;for chr in 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22; do sbatch --time 2-00:00:00 --partition brc,shared --job-name="lga_$lf:$chr" --ntasks 1 --cpus-per-task 2 --mem 16G --wrap="Rscript setup3.R -t lfgwas -a $lf:$chr -l cluster" --output "setup3.lfgwas.F$lf.chr$chr.$(date +%Y%m%d).out.txt"; done
+#lf=1;for chr in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22; do Rscript setup3.R -t lfgwas -a $lf:$chr > setup3.lfgwas.chr$chr.$(date +%Y%m%d).out.txt; done
+
+for chr in 1; do sbatch --time 2-00:00:00 --partition brc,shared --job-name="lga_$chr" --ntasks 1 --cpus-per-task 2 --mem 16G --wrap="Rscript setup3.R -t lfgwas -a $chr -l cluster" --output "setup3.lfgwas.F_ALL.chr$chr.$(date +%Y%m%d).out.txt"; done
+for chr in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22; do sbatch --time 2-00:00:00 --partition brc,shared --job-name="lga_$chr" --ntasks 1 --cpus-per-task 2 --mem 16G --wrap="Rscript setup3.R -t lfgwas -a $chr -l cluster" --output "setup3.lfgwas.F_ALL.chr$chr.$(date +%Y%m%d).out.txt"; done
