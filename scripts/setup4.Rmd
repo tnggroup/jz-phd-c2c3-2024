@@ -1,7 +1,7 @@
 ---
-title: "JZ_GED_PHD_C1 Analysis Setup 3"
+title: "JZ_GED_PHD_C1 Analysis Setup 4"
 author: "Johan Zvrskovec"
-date: "23/04/2021"
+date: "28/06/2021"
 output:
   html_document:
     fig_height: 6
@@ -43,13 +43,24 @@ This analysis script is meant to contain most of the analysis steps performed in
 #remove.packages("HDL")
 #devtools::install_github("zhenin/HDL/HDL")
 #devtools::install_github("zhenin/HDL/HDL@77cb9d0984d1302e40bfd871491e292f8f09f49d") #specify exact commit
+#remove.packages("BiocManager")
+#install.packages("BiocManager")
+#remove.packages("MungeSumstats")
+#devtools::install_github("neurogenomics/MungeSumstats")
+#remove.packages("SNPlocs.Hsapiens.dbSNP144.GRCh38")
+#BiocManager::install("SNPlocs.Hsapiens.dbSNP144.GRCh38")
+#remove.packages("BSgenome.Hsapiens.NCBI.GRCh38")
+#BiocManager::install("BSgenome.Hsapiens.NCBI.GRCh38")
 #install.packages("optparse")
 #install.packages("stats")
 #remove.packages("shru")
 #devtools::install_github("johanzvrskovec/shru")
 #install.packages("reticulate")
-#install.packages("readr")
+#install.packages("readr")  
 
+#for testing supermunge
+library(R.utils)
+library(data.table)
 library(optparse)
 library(skimr)
 library(ggrepel)
@@ -59,6 +70,7 @@ library(Matrix)
 library(stats)
 library(tidyverse)
 library(HDL)
+#library(MungeSumstats)
 library(shru)
 library(GenomicSEM)
 
@@ -83,7 +95,7 @@ clParser <- add_option(clParser, c("-a", "--task_argument"), type="character", d
 project<-c() #create project metadata object
 project$clOptions<-parse_args(clParser)
 project$date.run<-Sys.Date()
-project$setup.version<-3
+project$setup.version<-4
 project$setup.code<-paste0("setup",project$setup.version)
 project$setup.code.date<-paste0(project$setup.code,"_",project$date.run)
 project$filename.rmd<-paste0(project$setup.code,".Rmd")
@@ -132,8 +144,8 @@ if(project$host=="local") {
 project$folderpath.data.sumstats.cleaned<-normalizePath(file.path(project$folderpath.data,"gwas_sumstats","cleaned"))
 
 ##munged sumstats folder
-#project$folderpath.data.sumstats.munged<-normalizePath(file.path(project$folderpath.data,"gwas_sumstats","munged_1kg_eur_supermunge"))
-project$folderpath.data.sumstats.munged<-normalizePath(file.path(project$folderpath.data,"gwas_sumstats","munged_1kg_eur_gSEM"))
+project$folderpath.data.sumstats.munged<-normalizePath(file.path(project$folderpath.data,"gwas_sumstats","munged_1kg_eur_supermunge"))
+#project$folderpath.data.sumstats.munged<-normalizePath(file.path(project$folderpath.data,"gwas_sumstats","munged_1kg_eur_gSEM"))
 
 ##imputed sumstats folder
 #project$folderpath.data.sumstats.imputed<-normalizePath(file.path(project$folderpath.data,"gwas_sumstat","imputed"))
@@ -160,9 +172,9 @@ project$folderpath.data.sumstatImp.genomeReference<-"/users/k19049801/project/JZ
 
 ##LD scores datasets folders (these strings need to have a trailing slash for the GSEM LDSC to work)
 project$folderpath.data.mvLDSC.ld.1kg <- file.path(project$folderpath.data,"eur_w_ld_chr.1KG_Phase3")
-project$folderpath.data.mvLDSC.ld.hm3 <- file.path(project$folderpath.data,"eur_w_ld_chr")#LD-scores
+project$folderpath.data.mvLDSC.ld.hm3 <- file.path(project$folderpath.data,"eur_w_ld_chr")
 #Weights, if different from LD-scores
-#Set weihghts to the same folder as ldscores
+#Set weights to the same folder as ldscores
 project$folderpath.data.mvLDSC.wld.1kg <- project$folderpath.data.mvLDSC.ld.1kg
 project$folderpath.data.mvLDSC.wld.hm3 <- project$folderpath.data.mvLDSC.ld.hm3
 
@@ -182,7 +194,7 @@ project$filepath.r<-normalizePath(file.path(project$folderpath.scripts,project$f
 project$CFA<-c()
 project$CFA$estimator=c("ML")
 #project$CFA$estimator=c("ML","DWLS")
-project$CFA$nFactors=10
+project$CFA$nFactors=c(5,7,10)
 
 ##latent factor GWAS filter settings
 project$lfGWAS$info.filter=.6
@@ -282,6 +294,11 @@ project$trait[nrow(project$trait)+1,c("phenotype_id")]<-141
 project$trait[nrow(project$trait),c("populationPrevalence")]<-.125 #US total measurement
 project$trait[nrow(project$trait),c("referenceDOI")]<-"https://doi.org/10.1001/archpsyc.64.7.830"
 
+#ANOR
+project$trait[nrow(project$trait)+1,c("phenotype_id")]<-142
+project$trait[nrow(project$trait),c("populationPrevalence")]<-.0245 #European average (3 secondary refs)
+project$trait[nrow(project$trait),c("referenceDOI")]<-"https://doi.org/10.1038/S41588-019-0439-2"
+
 #ANXI
 project$trait[nrow(project$trait)+1,c("phenotype_id")]<-144
 project$trait[nrow(project$trait),c("populationPrevalence")]<-.16 #Any type of anxiety disorder, Via https://doi.org/10.1038/s41380-019-0559-1 (2019), originally from https://doi.org/10.1017/S1121189X00001421 (2009)
@@ -307,6 +324,11 @@ project$trait[nrow(project$trait)+1,c("phenotype_id")]<-171
 project$trait[nrow(project$trait),c("populationPrevalence")]<-.69 #using the 'prevalence', the higher estimate of persistent symptoms after 1y follow up.
 project$trait[nrow(project$trait),c("referenceDOI")]<-"https://doi.org/10.1093/sleep/30.3.274"
 
+#PTSD
+project$trait[nrow(project$trait)+1,c("phenotype_id")]<-140
+project$trait[nrow(project$trait),c("populationPrevalence")]<-.3 #using the moderate estimate of lifetime prevalence after trauma as used in ref
+project$trait[nrow(project$trait),c("referenceDOI")]<-"10.1038/s41467-019-12576-w"
+
 #SCHI
 project$trait[nrow(project$trait)+1,c("phenotype_id")]<-151
 project$trait[nrow(project$trait),c("populationPrevalence")]<-.0072 #using the lifetime morbid risk estimate, slightly more suitable for the CLOZUK sample as described in the GWAS but not using the lower point estimate of 0.4%
@@ -315,6 +337,8 @@ project$trait[nrow(project$trait),c("referenceDOI")]<-"https://doi.org/10.1093/e
 project$trait
 
 ```
+
+
 # GWAS summary statistics dataset setup
 ```{r GWAS sumstat dataset setup}
 #, echo=FALSE
@@ -347,6 +371,31 @@ project$sumstats[nrow(project$sumstats)+1,c("code","n_case","n_control","n_total
   reference_doi=c("https://doi.org/10.1038/s41588-018-0090-3")
   )
 
+#add missing datasets and data
+project$sumstats[nrow(project$sumstats)+1,c("code","n_case","n_control","n_total","phenotype_id","reference_id","reference_doi")]=list(
+  code=c("ANXI04"),
+  n_case=19012,
+  n_control=58113,
+  n_total=77125,
+  phenotype_id=144,
+  reference_id=158
+  )
+
+#add missing datasets and data
+project$sumstats[nrow(project$sumstats)+1,c("code","name","n_total","phenotype_id")]=list(
+  code=c("NOIS01"),
+  name="Noise 1",
+  n_total=766345,
+  phenotype_id=197
+  )
+
+project$sumstats[nrow(project$sumstats)+1,c("code","name","n_total","phenotype_id")]=list(
+  code=c("NOIS02"),
+  name="Noise 2",
+  n_total=766345,
+  phenotype_id=197
+  )
+
 #reformat columns
 project$sumstats$name<-as.character(project$sumstats$name)
 
@@ -375,11 +424,13 @@ mutate(
 
 ##add reference year
 project$sumstats$year[which(project$sumstats$code=="ANXI03")]=2019
+project$sumstats$year[which(project$sumstats$code=="ANXI04")]=2019
 project$sumstats$year[which(project$sumstats$code=="DEPR05")]=2018
 
 ##Add doi links for easy access to dataset publication
 project$sumstats$reference_doi[which(project$sumstats$code=="ALCD03")]="https://doi.org/10.1038/s41593-018-0275-1"
 project$sumstats$reference_doi[which(project$sumstats$code=="ANXI03")]="https://doi.org/10.1038/s41380-019-0559-1"
+project$sumstats$reference_doi[which(project$sumstats$code=="ANXI04")]="https://doi.org/10.1038/s41380-019-0559-1"
 project$sumstats$reference_doi[which(project$sumstats$code=="AUTI07")]="https://doi.org/10.1038/s41588-019-0344-8"
 project$sumstats$reference_doi[which(project$sumstats$code=="DEPR08")]="https://doi.org/10.1038/s41588-018-0090-3"
 project$sumstats$reference_doi[which(project$sumstats$code=="HEAL01")]="https://doi.org/10.1093/ije/dyw219"
@@ -390,6 +441,7 @@ project$sumstats$reference_doi[which(project$sumstats$code=="TIRE01")]="https://
 
 ##Add PMID
 project$sumstats$pmid[which(project$sumstats$code=="ANXI03")]="31748690"
+project$sumstats$pmid[which(project$sumstats$code=="ANXI04")]="31748690"
 # project$sumstats$pmid[which(project$sumstats$code=="NEUR01")]="27089181"
 # project$sumstats$pmid[which(project$sumstats$code=="SUBJ01")]="27089181"
 project$sumstats$pmid[which(project$sumstats$code=="DEPR05")]="29700475"
@@ -406,6 +458,7 @@ project$sumstats$ancestry[which(project$sumstats$code=="NEUR01")]="EUR"
 project$sumstats$ancestry[which(project$sumstats$code=="DEPR05")]="EUR"
 
 ##add sex details
+project$sumstats$sex[which(project$sumstats$code=="ANXI04")]="both"
 project$sumstats$sex[which(project$sumstats$code=="NEUR01")]="both"
 project$sumstats$sex[which(project$sumstats$code=="DEPR05")]="both"
 
@@ -419,11 +472,98 @@ project$sumstats$age.max[which(project$sumstats$code=="TIRE01")]=73
 project$sumstats$age.mean[which(project$sumstats$code=="TIRE01")]=56.91
 project$sumstats$age.sd[which(project$sumstats$code=="TIRE01")]=7.93
 
+
 ##add sample prevalence for all datasets
 project$sumstats$samplePrevalence<-project$sumstats$n_case/project$sumstats$n_total
 
 ##add number of cases or total column
 project$sumstats$n_case_total<-ifelse(is.na(project$sumstats$n_case),project$sumstats$n_total,project$sumstats$n_case)
+
+##Add nice trait names to be used in the report
+project$sumstats$name.nice<-project$sumstats$name
+#project$sumstats$name.nice[which(project$sumstats$code=="ADHD05")]="ADHD"
+project$sumstats$name.nice[which(project$sumstats$code=="ALCD03")]="Alcohol dependence"
+project$sumstats$name.nice[which(project$sumstats$code=="ANXI03")]="Anxiety disorder"
+project$sumstats$name.nice[which(project$sumstats$code=="ANXI04")]="Generalised anxiety symptoms"
+project$sumstats$name.nice[which(project$sumstats$code=="AUTI07")]="Autism spectrum disorder"
+project$sumstats$name.nice[which(project$sumstats$code=="DEPR05")]="Major depressive disorder narrow"
+project$sumstats$name.nice[which(project$sumstats$code=="DEPR08")]="Major depressive disorder"
+project$sumstats$name.nice[which(project$sumstats$code=="INCO03")]="Social deprivation"
+project$sumstats$name.nice[which(project$sumstats$code=="INSO02")]="Insomnia"
+project$sumstats$name.nice[which(project$sumstats$code=="NEUR01")]="Neuroticism"
+project$sumstats$name.nice[which(project$sumstats$code=="RISK02")]="Risktaking, automobile"
+project$sumstats$name.nice[which(project$sumstats$code=="RISK03")]="Risktaking, sex"
+project$sumstats$name.nice[which(project$sumstats$code=="SCHI04")]="Schizophrenia"
+project$sumstats$name.nice[which(project$sumstats$code=="SUBJ01")]="Subjective well-being"
+project$sumstats$name.nice[which(project$sumstats$code=="TIRE01")]="Self-reported tiredness"
+
+##Add a combined nice name plus code label
+project$sumstats$name.nice.and_code<-paste0(project$sumstats$name.nice," (",project$sumstats$code,")")
+
+
+##add data on whether effects are on log odds ratio or not
+## Plain OR is detected by munge and sumstat procedures though
+
+project$sumstats$effect.logit[which(project$sumstats$code=="ADHD05")]=T #Column OR. Munge non-OR detected. Consistent with non-OR.
+project$sumstats$effect.logit[which(project$sumstats$code=="ALCD03")]=T #Did not find the original readme for this, only looked at the readme for the 2018 subsequent release, and the data. Assuming log-scale from the naming of the variables (beta?) and that it follows the standard of the 2018 release - explicitly states "log scale beta".
+project$sumstats$effect.logit[which(project$sumstats$code=="ANXI03")]=F # Kirstin sort of confirm that she converted both effect and s.e. to linear scales. Data and readme is available from her KCL web site. Unclear which dataset was used for ANXI03 though. Confirm this later by comparing datasets?
+project$sumstats$effect.logit[which(project$sumstats$code=="AUTI07")]=T #Assuming log(OR) since not plain OR
+project$sumstats$effect.logit[which(project$sumstats$code=="BIPO02")]=T #Assuming log(OR) since not plain OR
+project$sumstats$effect.logit[which(project$sumstats$code=="DEPR05")]=F #https://www.med.unc.edu/pgc/files/2019/04/PGC_MDD_2018_README_third_180316.pdf # The readme states daner format, but that SE is s.e. of log(OR), while the daner format does not state log scale variables here. Assuming linear scale OR, which is consistent with the data, and munge.
+project$sumstats$effect.logit[which(project$sumstats$code=="DEPR08")]=F #https://www.med.unc.edu/pgc/files/2019/04/PGC_MDD_2018_README_third_180316.pdf # As DEPR05
+project$sumstats$effect.logit[which(project$sumstats$code=="HEAL01")]=F #The original data including readme downloaded to data_raw/original. States "Beta" without explanation, and I assume linear beta.
+project$sumstats$effect.logit[which(project$sumstats$code=="INCO03")]=F #As per munge
+project$sumstats$effect.logit[which(project$sumstats$code=="INSO02")]=F #As per munge
+project$sumstats$effect.logit[which(project$sumstats$code=="MIGR01")]=F #As per munge
+project$sumstats$effect.logit[which(project$sumstats$code=="NEUR01")]=F #The official read-me states "regression beta"
+project$sumstats$effect.logit[which(project$sumstats$code=="RISK02")]=F #As per munge
+project$sumstats$effect.logit[which(project$sumstats$code=="RISK03")]=F #As per munge
+project$sumstats$effect.logit[which(project$sumstats$code=="SCHI04")]=F #OR, as per munge
+project$sumstats$effect.logit[which(project$sumstats$code=="SUBJ01")]=F #The official read-me states "regression beta"
+project$sumstats$effect.logit[which(project$sumstats$code=="TIRE01")]=F #The official read-me states "beta"
+
+
+##add data on whether the SEs are on a logistic scale or not
+project$sumstats$se.logit[which(project$sumstats$code=="ADHD05")]=T #consistent with log(OR) above
+
+project$sumstats$se.logit[which(project$sumstats$code=="ALCD03")]=T #Did not find the original readme for this, only looked at the readme for the 2018 subsequent release, and the data. SE is strangely set to 1 for top rows. Assumes this is true because of log-scale beta.
+project$sumstats$se.logit[which(project$sumstats$code=="ANXI03")]=F #Assume linear becasue of Kirstin Purves assuring that both were converted to linear scale. Consistent with munge non-OR.
+project$sumstats$se.logit[which(project$sumstats$code=="AUTI07")]=T #Assuming log(OR) since not plain OR
+project$sumstats$se.logit[which(project$sumstats$code=="BIPO02")]=T #Assuming log(OR) since not plain OR
+project$sumstats$se.logit[which(project$sumstats$code=="DEPR05")]=T #log(OR) standard errors as of documentation
+project$sumstats$se.logit[which(project$sumstats$code=="DEPR08")]=T #Assuming log(OR) standard errors as DEPR05
+project$sumstats$se.logit[which(project$sumstats$code=="HEAL01")]=F #Assume linear scale because of linear beta
+project$sumstats$se.logit[which(project$sumstats$code=="INCO03")]=F #Assume linear scale because of linear beta
+project$sumstats$se.logit[which(project$sumstats$code=="INSO02")]=T #Assuming log(OR) standard errors as some of the datasets above.
+project$sumstats$se.logit[which(project$sumstats$code=="MIGR01")]=F #Assume linear scale because of linear beta
+project$sumstats$se.logit[which(project$sumstats$code=="NEUR01")]=F #Assume linear scale because of linear beta
+project$sumstats$se.logit[which(project$sumstats$code=="RISK02")]=F #Assume linear scale because of linear beta
+project$sumstats$se.logit[which(project$sumstats$code=="RISK03")]=F #Assume linear scale because of linear beta
+project$sumstats$se.logit[which(project$sumstats$code=="SCHI04")]=T #Assuming log(OR) standard errors as some of the datasets above.
+project$sumstats$se.logit[which(project$sumstats$code=="SUBJ01")]=F #Assume linear scale because of linear beta
+project$sumstats$se.logit[which(project$sumstats$code=="TIRE01")]=F #Assume linear scale because of linear beta
+
+
+##add information on wether a continous dependent variable was analysed using an OLS (linear) estimator. Used for the latent factor GWAS preparation step.
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="ADHD05")]=F
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="ALCD03")]=F
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="ANXI03")]=F
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="AUTI07")]=F
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="BIPO02")]=F
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="DEPR05")]=F
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="DEPR08")]=F
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="HEAL01")]=T
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="INCO03")]=T
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="INSO02")]=F
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="MIGR01")]=T
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="NEUR01")]=T
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="RISK02")]=T
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="RISK03")]=T
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="SCHI04")]=F
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="SUBJ01")]=T
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="TIRE01")]=T
+
+
 
 #set order of datasets to sorted by code
 project$sumstats<-project$sumstats[order(project$sumstats$code),]
@@ -440,98 +580,18 @@ project$sumstats<-project$sumstats[order(project$sumstats$code),]
 ```{r GWAS sumstat dataset variable selection}
 
 #selection based on specific traits
-project$sumstats.sel.code<-c("ADHD05","ALCD03","ANXI03","AUTI07","BIPO02", "DEPR05","DEPR08","HEAL01","INCO03","INSO02", "MIGR01","NEUR01","RISK02","RISK03","SCHI04","SUBJ01","TIRE01")
+#project$sumstats.sel.code<-c("ANXI04")
+#project$sumstats.sel.code<-c("ANXI03","DEPR05","DEPR08")
+#project$sumstats.sel.code<-c("TIRE01")
+#project$sumstats.sel.code<-c("ADHD05","ALCD03","ANOR02","ANXI03","AUTI07","BIPO02", "DEPR05","DEPR08","EDUC03","EXTR01","HEAL01","INCO03","INSO02","INTE03","LONG07", "MIGR01","NEUR01","PTSD04","RISK01","RISK02","RISK03","SCHI04","SUBJ01","TIRE01")
+project$sumstats.sel.code<-c("ADHD05","ALCD03","ANOR02","ANXI03","ANXI04","AUTI07","BIPO02", "DEPR05","DEPR08","EDUC03","EXTR01","HEAL01","INCO03","INSO02","INTE03","LONG07", "MIGR01","NEUR01","PTSD04","RISK01","RISK02","RISK03","SCHI04","SUBJ01","TIRE01")
 project$sumstats.sel<-project$sumstats[which(project$sumstats$code %in% project$sumstats.sel.code),]
 
 #project$sumstats.sel$code_orig<-project$sumstats.sel$code
 #project$sumstats.sel$code<-project$sumstats.sel$code.trait
-project$sumstats.sel[,c("code","name","year","n_case","n_control","n_total","pmid","reference_doi","samplePrevalence","populationPrevalence","mungedpath")]
+project$sumstats.sel[,c("code","name","name.nice","name.nice.and_code", "year","n_case","n_control","n_total","pmid","reference_doi","samplePrevalence","populationPrevalence","effect.logit","se.logit","dependent_variable.OLS","mungedpath")]
 project$k.sel<-nrow(project$sumstats.sel)
 #View(project$sumstats.sel[,c("code","n_total","pmid","reference_doi","samplePrevalence","populationPrevalence","mungedpath")])
-
-##Add nice trait names to be used in the report
-project$sumstats.sel$name.nice<-project$sumstats.sel$name
-#project$sumstats.sel$name.nice[which(project$sumstats$code=="ADHD05")]="ADHD"
-project$sumstats.sel$name.nice[which(project$sumstats.sel$code=="ALCD03")]="Alcohol dependence"
-project$sumstats.sel$name.nice[which(project$sumstats.sel$code=="ANXI03")]="Anxiety disorder"
-project$sumstats.sel$name.nice[which(project$sumstats.sel$code=="AUTI07")]="Autism spectrum disorder"
-project$sumstats.sel$name.nice[which(project$sumstats.sel$code=="DEPR05")]="Major depressive disorder narrow"
-project$sumstats.sel$name.nice[which(project$sumstats.sel$code=="DEPR08")]="Major depressive disorder"
-project$sumstats.sel$name.nice[which(project$sumstats.sel$code=="INCO03")]="Social deprivation"
-project$sumstats.sel$name.nice[which(project$sumstats.sel$code=="INSO02")]="Insomnia"
-project$sumstats.sel$name.nice[which(project$sumstats.sel$code=="NEUR01")]="Neuroticism"
-project$sumstats.sel$name.nice[which(project$sumstats.sel$code=="RISK02")]="Risktaking, automobile"
-project$sumstats.sel$name.nice[which(project$sumstats.sel$code=="RISK03")]="Risktaking, sex"
-project$sumstats.sel$name.nice[which(project$sumstats.sel$code=="SCHI04")]="Schizophrenia"
-project$sumstats.sel$name.nice[which(project$sumstats.sel$code=="SUBJ01")]="Subjective well-being"
-project$sumstats.sel$name.nice[which(project$sumstats.sel$code=="TIRE01")]="Self-reported tiredness"
-
-##Add a combined nice name plus code label
-project$sumstats.sel$name.nice.and_code<-paste0(project$sumstats.sel$name.nice," (",project$sumstats.sel$code,")")
-
-
-##add data on whether effects are on log odds ratio or not
-## Plain OR is detected by munge and sumstat procedures though
-
-project$sumstats.sel$effect.logit[which(project$sumstats.sel$code=="ADHD05")]=T #Column OR. Munge non-OR detected. Consistent with non-OR.
-project$sumstats.sel$effect.logit[which(project$sumstats.sel$code=="ALCD03")]=T #Did not find the original readme for this, only looked at the readme for the 2018 subsequent release, and the data. Assuming log-scale from the naming of the variables (beta?) and that it follows the standard of the 2018 release - explicitly states "log scale beta".
-project$sumstats.sel$effect.logit[which(project$sumstats.sel$code=="ANXI03")]=F # Kirstin sort of confirm that she converted both effect and s.e. to linear scales. Data and readme is available from her KCL web site. Unclear which dataset was used for ANXI03 though. Confirm this later by comparing datasets?
-project$sumstats.sel$effect.logit[which(project$sumstats.sel$code=="AUTI07")]=T #Assuming log(OR) since not plain OR
-project$sumstats.sel$effect.logit[which(project$sumstats.sel$code=="BIPO02")]=T #Assuming log(OR) since not plain OR
-project$sumstats.sel$effect.logit[which(project$sumstats.sel$code=="DEPR05")]=F #https://www.med.unc.edu/pgc/files/2019/04/PGC_MDD_2018_README_third_180316.pdf # The readme states daner format, but that SE is s.e. of log(OR), while the daner format does not state log scale variables here. Assuming linear scale OR, which is consistent with the data, and munge.
-project$sumstats.sel$effect.logit[which(project$sumstats.sel$code=="DEPR08")]=F #https://www.med.unc.edu/pgc/files/2019/04/PGC_MDD_2018_README_third_180316.pdf # As DEPR05
-project$sumstats.sel$effect.logit[which(project$sumstats.sel$code=="HEAL01")]=F #The original data including readme downloaded to data_raw/original. States "Beta" without explanation, and I assume linear beta.
-project$sumstats.sel$effect.logit[which(project$sumstats.sel$code=="INCO03")]=F #As per munge
-project$sumstats.sel$effect.logit[which(project$sumstats.sel$code=="INSO02")]=F #As per munge
-project$sumstats.sel$effect.logit[which(project$sumstats.sel$code=="MIGR01")]=F #As per munge
-project$sumstats.sel$effect.logit[which(project$sumstats.sel$code=="NEUR01")]=F #The official read-me states "regression beta"
-project$sumstats.sel$effect.logit[which(project$sumstats.sel$code=="RISK02")]=F #As per munge
-project$sumstats.sel$effect.logit[which(project$sumstats.sel$code=="RISK03")]=F #As per munge
-project$sumstats.sel$effect.logit[which(project$sumstats.sel$code=="SCHI04")]=F #OR, as per munge
-project$sumstats.sel$effect.logit[which(project$sumstats.sel$code=="SUBJ01")]=F #The official read-me states "regression beta"
-project$sumstats.sel$effect.logit[which(project$sumstats.sel$code=="TIRE01")]=F #The official read-me states "beta"
-
-
-##add data on whether the SEs are on a logistic scale or not
-project$sumstats.sel$se.logit[which(project$sumstats.sel$code=="ADHD05")]=T #consistent with log(OR) above
-
-project$sumstats.sel$se.logit[which(project$sumstats.sel$code=="ALCD03")]=T #Did not find the original readme for this, only looked at the readme for the 2018 subsequent release, and the data. SE is strangely set to 1 for top rows. Assumes this is true because of log-scale beta.
-project$sumstats.sel$se.logit[which(project$sumstats.sel$code=="ANXI03")]=F #Assume linear becasue of Kirstin Purves assuring that both were converted to linear scale. Consistent with munge non-OR.
-project$sumstats.sel$se.logit[which(project$sumstats.sel$code=="AUTI07")]=T #Assuming log(OR) since not plain OR
-project$sumstats.sel$se.logit[which(project$sumstats.sel$code=="BIPO02")]=T #Assuming log(OR) since not plain OR
-project$sumstats.sel$se.logit[which(project$sumstats.sel$code=="DEPR05")]=T #log(OR) standard errors as of documentation
-project$sumstats.sel$se.logit[which(project$sumstats.sel$code=="DEPR08")]=T #Assuming log(OR) standard errors as DEPR05
-project$sumstats.sel$se.logit[which(project$sumstats.sel$code=="HEAL01")]=F #Assume linear scale because of linear beta
-project$sumstats.sel$se.logit[which(project$sumstats.sel$code=="INCO03")]=F #Assume linear scale because of linear beta
-project$sumstats.sel$se.logit[which(project$sumstats.sel$code=="INSO02")]=T #Assuming log(OR) standard errors as some of the datasets above.
-project$sumstats.sel$se.logit[which(project$sumstats.sel$code=="MIGR01")]=F #Assume linear scale because of linear beta
-project$sumstats.sel$se.logit[which(project$sumstats.sel$code=="NEUR01")]=F #Assume linear scale because of linear beta
-project$sumstats.sel$se.logit[which(project$sumstats.sel$code=="RISK02")]=F #Assume linear scale because of linear beta
-project$sumstats.sel$se.logit[which(project$sumstats.sel$code=="RISK03")]=F #Assume linear scale because of linear beta
-project$sumstats.sel$se.logit[which(project$sumstats.sel$code=="SCHI04")]=T #Assuming log(OR) standard errors as some of the datasets above.
-project$sumstats.sel$se.logit[which(project$sumstats.sel$code=="SUBJ01")]=F #Assume linear scale because of linear beta
-project$sumstats.sel$se.logit[which(project$sumstats.sel$code=="TIRE01")]=F #Assume linear scale because of linear beta
-
-
-##add information on wether a continous dependent variable was analysed using an OLS (linear) estimator. Used for the latent factor GWAS preparation step.
-project$sumstats.sel$dependent_variable.OLS[which(project$sumstats.sel$code=="ADHD05")]=F
-project$sumstats.sel$dependent_variable.OLS[which(project$sumstats.sel$code=="ALCD03")]=F
-project$sumstats.sel$dependent_variable.OLS[which(project$sumstats.sel$code=="ANXI03")]=F
-project$sumstats.sel$dependent_variable.OLS[which(project$sumstats.sel$code=="AUTI07")]=F
-project$sumstats.sel$dependent_variable.OLS[which(project$sumstats.sel$code=="BIPO02")]=F
-project$sumstats.sel$dependent_variable.OLS[which(project$sumstats.sel$code=="DEPR05")]=F
-project$sumstats.sel$dependent_variable.OLS[which(project$sumstats.sel$code=="DEPR08")]=F
-project$sumstats.sel$dependent_variable.OLS[which(project$sumstats.sel$code=="HEAL01")]=T
-project$sumstats.sel$dependent_variable.OLS[which(project$sumstats.sel$code=="INCO03")]=T
-project$sumstats.sel$dependent_variable.OLS[which(project$sumstats.sel$code=="INSO02")]=F
-project$sumstats.sel$dependent_variable.OLS[which(project$sumstats.sel$code=="MIGR01")]=T
-project$sumstats.sel$dependent_variable.OLS[which(project$sumstats.sel$code=="NEUR01")]=T
-project$sumstats.sel$dependent_variable.OLS[which(project$sumstats.sel$code=="RISK02")]=T
-project$sumstats.sel$dependent_variable.OLS[which(project$sumstats.sel$code=="RISK03")]=T
-project$sumstats.sel$dependent_variable.OLS[which(project$sumstats.sel$code=="SCHI04")]=F
-project$sumstats.sel$dependent_variable.OLS[which(project$sumstats.sel$code=="SUBJ01")]=T
-project$sumstats.sel$dependent_variable.OLS[which(project$sumstats.sel$code=="TIRE01")]=T
-
 
 write.table(project$sumstats.sel[,c("code", "name","year", "n_case","n_control","n_total","samplePrevalence","populationPrevalence", "reference_doi")], file = file.path(project$folderpath.workingDirectory,paste0(project$setup.code,".sumstatinfo.tsv")), quote = TRUE, sep = "\t", row.names = FALSE, col.names = TRUE)
 
@@ -539,60 +599,10 @@ write.table(project$sumstats.sel[,c("code", "name","year", "n_case","n_control",
 
 ```
 
+
 # GWAS summary statistics munge - if needed
 ```{r GWAS sumstat munge}
 if(project$clOptions$task=="munge"){
-
-  
-  #construct new reference
-  #library(readr)
-  #project$sumstats.reference.old<-read.table(project$filepath.SNPReference, header=T, quote="\"", fill=T, blank.lines.skip=T, strip.white = T,na.strings=c(".",NA,"NA",""))
-  #project$sumstats.reference.old<-data.table::fread(project$filepath.SNPReference,header=T,data.table=F)
-  
-  #refaddition<-as.data.frame(data.table::fread("/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/munged/ref.snps.not.in.REF1KG.txt",header=F,data.table=F))
-  #refaddition<-data.table::fread(normalizePath(paste0(project$folderpath.data,"/","w_hm3.snplist.flaskapp2018")),header=T,data.table=F)
-  #colnames(refaddition)<-c("SNP")
-  
-  #diff<-setdiff(refaddition[,c("SNP","A1","A2")],project$sumstats.reference.old[,c("SNP","A1","A2")])
-  #diff<-data.frame(SNP=setdiff(refaddition[,c("SNP")],project$sumstats.reference.old[,c("SNP")]),CHR=NA,BP=NA,MAF=NA,A1=NA,A2=NA)
-  #nrow(diff)
-  #project$sumstats.reference.new<-rbind(project$sumstats.reference.old,diff)
-  #project$sumstats.reference.new<-unique(project$sumstats.reference.new2)
-  #View(project$sumstats.reference.old)
-  #View(project$sumstats.reference.new)
-  #View(project$sumstats.reference.new2)
-  #View(project$sumstats.reference.new3)
-  
-  
-
-  #write.table(x = project$sumstats.reference.new,file = file.path(project$folderpath.workingDirectory,"combined.hm3_1kg.snplist.jz2020.txt"), quote = FALSE, row.names = F)
-  #faster alt - produces a comma separated version?
-  #data.table::fwrite(x = project$sumstats.reference.new, file = )
-  
-  # project$sumstats.reference.new.vanilla<-project$sumstats.reference.new[!is.na(project$sumstats.reference.new$A1),]
-  # write.table(x = project$sumstats.reference.new.vanilla,file = file.path(project$folderpath.workingDirectory,"combined.hm3_1kg.snplist.vanilla.jz2020.txt"), quote = FALSE, row.names = F)
-  
-  #read in again as
-  #project$sumstats.reference.new<-read.table(project$filepath.SNPReference, header=T, quote="\"", fill=T, blank.lines.skip=T, strip.white = T,na.strings=c(".",NA,"NA",""))
-  
-  #special munge of the 1KG reference SNP stats
-  # munge.mod(files = c(project$filepath.genomeReference),
-  #           hm3 = project$filepath.SNPReference,
-  #           trait.names=c("REF1KG"),
-  #           info.filter=project$info.filter,
-  #           maf.filter=project$maf.filter,
-  #           path.dir.output = project$folderpath.data.sumstats.munged,
-  #           N = 2504
-  #             ) 
-  
-  
-  #experiment to load extended reference panel
-  #Folder:
-  #"/users/k19049801/project/JZ_GED_PHD_C1/data/UKB_imputed_hm3_SVD_eigen99_extraction"
-  #Files:
-  #UKB_snp_counter_imputed.RData
-  #UKB_snp_list_imputed.vector_form.RData
-  #snp.dictionary.imputed.rda
   
   project$munge<-c()
   #test
@@ -612,21 +622,52 @@ if(project$clOptions$task=="munge"){
     project$munge$NToUse<-project$sumstats.sel$n_total
   }
   
+  #mask<-c(F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,T,T,T,T,T)
   #munging with no filters applied
   project$sumstats.meta <- supermunge(filePaths = project$munge$filesToUse,
             refFilePath = project$filepath.SNPReference.1kg,
+            #refFilePath = project$filepath.SNPReference.hm3,
+            #mask = mask,
             traitNames = project$munge$traitNamesToUse,
+            setChangeEffectDirectionOnAlleleFlip = T, #T=same behaviour as genomic SEM
             N = project$munge$NToUse,
             pathDirOutput = project$folderpath.data.sumstats.munged
               ) 
     
   project$sumstats.meta <- project$sumstats.meta %>% gt()
   
-  gtsave(data = project$sumstats.meta, filename = file.path(project$folderpath.workingDirectory,"sumstats.meta.rtf"))
+  gtsave(data = project$sumstats.meta, filename = file.path(project$folderpath.workingDirectory,"supermunge.meta.rtf"))
     
     quit(save = "no")
   }
 
+```
+# Generate noise variables - if needed
+```{r GWAS sumstat generate noise}
+if(project$clOptions$task=="noise"){
+  noiseScaffold <- read.table(project$filepath.SNPReference.1kg,header=T, quote="\"",fill=T,na.string=c(".",NA,"NA",""))
+  noiseTemplate <- read.table(project$sumstats.sel$mungedpath[which(project$sumstats.sel$code=="EDUC03")],header=T, quote="\"",fill=T,na.string=c(".",NA,"NA",""))
+  
+  noiseTemplateStats<-describe(noiseTemplate)
+  
+  noise<-noiseScaffold
+  noise$Z<-rnorm(n=nrow(noise),mean=0,sd=1.485)
+  noise$FRQ<-rnorm(n=nrow(noise),mean=0.770,sd=0.260)
+  noise$FRQ<-ifelse(noise$FRQ>1, 1,noise$FRQ)
+  noise$FRQ<-ifelse(noise$FRQ<0, 0,noise$FRQ)
+  noise$SE<-rnorm(n=nrow(noise),mean=4.463e-03,sd=3.811e-03)
+  noise$SE<-ifelse(noise$SE<1e-05, 1e-05,noise$SE)
+  noise$P<-pnorm(q = noise$Z)
+  #head(noise)
+  
+  #noiseStats<-describe(noise)
+  
+  nfilepath<-file.path(project$folderpath.data.sumstats.munged,"NOIS02")
+  write.table(x = noise,file = nfilepath,sep="\t", quote = FALSE, row.names = F)
+  nfilepath.gzip<-gzip(nfilepath)
+  
+  quit(save = "no")
+}
 ```
 
 
@@ -658,8 +699,8 @@ if(!file.exists(project$filepath.lfgwas.sumstats) && project$clOptions$task=="pr
     N=project$sumstats.sel$n_total,
     info.filter=project$lfGWAS$info.filter,
     maf.filter=project$lfGWAS$maf.filter,
-    keep.indel=FALSE,
-    parallel=FALSE, #The default = T eats lots of memory at once.
+    keep.indel=F,
+    parallel=F, #The default = T eats lots of memory at once.
     cores=NULL
     #num = 1 #test
   )
@@ -723,22 +764,23 @@ if (file.exists(project$filepath.mvLD)) {
   cat("The current task is specified as:",project$clOptions$task)
   project$mvLD<-c()
   
-  if(project$clOptions$task=="mvLD.mvLDSC" || !file.exists(project$filepath.mvLD.mvLDSC)){
+  if(project$clOptions$task=="mvLD" || !file.exists(project$filepath.mvLD)){
     #run mvLDSC
-    project$mvLD$covstruct.mvLDSC.hm3<-ldsc.mod(
-      traits = project$sumstats.sel$mungedpath,
-      sample.prev =  project$sumstats.sel$samplePrevalence,
-      population.prev = project$sumstats.sel$populationPrevalence,
-      trait.names = project$sumstats.sel$code,
-      ld = project$folderpath.data.mvLDSC.ld.hm3,
-      wld = project$folderpath.data.mvLDSC.ld.hm3,
-      n.blocks = 200, #this was standard for the hm3 set of snps
-      info.filter = 0.6,
-      maf.filter = 0.01,
-      N = project$sumstats.sel$n_total,
-      ldsc.log = project$setup.code.date,
-      stand = TRUE
-      )
+    # project$mvLD$covstruct.mvLDSC.hm3<-ldsc.mod(
+    #   traits = project$sumstats.sel$mungedpath,
+    #   sample.prev =  project$sumstats.sel$samplePrevalence,
+    #   population.prev = project$sumstats.sel$populationPrevalence,
+    #   trait.names = project$sumstats.sel$code,
+    #   ld = project$folderpath.data.mvLDSC.ld.hm3,
+    #   wld = project$folderpath.data.mvLDSC.ld.hm3,
+    #   n.blocks = 200, #this was standard for the hm3 set of snps
+    #   info.filter = 0.6,
+    #   maf.filter = 0.01,
+    #   N = project$sumstats.sel$n_total,
+    #   ldsc.log = project$setup.code.date,
+    #   stand = T,
+    #   limited = T
+    #   )
     
     project$mvLD$covstruct.mvLDSC.1kg<-ldsc.mod(
       traits = project$sumstats.sel$mungedpath,
@@ -747,22 +789,18 @@ if (file.exists(project$filepath.mvLD)) {
       trait.names = project$sumstats.sel$code,
       ld = project$folderpath.data.mvLDSC.ld.1kg,
       wld = project$folderpath.data.mvLDSC.ld.1kg,
-      n.blocks = 600, 
+      n.blocks = 600,
       info.filter = 0.6,
       maf.filter = 0.01,
+      mhc.filter = 37,
       N = project$sumstats.sel$n_total,
       ldsc.log = project$setup.code.date,
       stand = TRUE
       )
     
-    
-    saveRDS(object = project$mvLD$covstruct.mvLDSC,file = project$filepath.mvLD.mvLDSC)
-    if(project$clOptions$task=="mvLD.mvLDSC"){
-      quit(save = "no")
-    }
   }
     
-  Sys.sleep(time = 5)
+  #Sys.sleep(time = 5)
   
   #set the default mvLDSC object to use
   project$mvLD$covstruct.mvLDSC<-project$mvLD$covstruct.mvLDSC.1kg
@@ -775,8 +813,13 @@ if (file.exists(project$filepath.mvLD)) {
   #save the mvLD output
   saveRDS(object = project$mvLD,file = project$filepath.mvLD)
   print("Multivariate LD correction is done now and the resulting covariance structure should have been saved to a file.")
+  
 }
 
+
+if(project$clOptions$task=="mvLD"){
+      quit(save = "no")
+    }
 
 #adding standard errors from the V matrices, unstandardised and standardised. I added these calculations to the modified ldsc.
 
@@ -799,8 +842,8 @@ if (file.exists(project$filepath.mvLD)) {
 #add newly computed heritabilities to the selected summary statistics table
 project$sumstats.sel$h2.liability_mvLDSC.1kg<-diag(project$mvLD$covstruct.mvLDSC.1kg$S)
 project$sumstats.sel$h2.se.liability_mvLDSC.1kg<-diag(project$mvLD$covstruct.mvLDSC.1kg$S.SE)
-project$sumstats.sel$h2.liability_mvLDSC.hm3<-diag(project$mvLD$covstruct.mvLDSC.hm3$S)
-project$sumstats.sel$h2.se.liability_mvLDSC.hm3<-diag(project$mvLD$covstruct.mvLDSC.hm3$S.SE)
+# project$sumstats.sel$h2.liability_mvLDSC.hm3<-diag(project$mvLD$covstruct.mvLDSC.hm3$S)
+# project$sumstats.sel$h2.se.liability_mvLDSC.hm3<-diag(project$mvLD$covstruct.mvLDSC.hm3$S.SE)
 
 
 #View(project$sumstats.sel)
@@ -813,10 +856,15 @@ project$sumstats.sel$h2.se.liability_mvLDSC.hm3<-diag(project$mvLD$covstruct.mvL
 ```{r overview pairwise rG, fig.width=9, fig.height=6, out.width="1600px", out.height="1000px", purl=FALSE}
 library(corrplot) #do not run on cluster, does not work?
 #c(theme.color$contrastDark3,theme.color$contrastLight3)
-project$printCorr <- function(corr, SE=NULL, filename, addrect = 4, is.corr = T, number.cex = 1.5, number.digits=2, absScale=F){
+project$printCorr <- function(corr, SE=NULL, filename, addrect = 4, is.corr = T, number.cex = 1.5, number.digits=2){
   
-  palette<-colorRampPalette(c(theme.color$contrastDark3,"#FFFFFF",theme.color$contrastLight3))
-  palette2<-colorRampPalette(c("#FFFFFF",theme.color$contrastLight3))
+  # if(absScale){
+  #   palette<-colorRampPalette(c("#FFFFFF",theme.color$contrastLight3))
+  # } else {
+    palette<-colorRampPalette(c(theme.color$contrastDark3,"#FFFFFF",theme.color$contrastLight3))
+ # }
+  
+  
   
   if(is.null(SE)){
     corr.uppCI <- NULL
@@ -857,9 +905,14 @@ dev.off()
   
 }
 
-project$printCorrSimplified <- function(corr, SE=NULL, filename, is.corr = T, number.cex = 1.5, number.digits=2){
+project$printCorrSimplified <- function(corr, SE=NULL, filename, is.corr = T, number.cex = 1.5, number.digits=2, absScale=F){
   
-  palette<-colorRampPalette(c(theme.color$contrastDark3,"#FFFFFF",theme.color$contrastLight3))
+  if(absScale){
+    palette<-colorRampPalette(c("#FFFFFF",theme.color$contrastLight3))
+  } else {
+    palette<-colorRampPalette(c(theme.color$contrastDark3,"#FFFFFF",theme.color$contrastLight3))
+  }
+  
   if(is.null(SE)){
     corr.uppCI <- NULL
     corr.lowCI <- NULL
@@ -906,63 +959,70 @@ project$printCorrSimplified(
   corr = project$mvLD$covstruct.mvLDSC.1kg$S_Stand.forPlot,
   #SE = project$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE,
   filename = file.path(project$folderpath.plots,"rg.1kg_ld.simple.png"),
-  is.corr = T
+  is.corr = F
+  )
+
+project$printCorrSimplified(
+  corr = abs(project$mvLD$covstruct.mvLDSC.1kg$S_Stand.forPlot),
+  #SE = project$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE,
+  filename = file.path(project$folderpath.plots,"absrg.1kg_ld.simple.png"),
+  is.corr = F,
+  absScale=T
   )
 
 project$printCorr(
-  corr = abs(project$mvLD$covstruct.mvLDSC.1kg$S_Stand),
+  corr = project$mvLD$covstruct.mvLDSC.1kg$S_Stand,
   SE = project$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE,
-  filename = file.path(project$folderpath.plots,"absrg.1kg_ld.png"),
-  is.corr = F,
-  absScale = T
+  filename = file.path(project$folderpath.plots,"rg.1kg_ld.png"),
+  is.corr = F
   )
 
-project$printCorr(
-  corr = abs(project$mvLD$covstruct.mvLDSC.hm3$S_Stand),
-  SE = project$mvLD$covstruct.mvLDSC.hm3$S_Stand.SE,
-  filename = file.path(project$folderpath.plots,"absrg.hm3_ld.png"),
-  is.corr = F,
-  absScale = T
-  )
+# project$printCorr(
+#   corr = abs(project$mvLD$covstruct.mvLDSC.hm3$S_Stand),
+#   SE = project$mvLD$covstruct.mvLDSC.hm3$S_Stand.SE,
+#   filename = file.path(project$folderpath.plots,"absrg.hm3_ld.png"),
+#   is.corr = F,
+#   absScale = T
+#   )
+# 
+# project$printCorr(
+#   corr = (project$mvLD$covstruct.mvLDSC.1kg$S_Stand - project$mvLD$covstruct.mvLDSC.hm3$S_Stand),
+#   SE = NULL,
+#   filename = file.path(project$folderpath.plots,"rgdiff.1kg_hm3_ld.png"),
+#   addrect =NULL,
+#   is.corr = F,
+#   number.cex = 1.2,
+#   number.digits = 3
+#   )
+# 
+# project$printCorr(
+#   corr = (project$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE - project$mvLD$covstruct.mvLDSC.hm3$S_Stand.SE),
+#   SE = NULL,
+#   filename = file.path(project$folderpath.plots,"rgsediff.1kg_hm3_ld.png"),
+#   addrect =NULL,
+#   is.corr = F,
+#   number.cex = 1.2,
+#   number.digits = 3
+#   )
 
-project$printCorr(
-  corr = (project$mvLD$covstruct.mvLDSC.1kg$S_Stand - project$mvLD$covstruct.mvLDSC.hm3$S_Stand),
-  SE = NULL,
-  filename = file.path(project$folderpath.plots,"rgdiff.1kg_hm3_ld.png"),
-  addrect =NULL,
-  is.corr = F,
-  number.cex = 1.2,
-  number.digits = 3
-  )
+# S.diff<-((project$mvLD$covstruct.mvLDSC.1kg$S_Stand) - (project$mvLD$covstruct.mvLDSC.hm3$S_Stand))
+# min(S.diff)
+# mean(S.diff)
+# max(S.diff)
+# S.SE.diff<-((project$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE) - (project$mvLD$covstruct.mvLDSC.hm3$S_Stand.SE))
+# min(S.SE.diff)
+# mean(S.SE.diff)
+# max(S.SE.diff)
 
-project$printCorr(
-  corr = (project$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE - project$mvLD$covstruct.mvLDSC.hm3$S_Stand.SE),
-  SE = NULL,
-  filename = file.path(project$folderpath.plots,"rgsediff.1kg_hm3_ld.png"),
-  addrect =NULL,
-  is.corr = F,
-  number.cex = 1.2,
-  number.digits = 3
-  )
-
-S.diff<-((project$mvLD$covstruct.mvLDSC.1kg$S_Stand) - (project$mvLD$covstruct.mvLDSC.hm3$S_Stand))
-min(S.diff)
-mean(S.diff)
-max(S.diff)
-S.SE.diff<-((project$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE) - (project$mvLD$covstruct.mvLDSC.hm3$S_Stand.SE))
-min(S.SE.diff)
-mean(S.SE.diff)
-max(S.SE.diff)
-
-S.diff<-c(0.111-0.1173, 0.118-0.0912, 0.073-0.0894, 0.07-0.069,0.022-0.0129,0.048-0.0599)
-min(S.diff)
-mean(S.diff)
-max(S.diff)
-
-S.SE.diff<-c(0.0079-0.0038, 0.0105-0.0095, 0.004-0.0034, 0.0057-0.0036, 0.0019-0.0014, 0.0037-0.003)
-min(S.SE.diff)
-mean(S.SE.diff)
-max(S.SE.diff)
+# S.diff<-c(0.111-0.1173, 0.118-0.0912, 0.073-0.0894, 0.07-0.069,0.022-0.0129,0.048-0.0599)
+# min(S.diff)
+# mean(S.diff)
+# max(S.diff)
+# 
+# S.SE.diff<-c(0.0079-0.0038, 0.0105-0.0095, 0.004-0.0034, 0.0057-0.0036, 0.0019-0.0014, 0.0037-0.003)
+# min(S.SE.diff)
+# mean(S.SE.diff)
+# max(S.SE.diff)
 
 ```
 
@@ -1029,64 +1089,72 @@ print("Using existing EFA results from previous run.")
 project$EFA<-readRDS(file=project$filepath.efa)
 } else {
 
-
-  #exploratory EFA/clustering
-  for(iefa in 1:project$CFA$nFactors){
-    res <- psych::fa(r = abs(project$mvLD$covstruct.mvLDSC$S.smooth),nfactors = iefa, rotate = 'varimax', symmetric = T, warnings = T, fm='ols', max.iter = 1000)
-    #print(res)
-    print(res$loadings)
-    print(res$fit)
-    #print(kmeans(x = project$mvLD$covstruct.mvLDSC$S_Stand, centers = iefa, iter.max = 1000, nstart = 30))
+  #visualisation of up to max factors EFA models with varimax
+  # for(iefa in 1:max(project$CFA$nFactors)){
+  #   res <- psych::fa(r = abs(project$mvLD$covstruct.mvLDSC$S.smooth),nfactors = iefa, rotate = 'varimax', symmetric = T, warnings = T, fm='ols', max.iter = 1000)
+  #   #print(res)
+  #   print(res$loadings)
+  #   print(res$fit)
+  #   #print(kmeans(x = project$mvLD$covstruct.mvLDSC$S_Stand, centers = iefa, iter.max = 1000, nstart = 30))
+  # }
+  
+  #visualise factors in a scree plot
+  if(!project$clOptions$location=="cluster"){
+      project$plots.efa.plot.scree<-fa.parallel(abs(project$mvLD$covstruct.mvLDSC$S.smooth), fa = "fa")
+      png(filename = file.path(project$folderpath.plots,"efa.plot.scree.png"), width = 800, height = 500)
+      fa.parallel(abs(project$mvLD$covstruct.mvLDSC$S.smooth), fa = "fa")
+      dev.off()
   }
   
+  
+  #fit EFA models for each nFactor configuration
   print("Setting upp and computing new EFA results.")
   project$EFA<-c()
+  project$EFA$PCA<-c()
+  #iFactorConfiguration<-1
+  for(iFactorConfiguration in 1:length(project$CFA$nFactors)) {
+    cNFactors<-project$CFA$nFactors[iFactorConfiguration]
+    project$EFA$PCA[[iFactorConfiguration]]<-eigen(x = abs(project$mvLD$covstruct.mvLDSC$S_Stand), symmetric = TRUE)
+    rownames(project$EFA$PCA[[iFactorConfiguration]]$vectors)<-project$sumstats.sel.code
+    project$EFA$PCA[[iFactorConfiguration]]$vector_values<-(project$EFA$PCA[[iFactorConfiguration]]$vectors*project$EFA$PCA[[iFactorConfiguration]]$values)[,1:cNFactors]
   
-  project$EFA$PCA<-eigen(x = abs(project$mvLD$covstruct.mvLDSC$S_Stand), symmetric = TRUE)
-  rownames(project$EFA$PCA$vectors)<-project$sumstats.sel.code
-  project$EFA$PCA$vector_values<-(project$EFA$PCA$vectors*project$EFA$PCA$values)[,1:project$CFA$nFactors]
-
-  project$EFA$fa.result <- psych::fa(r = abs(project$mvLD$covstruct.mvLDSC$S.smooth),nfactors = iefa, rotate = 'varimax', symmetric = T, warnings = T, fm='ols', max.iter = 1000)
-  
-  #project$EFA$factanal.result <- factanal(covmat = abs(project$mvLD$covstruct.mvLDSC$S.smooth), factors = project$CFA$nFactors, rotation = 'varimax')
-  
-  project$EFA$kmeans.result<- kmeans(x = abs(project$mvLD$covstruct.mvLDSC$S_Stand), centers = project$CFA$nFactors, iter.max = 1000, nstart = 30)
-  #View(project$clustering$centers)
-  #View(fitted(project$clustering))
-  #View(abs(project$mvLD$covstruct.mvLDSC$S_Stand))
-  #resid<-abs(project$mvLD$covstruct.mvLDSC$S_Stand)-fitted(project$clustering)
-  #View(resid)
-  project$EFA$kmeans.centerDistance<-apply(X = abs(project$mvLD$covstruct.mvLDSC$S_Stand), MARGIN = 1, FUN = function(x){
-    #test
-    #x<-abs(project$mvLD$covstruct.mvLDSC$S_Stand)[1,]
-    #cat("\nOBS:",x)
-    ss<-apply(X=(abs(x)-project$EFA$kmeans.result$centers)^2, FUN = sum, MARGIN = 1)
-    #cat("\nSS:",ss)
-    s<-sum(abs(x))
-    #cat("\nS:",s)
-    return (ss/s)
-  })
-  #transpose this to conform with indicator loading data frames
-  project$EFA$kmeans.centerDistance<-t(project$EFA$kmeans.centerDistance)
-  rownames(project$EFA$kmeans.centerDistance)<-project$sumstats.sel.code
-  
-  if(!project$clOptions$location=="cluster"){
-    project$plots.efa.plot.scree<-fa.parallel(abs(project$mvLD$covstruct.mvLDSC$S.smooth), fa = "fa")
-    png(filename = file.path(project$folderpath.plots,"efa.plot.scree.png"), width = 800, height = 500)
-    fa.parallel(abs(project$mvLD$covstruct.mvLDSC$S.smooth), fa = "fa")
-    dev.off()
+    project$EFA$fa.result[[iFactorConfiguration]] <- psych::fa(r = abs(project$mvLD$covstruct.mvLDSC$S.smooth),nfactors = cNFactors, rotate = 'varimax', symmetric = T, warnings = T, fm='ols', max.iter = 1000)
     
-    cat("\nPCA vector values\n")
-    print(project$EFA$PCA$vector_values)
-    cat("\nFA fa result\n")
-    print(project$EFA$fa.result)
-    #cat("\nFA factanal result\n")
-    #print(project$EFA$factanal.result)
-    cat("\nKmeans clustering centers\n")
-    print(t(project$EFA$kmeans.result$centers))
-    cat("\nKmeans clustering residuals\n")
-    print(project$EFA$kmeans.centerDistance)
+    project$EFA$kmeans.result[[iFactorConfiguration]]<- kmeans(x = abs(project$mvLD$covstruct.mvLDSC$S_Stand), centers = cNFactors, iter.max = 1000, nstart = 30)
+    #View(project$clustering$centers)
+    #View(fitted(project$clustering))
+    #View(abs(project$mvLD$covstruct.mvLDSC$S_Stand))
+    #resid<-abs(project$mvLD$covstruct.mvLDSC$S_Stand)-fitted(project$clustering)
+    #View(resid)
+    project$EFA$kmeans.centerDistance[[iFactorConfiguration]]<-apply(X = abs(project$mvLD$covstruct.mvLDSC$S_Stand), MARGIN = 1, FUN = function(x){
+      #test
+      #x<-abs(project$mvLD$covstruct.mvLDSC$S_Stand)[1,]
+      #cat("\nOBS:",x)
+      ss<-apply(X=(abs(x)-project$EFA$kmeans.result[[iFactorConfiguration]]$centers)^2, FUN = sum, MARGIN = 1)
+      #cat("\nSS:",ss)
+      s<-sum(abs(x))
+      #cat("\nS:",s)
+      return (ss/s)
+    })
+    #transpose this to conform with indicator loading data frames
+    project$EFA$kmeans.centerDistance[[iFactorConfiguration]]<-t(project$EFA$kmeans.centerDistance[[iFactorConfiguration]])
+    rownames(project$EFA$kmeans.centerDistance[[iFactorConfiguration]])<-project$sumstats.sel.code
+    
+    
+  cat("\nPCA vector values\n")
+  print(project$EFA$PCA[[iFactorConfiguration]]$vector_values)
+  cat("\nFA fa result\n")
+  print(project$EFA$fa.result[[iFactorConfiguration]])
+  #cat("\nFA factanal result\n")
+  #print(project$EFA$factanal.result)
+  cat("\nKmeans clustering centers\n")
+  print(t(project$EFA$kmeans.result[[iFactorConfiguration]]$centers))
+  cat("\nKmeans clustering residuals\n")
+  print(project$EFA$kmeans.centerDistance[[iFactorConfiguration]])
+    
   }
+  
+  
   
   saveRDS(object = project$EFA,file = project$filepath.efa)
 }
@@ -1115,20 +1183,28 @@ project$filepath.cfa<-file.path(project$folderpath.workingDirectory,paste0("cfa.
 #project$filepath.cfa_converged_results<-file.path(project$folderpath.workingDirectory,paste0("cfa.",project$setup.code,".converged.txt"))
 
 if(!file.exists(project$filepath.cfa)){
+  
+  project$CFA$indicatorLoadingPatterns.PCA<-c()
+  project$CFA$indicatorLoadingPatterns.fa<-c()
+  project$CFA$indicatorLoadingPatterns.kmeans<-c()
+  #iFactorConfiguration<-1
+  for(iFactorConfiguration in 1:length(project$CFA$nFactors)) {
 
   #PCA based models
-  project$CFA$indicatorLoadingPatterns.PCA<-semplate$generateIndicatorLoadingPatternsFromFactorLoadings(factorLoadings = project$EFA$PCA$vector_values, increment = 0.001,forceOneIndicatorLoading = T)
-  
+  project$CFA$indicatorLoadingPatterns.PCA[[iFactorConfiguration]]<-semplate$generateIndicatorLoadingPatternsFromFactorLoadings(factorLoadings = project$EFA$PCA[[iFactorConfiguration]]$vector_values, increment = 0.0005,forceOneIndicatorLoading = T)
+    
   ##fa based models
-  project$CFA$indicatorLoadingPatterns.fa<-semplate$generateIndicatorLoadingPatternsFromFactorLoadings(factorLoadings = project$EFA$fa.result$loadings, increment = 0.001,forceOneIndicatorLoading = T)
-  
-  ##factanal based models
-  #project$CFA$indicatorLoadingPatterns.factanal<-semplate$generateIndicatorLoadingPatternsFromFactorLoadings(factorLoadings = project$EFA$factanal.result$loadings, increment = 0.001,forceOneIndicatorLoading = T)
+  project$CFA$indicatorLoadingPatterns.fa[[iFactorConfiguration]]<-semplate$generateIndicatorLoadingPatternsFromFactorLoadings(factorLoadings = project$EFA$fa.result[[iFactorConfiguration]]$loadings, increment = 0.0005,forceOneIndicatorLoading = T)
   
   ##kmeans clustering based models
-  project$CFA$indicatorLoadingPatterns.kmeans<-semplate$generateIndicatorLoadingPatternsFromFactorLoadings(factorLoadings = t(project$EFA$kmeans.result$centers), increment = 0.001,forceOneIndicatorLoading = T)
+  project$CFA$indicatorLoadingPatterns.kmeans[[iFactorConfiguration]]<-semplate$generateIndicatorLoadingPatternsFromFactorLoadings(factorLoadings = t(project$EFA$kmeans.result[[iFactorConfiguration]]$centers), increment = 0.0005,forceOneIndicatorLoading = T)
   
-  project$CFA$sessionIndicatorLoadingPatterns<-unique(rbind(project$CFA$indicatorLoadingPatterns.kmeans,project$CFA$indicatorLoadingPatterns.PCA,project$CFA$indicatorLoadingPatterns.fa))
+  
+  project$CFA$sessionIndicatorLoadingPatterns[[iFactorConfiguration]]<-unique(rbind(project$CFA$indicatorLoadingPatterns.kmeans[[iFactorConfiguration]],project$CFA$indicatorLoadingPatterns.fa[[iFactorConfiguration]],project$CFA$indicatorLoadingPatterns.PCA[[iFactorConfiguration]]))
+  
+  }
+  
+  
 
 }
 
@@ -1151,7 +1227,7 @@ match.row<-function(row_v,tomatch_df){
   return(toreturn)
 }
 
-project$CFA$models<-data.frame(nModel=c(),code=c(),lModel=c(),lResults=c())
+project$CFA$models<-data.frame(nModel=c(),code=c(),nFactors=c(),lModel=c(),lResults=c())
 
 project$CFA$resultColumnNames<-c("chisq","df","p_chisq","AIC","CFI","SRMR")
 
@@ -1161,98 +1237,104 @@ project$CFA<-readRDS(file=project$filepath.cfa)
 } else {
   
   nModel<-0
-  sessionPatternLength<-nrow(project$CFA$sessionIndicatorLoadingPatterns)
-  
-  cat("\nAnalysing ",sessionPatternLength, "models...\n")
-  nFittingModelsFound<-0
-  for(nSessioPattern in 1:sessionPatternLength){
-    #new model row
+  for(iFactorConfiguration in 1:length(project$CFA$nFactors)) {
+    sessionPatternLength<-nrow(project$CFA$sessionIndicatorLoadingPatterns[[iFactorConfiguration]])
     
-    #test
-    #nSessioPattern=1
-    
-    nModel=nModel+1
-    
-    if(!is.null(project$CFA$models.selected)){
-      if(!nModel %in% project$CFA$models.selected$nModel) next
-    }
-    
-    #set specific nmodel for reevaluation
-    #nModel<-35
-    #nSessioPattern<-35
-    
-    #init columns
-    project$CFA$models[nModel,]<-NA
-    
-      #nModel
-    project$CFA$models[nModel,c("nModel")]<-nModel
-    
-      #code
-    project$CFA$models[nModel,c("code")]<-paste0("M",project$CFA$nFactors,"-",project$CFA$nIndicators,
-    ".",project$CFA$estimator,
-    ".",nSessioPattern
-    )
-    
-    #project$CFA$models$totalBitValue[nModel]<-NA #because otherwise the later assignment will crash
-    project$CFA$models[nModel,c("loading_pattern","loading_pattern_pca","loading_pattern_fa","loading_pattern_kmeans")]<-NA
-    project$CFA$models[nModel,c("lModel")]<-NA_character_
-    project$CFA$models[nModel,c("gsemResults")]<-NA
-    project$CFA$models[nModel,project$CFA$resultColumnNames]<-NA
-    
-   
-    
-    #loading pattern
-    lp<-project$CFA$sessionIndicatorLoadingPatterns[nSessioPattern,]
-    project$CFA$models[[nModel,c("loading_pattern")]]<-list(lp)
-    cIndicatorLoadings<-matrix(data = lp, nrow = project$CFA$nIndicators, ncol = project$CFA$nFactors) 
-    row.names(cIndicatorLoadings)<-project$sumstats.sel$code
-    
-    project$CFA$models[nModel,c("loading_pattern_pca")]<-any(match.row(lp,project$CFA$indicatorLoadingPatterns.PCA))
-    project$CFA$models[nModel,c("loading_pattern_fa")]<-any(match.row(lp,project$CFA$indicatorLoadingPatterns.fa))
-    project$CFA$models[nModel,c("loading_pattern_kmeans")]<-any(match.row(lp,project$CFA$indicatorLoadingPatterns.kmeans))
-    
-    #further filter rules
-    indicatorsLoadedOnFactors <- apply(cIndicatorLoadings, 1, FUN = any)
-    factorsHasIndicatorsLoaded <- apply(cIndicatorLoadings, 2, FUN = any)
-  
-    #allow evaluation if filter rules are met
-    if(all(indicatorsLoadedOnFactors) & all(factorsHasIndicatorsLoaded)){
-      project$CFA$models[nModel,c("lModel")]<- semplate$generateLavaanCFAModel(
-        allow_loading.table.indicator_factor = cIndicatorLoadings,
-        indicatorArgs = project$sumstats.sel[,c("code","residualSizeLimitMax")],
-        #universalResidualLimitMin = 0.0001,
-        orthogonal = T #using orthogonal configs for multiple factors
-        )
+    cat("\nAnalysing ",sessionPatternLength, "models...\n")
+    nFittingModelsFound<-0
+    for(nSessioPattern in 1:sessionPatternLength){
+      #new model row
       
-      #evaluate model
-      cat("\n#Found fitting=",nFittingModelsFound,"\n", project$CFA$models[nModel,c("searchBitValue")],":",project$CFA$models[nModel,c("code")], ":",nModel,"/",sessionPatternLength,"\n")
-      cModelResults = tryCatch(
-        usermodel.mod(covstruc = project$mvLD$covstruct.mvLDSC,
-          model = project$CFA$models[nModel,c("lModel")],
-          estimation = project$CFA$estimator,
-          fix_resid = F,
-          CFIcalc = F #ifelse(is.null(project$CFA$models.selected),F,T) #set this to true for CFI evaluation
-          ), error= function(e) e
-        )
+      #test
+      #nSessioPattern=1
       
-      if(!inherits(cModelResults, "try-error") & !is.null(cModelResults$modelfit)){
-        if(nrow(cModelResults$modelfit)>0 && any(project$CFA$resultColumnNames %in% colnames(cModelResults$modelfit))) {
-          print(cModelResults$modelfit)
-          #record results even though not fitting
-          project$CFA$models[[nModel,c("gsemResults")]]<-cModelResults
-          cRescolnames<-intersect(project$CFA$resultColumnNames,colnames(cModelResults$modelfit))
-          project$CFA$models[nModel,cRescolnames]<-cModelResults$modelfit[1,cRescolnames]
-          if(is.numeric(cModelResults$modelfit$chisq)){
-            #This is considered a fitting model
-            nFittingModelsFound<-nFittingModelsFound+1
-            cat("\nFITTING!:",project$CFA$models[nModel,c("code")],"\n")
-          }
-        }
+      nModel=nModel+1
+      
+      if(!is.null(project$CFA$models.selected)){
+        if(!nModel %in% project$CFA$models.selected$nModel) next
       }
       
+      #set specific nmodel for reevaluation
+      #nModel<-35
+      #nSessioPattern<-35
+      
+      #init columns
+      project$CFA$models[nModel,]<-NA
+      
+        #nModel
+      project$CFA$models[nModel,c("nModel")]<-nModel
+      
+        #code
+      project$CFA$models[nModel,c("code")]<-paste0("M",project$CFA$nFactors[iFactorConfiguration],"-",project$CFA$nIndicators,
+      ".",project$CFA$estimator,
+      ".",nSessioPattern
+      )
+      
+      #nFactors
+      project$CFA$models[nModel,c("nFactors")]<-project$CFA$nFactors[iFactorConfiguration]
+      
+      #project$CFA$models$totalBitValue[nModel]<-NA #because otherwise the later assignment will crash
+      project$CFA$models[nModel,c("loading_pattern","loading_pattern_pca","loading_pattern_fa","loading_pattern_kmeans")]<-NA
+      project$CFA$models[nModel,c("lModel")]<-NA_character_
+      project$CFA$models[nModel,c("gsemResults")]<-NA
+      project$CFA$models[nModel,project$CFA$resultColumnNames]<-NA
+      
+     
+      
+      #loading pattern
+      lp<-project$CFA$sessionIndicatorLoadingPatterns[[iFactorConfiguration]][nSessioPattern,]
+      project$CFA$models[[nModel,c("loading_pattern")]]<-list(lp)
+      cIndicatorLoadings<-matrix(data = lp, nrow = project$CFA$nIndicators, ncol = project$CFA$nFactors[iFactorConfiguration]) 
+      row.names(cIndicatorLoadings)<-project$sumstats.sel$code
+      
+      project$CFA$models[nModel,c("loading_pattern_pca")]<-any(match.row(lp,project$CFA$indicatorLoadingPatterns.PCA[[iFactorConfiguration]]))
+      project$CFA$models[nModel,c("loading_pattern_fa")]<-any(match.row(lp,project$CFA$indicatorLoadingPatterns.fa[[iFactorConfiguration]]))
+      project$CFA$models[nModel,c("loading_pattern_kmeans")]<-any(match.row(lp,project$CFA$indicatorLoadingPatterns.kmeans[[iFactorConfiguration]]))
+      
+      #further filter rules
+      indicatorsLoadedOnFactors <- apply(cIndicatorLoadings, 1, FUN = any)
+      factorsHasIndicatorsLoaded <- apply(cIndicatorLoadings, 2, FUN = any)
+    
+      #allow evaluation if filter rules are met
+      if(all(indicatorsLoadedOnFactors) & all(factorsHasIndicatorsLoaded)){
+        project$CFA$models[nModel,c("lModel")]<- semplate$generateLavaanCFAModel(
+          allow_loading.table.indicator_factor = cIndicatorLoadings,
+          indicatorArgs = project$sumstats.sel[,c("code","residualSizeLimitMax")],
+          #universalResidualLimitMin = 0.0001,
+          orthogonal = T #using orthogonal configs for multiple factors
+          )
+        
+        #evaluate model
+        cat("\n#Found fitting=",nFittingModelsFound,"\n", project$CFA$models[nModel,c("searchBitValue")],":",project$CFA$models[nModel,c("code")], ":",nModel,"/",sessionPatternLength,"\n")
+        cModelResults = tryCatch(
+          usermodel.mod(covstruc = project$mvLD$covstruct.mvLDSC,
+            model = project$CFA$models[nModel,c("lModel")],
+            estimation = project$CFA$estimator,
+            fix_resid = F,
+            CFIcalc = F #ifelse(is.null(project$CFA$models.selected),F,T) #set this to true for CFI evaluation
+            ), error= function(e) e
+          )
+        
+        if(!inherits(cModelResults, "try-error") & !is.null(cModelResults$modelfit)){
+          if(nrow(cModelResults$modelfit)>0 && any(project$CFA$resultColumnNames %in% colnames(cModelResults$modelfit))) {
+            print(cModelResults$modelfit)
+            #record results even though not fitting
+            project$CFA$models[[nModel,c("gsemResults")]]<-cModelResults
+            cRescolnames<-intersect(project$CFA$resultColumnNames,colnames(cModelResults$modelfit))
+            project$CFA$models[nModel,cRescolnames]<-cModelResults$modelfit[1,cRescolnames]
+            if(is.numeric(cModelResults$modelfit$chisq)){
+              #This is considered a fitting model
+              nFittingModelsFound<-nFittingModelsFound+1
+              cat("\nFITTING!:",project$CFA$models[nModel,c("code")],"\n")
+            }
+          }
+        }
+        
+        
+      }
       
     }
-    
+  
   }
     
   saveRDS(object = project$CFA,file = file.path(project$folderpath.workingDirectory,paste0("cfa.",project$setup.code,".Rds")))
@@ -1609,9 +1691,6 @@ for(igwas in 1:length(project$lfGWAS$gwas)){
 }
 
 ```
-
-
-#do not run after this point
 
 ```{r mvLD including latent factors, purl=FALSE}
 if (!file.exists(file.path(project$folderpath.workingDirectory,paste0("mvLD2.",project$setup.code,".Rds")))){

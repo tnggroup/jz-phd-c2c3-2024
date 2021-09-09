@@ -1,4 +1,4 @@
-## ----package setup, echo=FALSE, warning=F-------------------------------------------------------
+## ----package setup, echo=FALSE, warning=F--------------------------------------------------------------
 
 #install.packages("skimr")
 #install.packages("psych")
@@ -41,7 +41,7 @@ library(GenomicSEM)
 
 
 
-## ----command line setup-------------------------------------------------------------------------
+## ----command line setup--------------------------------------------------------------------------------
 clParser <- OptionParser()
 clParser <- add_option(clParser, c("-t", "--task"), type="character", default="0",
                 help="Index of the explicit task to run separately:\n0: No task\nmvLD.mvLDSC:multivariate LDSC\nmvLD.HDL.piecewise:HDL Piecewise\nmvLD.HDL.jackknife:HDL Jackknife\nmvLD.origHDL:original HDL(jackknife)\nmvLD.origHDL.liabilityScale:original HDL with applied liability scale [default %default]")
@@ -53,7 +53,7 @@ clParser <- add_option(clParser, c("-a", "--task_argument"), type="character", d
 
 
 
-## ----settings-----------------------------------------------------------------------------------
+## ----settings------------------------------------------------------------------------------------------
 project<-c() #create project metadata object
 project$clOptions<-parse_args(clParser)
 project$date.run<-Sys.Date()
@@ -174,7 +174,7 @@ setwd(dir = normalizePath(project$folderpath.workingDirectory))
 
 
 
-## ----additional source setup, echo=FALSE, warning=F---------------------------------------------
+## ----additional source setup, echo=FALSE, warning=F----------------------------------------------------
 
 #source(normalizePath(file.path(project$folderpath.scripts,"sumstats.mod-jz.R")))
 
@@ -182,7 +182,7 @@ setwd(dir = normalizePath(project$folderpath.workingDirectory))
 
 
 
-## ----sumstat metadata database load-------------------------------------------------------------
+## ----sumstat metadata database load--------------------------------------------------------------------
 project$filepath.sumstats<-file.path(project$folderpath.workingDirectory,paste0("sumstats.",project$setup.code,".Rds"))
 if (file.exists(project$filepath.sumstats)) {
   print("Loading summary statistics metadata from previously stored file.")
@@ -217,7 +217,7 @@ write.table(project$sumstats, file = file.path(project$folderpath.workingDirecto
 
 
 
-## ----trait setup--------------------------------------------------------------------------------
+## ----trait setup---------------------------------------------------------------------------------------
 #,echo=FALSE
 project$trait<-data.frame(phenotype_id=c())
 
@@ -265,7 +265,7 @@ project$trait
 
 
 
-## ----GWAS sumstat dataset setup-----------------------------------------------------------------
+## ----GWAS sumstat dataset setup------------------------------------------------------------------------
 #, echo=FALSE
 
 
@@ -384,7 +384,7 @@ project$sumstats<-project$sumstats[order(project$sumstats$code),]
 
 
 
-## ----GWAS sumstat dataset variable selection----------------------------------------------------
+## ----GWAS sumstat dataset variable selection-----------------------------------------------------------
 
 #selection based on specific traits
 project$sumstats.sel.code<-c("ADHD05","ALCD03","ANXI03","AUTI07","BIPO02", "DEPR05","DEPR08","HEAL01","INCO03","INSO02", "MIGR01","NEUR01","RISK02","RISK03","SCHI04","SUBJ01","TIRE01")
@@ -486,7 +486,7 @@ write.table(project$sumstats.sel[,c("code", "name","year", "n_case","n_control",
 
 
 
-## ----GWAS sumstat munge-------------------------------------------------------------------------
+## ----GWAS sumstat munge--------------------------------------------------------------------------------
 if(project$clOptions$task=="munge"){
 
   
@@ -575,7 +575,7 @@ if(project$clOptions$task=="munge"){
 
 
 
-## ----prepare summary statistics for latent factor gwas------------------------------------------
+## ----prepare summary statistics for latent factor gwas-------------------------------------------------
 #eval=FALSE
 #use ^this to knit without running the code in the chunk
 
@@ -620,7 +620,7 @@ if(project$clOptions$task=="preplfgwas") quit(save = "no")
 
 
 
-## ----GWAS sumstat imputation--------------------------------------------------------------------
+## ----GWAS sumstat imputation---------------------------------------------------------------------------
 if(project$clOptions$task=="impute"){
 #Using RAISS
 #https://gitlab.pasteur.fr/statistical-genetics/raiss
@@ -644,7 +644,7 @@ if(project$clOptions$task=="impute"){
 
 
 
-## ----multivariate LD----------------------------------------------------------------------------
+## ----multivariate LD-----------------------------------------------------------------------------------
 print("***multivariate LD***")
 
 project$filepath.mvLD<-file.path(project$folderpath.workingDirectory,paste0("mvLD.",project$setup.code,".Rds"))
@@ -747,7 +747,7 @@ project$sumstats.sel$h2.se.liability_mvLDSC.hm3<-diag(project$mvLD$covstruct.mvL
 
 
 
-## ----EFA----------------------------------------------------------------------------------------
+## ----EFA-----------------------------------------------------------------------------------------------
 print("***EFA***")
 #saving efa results between runs as to always use the same randomised start for clustering for example
 project$filepath.efa<-file.path(project$folderpath.workingDirectory,paste0("efa.",project$setup.code,".Rds"))
@@ -822,7 +822,7 @@ project$EFA<-readRDS(file=project$filepath.efa)
 
 
 
-## ----CFA model creation-------------------------------------------------------------------------
+## ----CFA model creation--------------------------------------------------------------------------------
 print("***CFA model creation***")
 
 ## CFA aditional settings
@@ -854,7 +854,7 @@ if(!file.exists(project$filepath.cfa)){
 
 
 
-## ----CFA evaluation-----------------------------------------------------------------------------
+## ----CFA evaluation------------------------------------------------------------------------------------
 print("***CFA evaluation***")
 
 match.row<-function(row_v,tomatch_df){
@@ -986,7 +986,7 @@ if(project$clOptions$task=="cfa"){quit(save = "no")}
 
 
 
-## ----CFA select---------------------------------------------------------------------------------
+## ----CFA select----------------------------------------------------------------------------------------
 print("***CFA select***")
 
 #View(project$CFA$models.selected<-project$CFA$models[which(project$CFA$models$SRMR<1),c("totalBitValue","code","lModel",project$CFA$resultColumnNames)])
@@ -1005,18 +1005,30 @@ project$CFA$model.bestFitting$lModel
 
 project$CFA$model.bestFitting$parsedGenomicSEMResult<-list(semplate$parseGenomicSEMResultAsMatrices(project$CFA$model.bestFitting$gsemResults[[1]]$results))
 
+#summary(project$CFA$model.bestFitting$gsemResults[[1]]$lresults, standardized=T)
 project$CFA$model.bestFitting$parsedGenomicSEMResult[[1]]$patternCoefficients
 
+#prepare fixed lavaan model
+    
+cIndicatorLoadings<-matrix(
+  data = project$CFA$model.bestFitting$loading_pattern[[1]][[1]],
+  nrow = project$CFA$nIndicators,
+  ncol = project$CFA$nFactors) 
+row.names(cIndicatorLoadings)<-project$sumstats.sel$code
+
+project$CFA$model.bestFitting$lmodel.fixed<-semplate$generateLavaanCFAModel(
+  allow_loading.table.indicator_factor = cIndicatorLoadings,
+  fix_loading.table.indicator_factor = project$CFA$model.bestFitting$parsedGenomicSEMResult[[1]]$patternCoefficients, fix_loading.table.residual_variance = project$CFA$model.bestFitting$parsedGenomicSEMResult[[1]]$residualVariances,
+  orthogonal = T)
 
 
 
 
 
-
-## ----latent factor GWAS-------------------------------------------------------------------------
+## ----latent factor GWAS--------------------------------------------------------------------------------
 print("***latent factor GWAS***")
 #library(lavaan)
-cat("\nChromosomes in lfGWAS sumstats:\n",unique(project$lfGWAS$sumstats$CHR))
+cat("\nChromosomes in lfGWAS sumstats:\n",unique(project$lfGWAS$sumstats$CHR),"\n")
 
 #inactivated if sumstats are not prepared
 if(!is.null(project$lfGWAS$sumstats)){
@@ -1025,21 +1037,38 @@ if(!is.null(project$lfGWAS$sumstats)){
   #project$clOptions$task_argument<-"1:1"
   #project$clOptions$task_argument<-"1"
   
+   #load intermediate results
+  if(!project$clOptions$task=="lfgwas" & !file.exists(file.path(project$folderpath.workingDirectory,paste0("lfGWAS.gwas.",project$setup.code,".Rds")))){
+    print("Reading in latent factor gwas intermediate results.")
+    project$lfGWAS$intermediateResultFiles<-list.files(path = project$folderpath.workingDirectory, pattern = paste0("^lfGWAS\\.gwas\\.F.+",project$setup.code,"\\.Rds"), full.names = T, ignore.case=T)
+    nIntermediateFactors<-NULL
+    for(nIntermediateResultFile in 1:length(project$lfGWAS$intermediateResultFiles)){
+      #nIntermediateResultFile<-1
+      intermediateResult<-readRDS(file=project$lfGWAS$intermediateResultFiles[nIntermediateResultFile])
+      #initialise storage
+      if(is.null(nIntermediateFactors)){
+        project$lfGWAS$gwas<-list()
+        nIntermediateFactors<-length(intermediateResult)
+        for(nFactor in 1:nIntermediateFactors){
+          project$lfGWAS$gwas[[nFactor]]<-intermediateResult[[nFactor]]
+        }
+      } else {
+        for(nFactor in 1:nIntermediateFactors){
+          project$lfGWAS$gwas[[nFactor]]<-rbind(project$lfGWAS$gwas[[nFactor]],intermediateResult[[nFactor]]) 
+        }
+      }
+    }
+
+    if(length(project$lfGWAS$gwas)>0){
+      saveRDS(object = project$lfGWAS$gwas,file = file.path(project$folderpath.workingDirectory,paste0("lfGWAS.gwas.",project$setup.code,".Rds")))
+    }
+    print("Read latent factor gwas results and saved latent factor summary file.")
+  }
+  
   if(!file.exists(file.path(project$folderpath.workingDirectory,paste0("lfGWAS.gwas.",project$setup.code,".Rds")))) 
   {
     
-    #prepare fixed lavaan model
-    
-    cIndicatorLoadings<-matrix(
-      data = project$CFA$model.bestFitting$loading_pattern[[1]][[1]],
-      nrow = project$CFA$nIndicators,
-      ncol = project$CFA$nFactors) 
-    row.names(cIndicatorLoadings)<-project$sumstats.sel$code
-    
-    project$CFA$model.bestFitting$lmodel.fixed<-semplate$generateLavaanCFAModel(
-      allow_loading.table.indicator_factor = cIndicatorLoadings,
-      fix_loading.table.indicator_factor = project$CFA$model.bestFitting$parsedGenomicSEMResult[[1]]$patternCoefficients, fix_loading.table.residual_variance = project$CFA$model.bestFitting$parsedGenomicSEMResult[[1]]$residualVariances,
-      orthogonal = T)
+   
     
     project$lfGWAS$cFn<-NULL
     project$lfGWAS$cChr<-NULL
@@ -1085,7 +1114,7 @@ if(!is.null(project$lfGWAS$sumstats)){
       modelchi = FALSE,
       printwarn = TRUE,
       sub=paste0("F",(1:project$CFA$nFactors),"~SNP"),
-      GC="none",
+      #GC="none",
       parallel=F
       )
     
@@ -1097,6 +1126,7 @@ if(!is.null(project$lfGWAS$sumstats)){
   
   } else {
     project$lfGWAS$gwas<-readRDS(file=file.path(project$folderpath.workingDirectory,paste0("lfGWAS.gwas.",project$setup.code,".Rds")))
+    print("Read previous latent factor GWAS results from file.")
   }
 
 }

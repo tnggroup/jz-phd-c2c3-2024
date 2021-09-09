@@ -82,3 +82,11 @@ lf=1;for chr in 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22; do sbatc
 
 for chr in 1; do sbatch --time 2-00:00:00 --partition brc,shared --job-name="lga_$chr" --ntasks 1 --cpus-per-task 2 --mem 16G --wrap="Rscript setup3.R -t lfgwas -a $chr -l cluster" --output "setup3.lfgwas.F_ALL.chr$chr.$(date +%Y%m%d).out.txt"; done
 for chr in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22; do sbatch --time 2-00:00:00 --partition brc,shared --job-name="lga_$chr" --ntasks 1 --cpus-per-task 2 --mem 16G --wrap="Rscript setup3.R -t lfgwas -a $chr -l cluster" --output "setup3.lfgwas.F_ALL.chr$chr.$(date +%Y%m%d).out.txt"; done
+
+#setup4
+sbatch --time 23:59:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 64G --wrap="Rscript setup4.R -t munge -l cluster" --output "setup4.munge.$(date +%Y%m%d).out.txt"
+Rscript setup4.R -t munge > "setup4.munge.$(date +%Y%m%d).out.txt" #alt
+sbatch --time 2-00:00:00 --partition brc,shared --job-name="mvLD" --ntasks 1 --cpus-per-task 4 --mem 64G --wrap="Rscript setup4.R -t mvLD -l cluster" --output "setup4.mvLD.$(date +%Y%m%d).out.txt"
+
+
+

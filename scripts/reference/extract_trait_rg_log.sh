@@ -1,6 +1,7 @@
 #!/bin/bash -l
 
-###Extract rG for trait vs other traits in correlation logs
+###Extract rG for trait vs other traits in ldsc correlation logs
+###Can also run ldsc
 SCRIPTPATH=${BASH_SOURCE}
 
 SCRIPTNAME=extract_trait_rg
