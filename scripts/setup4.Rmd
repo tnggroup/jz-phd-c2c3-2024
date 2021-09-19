@@ -194,7 +194,8 @@ project$filepath.r<-normalizePath(file.path(project$folderpath.scripts,project$f
 project$CFA<-c()
 project$CFA$estimator=c("ML")
 #project$CFA$estimator=c("ML","DWLS")
-project$CFA$nFactors=c(5,7,10)
+project$CFA$nFactors=c(4,7,10)
+#project$CFA$nFactors=c(10)
 
 ##latent factor GWAS filter settings
 project$lfGWAS$info.filter=.6
@@ -353,6 +354,7 @@ project$sumstats$gwas_name.nice<-NA_character_
 project$sumstats$code.trait<-NA_character_
 project$sumstats$reference_doi<-NA_character_
 project$sumstats$effect.logit<-as.logical(NA)
+project$sumstats$dependent_variable.linprob<-as.logical(NA)
 project$sumstats$se.logit<-as.logical(NA)
 project$sumstats$dependent_variable.OLS<-as.logical(NA)
 project$sumstats$age.min<-NA_integer_
@@ -396,6 +398,8 @@ project$sumstats[nrow(project$sumstats)+1,c("code","name","n_total","phenotype_i
   phenotype_id=197
   )
 
+
+
 #reformat columns
 project$sumstats$name<-as.character(project$sumstats$name)
 
@@ -421,6 +425,9 @@ project$sumstats <- project$sumstats %>%
 mutate(
   cleanedpath=file.path(project$folderpath.data.sumstats.cleaned,paste0(code,".gz"))
        )
+
+#set code as rowname
+rownames(project$sumstats)<-project$sumstats$code
 
 ##add reference year
 project$sumstats$year[which(project$sumstats$code=="ANXI03")]=2019
@@ -501,67 +508,89 @@ project$sumstats$name.nice[which(project$sumstats$code=="TIRE01")]="Self-reporte
 project$sumstats$name.nice.and_code<-paste0(project$sumstats$name.nice," (",project$sumstats$code,")")
 
 
-##add data on whether effects are on log odds ratio or not
-## Plain OR is detected by munge and sumstat procedures though
-
-project$sumstats$effect.logit[which(project$sumstats$code=="ADHD05")]=T #Column OR. Munge non-OR detected. Consistent with non-OR.
-project$sumstats$effect.logit[which(project$sumstats$code=="ALCD03")]=T #Did not find the original readme for this, only looked at the readme for the 2018 subsequent release, and the data. Assuming log-scale from the naming of the variables (beta?) and that it follows the standard of the 2018 release - explicitly states "log scale beta".
-project$sumstats$effect.logit[which(project$sumstats$code=="ANXI03")]=F # Kirstin sort of confirm that she converted both effect and s.e. to linear scales. Data and readme is available from her KCL web site. Unclear which dataset was used for ANXI03 though. Confirm this later by comparing datasets?
-project$sumstats$effect.logit[which(project$sumstats$code=="AUTI07")]=T #Assuming log(OR) since not plain OR
-project$sumstats$effect.logit[which(project$sumstats$code=="BIPO02")]=T #Assuming log(OR) since not plain OR
-project$sumstats$effect.logit[which(project$sumstats$code=="DEPR05")]=F #https://www.med.unc.edu/pgc/files/2019/04/PGC_MDD_2018_README_third_180316.pdf # The readme states daner format, but that SE is s.e. of log(OR), while the daner format does not state log scale variables here. Assuming linear scale OR, which is consistent with the data, and munge.
-project$sumstats$effect.logit[which(project$sumstats$code=="DEPR08")]=F #https://www.med.unc.edu/pgc/files/2019/04/PGC_MDD_2018_README_third_180316.pdf # As DEPR05
-project$sumstats$effect.logit[which(project$sumstats$code=="HEAL01")]=F #The original data including readme downloaded to data_raw/original. States "Beta" without explanation, and I assume linear beta.
-project$sumstats$effect.logit[which(project$sumstats$code=="INCO03")]=F #As per munge
-project$sumstats$effect.logit[which(project$sumstats$code=="INSO02")]=F #As per munge
-project$sumstats$effect.logit[which(project$sumstats$code=="MIGR01")]=F #As per munge
-project$sumstats$effect.logit[which(project$sumstats$code=="NEUR01")]=F #The official read-me states "regression beta"
-project$sumstats$effect.logit[which(project$sumstats$code=="RISK02")]=F #As per munge
-project$sumstats$effect.logit[which(project$sumstats$code=="RISK03")]=F #As per munge
-project$sumstats$effect.logit[which(project$sumstats$code=="SCHI04")]=F #OR, as per munge
-project$sumstats$effect.logit[which(project$sumstats$code=="SUBJ01")]=F #The official read-me states "regression beta"
-project$sumstats$effect.logit[which(project$sumstats$code=="TIRE01")]=F #The official read-me states "beta"
-
-
-##add data on whether the SEs are on a logistic scale or not
-project$sumstats$se.logit[which(project$sumstats$code=="ADHD05")]=T #consistent with log(OR) above
-
-project$sumstats$se.logit[which(project$sumstats$code=="ALCD03")]=T #Did not find the original readme for this, only looked at the readme for the 2018 subsequent release, and the data. SE is strangely set to 1 for top rows. Assumes this is true because of log-scale beta.
-project$sumstats$se.logit[which(project$sumstats$code=="ANXI03")]=F #Assume linear becasue of Kirstin Purves assuring that both were converted to linear scale. Consistent with munge non-OR.
-project$sumstats$se.logit[which(project$sumstats$code=="AUTI07")]=T #Assuming log(OR) since not plain OR
-project$sumstats$se.logit[which(project$sumstats$code=="BIPO02")]=T #Assuming log(OR) since not plain OR
-project$sumstats$se.logit[which(project$sumstats$code=="DEPR05")]=T #log(OR) standard errors as of documentation
-project$sumstats$se.logit[which(project$sumstats$code=="DEPR08")]=T #Assuming log(OR) standard errors as DEPR05
-project$sumstats$se.logit[which(project$sumstats$code=="HEAL01")]=F #Assume linear scale because of linear beta
-project$sumstats$se.logit[which(project$sumstats$code=="INCO03")]=F #Assume linear scale because of linear beta
-project$sumstats$se.logit[which(project$sumstats$code=="INSO02")]=T #Assuming log(OR) standard errors as some of the datasets above.
-project$sumstats$se.logit[which(project$sumstats$code=="MIGR01")]=F #Assume linear scale because of linear beta
-project$sumstats$se.logit[which(project$sumstats$code=="NEUR01")]=F #Assume linear scale because of linear beta
-project$sumstats$se.logit[which(project$sumstats$code=="RISK02")]=F #Assume linear scale because of linear beta
-project$sumstats$se.logit[which(project$sumstats$code=="RISK03")]=F #Assume linear scale because of linear beta
-project$sumstats$se.logit[which(project$sumstats$code=="SCHI04")]=T #Assuming log(OR) standard errors as some of the datasets above.
-project$sumstats$se.logit[which(project$sumstats$code=="SUBJ01")]=F #Assume linear scale because of linear beta
-project$sumstats$se.logit[which(project$sumstats$code=="TIRE01")]=F #Assume linear scale because of linear beta
-
 
 ##add information on wether a continous dependent variable was analysed using an OLS (linear) estimator. Used for the latent factor GWAS preparation step.
 project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="ADHD05")]=F
 project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="ALCD03")]=F
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="ANOR02")]=F
 project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="ANXI03")]=F
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="ANXI04")]=F
 project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="AUTI07")]=F
 project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="BIPO02")]=F
 project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="DEPR05")]=F
 project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="DEPR08")]=F
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="EDUC03")]=T
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="EXTR01")]=T
 project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="HEAL01")]=T
 project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="INCO03")]=T
 project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="INSO02")]=F
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="INTE03")]=T
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="LONG07")]=T
 project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="MIGR01")]=T
 project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="NEUR01")]=T
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="PTSD04")]=T #meta analysis
+project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="RISK01")]=T
 project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="RISK02")]=T
 project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="RISK03")]=T
 project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="SCHI04")]=F
 project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="SUBJ01")]=T
 project$sumstats$dependent_variable.OLS[which(project$sumstats$code=="TIRE01")]=T
+
+##add data on whether the effects were estimated with a linear regression rather than a logistic regression
+project$sumstats$dependent_variable.linprob[which(project$sumstats$code=="ADHD05")]=F
+project$sumstats$dependent_variable.linprob[which(project$sumstats$code=="ALCD03")]=T #from test
+project$sumstats$dependent_variable.linprob[which(project$sumstats$code=="ANOR02")]=F
+project$sumstats$dependent_variable.linprob[which(project$sumstats$code=="ANXI03")]=F
+project$sumstats$dependent_variable.linprob[which(project$sumstats$code=="ANXI04")]=T #bgenie uses a linear estimator
+project$sumstats$dependent_variable.linprob[which(project$sumstats$code=="AUTI07")]=F
+project$sumstats$dependent_variable.linprob[which(project$sumstats$code=="BIPO02")]=F
+project$sumstats$dependent_variable.linprob[which(project$sumstats$code=="DEPR05")]=F
+project$sumstats$dependent_variable.linprob[which(project$sumstats$code=="DEPR08")]=F
+project$sumstats$dependent_variable.linprob[which(project$sumstats$code=="EDUC03")]=F
+project$sumstats$dependent_variable.linprob[which(project$sumstats$code=="EXTR01")]=F
+project$sumstats$dependent_variable.linprob[which(project$sumstats$code=="HEAL01")]=F
+project$sumstats$dependent_variable.linprob[which(project$sumstats$code=="INCO03")]=F
+project$sumstats$dependent_variable.linprob[which(project$sumstats$code=="INSO02")]=F
+project$sumstats$dependent_variable.linprob[which(project$sumstats$code=="INTE03")]=F
+project$sumstats$dependent_variable.linprob[which(project$sumstats$code=="LONG07")]=F
+project$sumstats$dependent_variable.linprob[which(project$sumstats$code=="MIGR01")]=F
+project$sumstats$dependent_variable.linprob[which(project$sumstats$code=="NEUR01")]=F
+project$sumstats$dependent_variable.linprob[which(project$sumstats$code=="PTSD04")]=F
+project$sumstats$dependent_variable.linprob[which(project$sumstats$code=="RISK01")]=F
+project$sumstats$dependent_variable.linprob[which(project$sumstats$code=="RISK02")]=F
+project$sumstats$dependent_variable.linprob[which(project$sumstats$code=="RISK03")]=F
+project$sumstats$dependent_variable.linprob[which(project$sumstats$code=="SCHI04")]=F
+project$sumstats$dependent_variable.linprob[which(project$sumstats$code=="SUBJ01")]=F
+project$sumstats$dependent_variable.linprob[which(project$sumstats$code=="TIRE01")]=F
+
+
+##add data on whether the SEs are on a logistic scale or not
+project$sumstats$se.logit[which(project$sumstats$code=="ADHD05")]=T #Tested
+project$sumstats$se.logit[which(project$sumstats$code=="ALCD03")]=F #Tested
+project$sumstats$se.logit[which(project$sumstats$code=="ANOR02")]=T #Tested
+project$sumstats$se.logit[which(project$sumstats$code=="ANXI03")]=T #Tested
+project$sumstats$se.logit[which(project$sumstats$code=="ANXI04")]=F #Tested
+project$sumstats$se.logit[which(project$sumstats$code=="AUTI07")]=T #Tested
+project$sumstats$se.logit[which(project$sumstats$code=="BIPO02")]=T #Tested
+project$sumstats$se.logit[which(project$sumstats$code=="DEPR05")]=T #Tested
+project$sumstats$se.logit[which(project$sumstats$code=="DEPR08")]=T #Tested
+project$sumstats$se.logit[which(project$sumstats$code=="EDUC03")]=F #Continuous
+project$sumstats$se.logit[which(project$sumstats$code=="EXTR01")]=F #Continuous
+project$sumstats$se.logit[which(project$sumstats$code=="HEAL01")]=F #Continuous
+project$sumstats$se.logit[which(project$sumstats$code=="INCO03")]=F #Continuous
+project$sumstats$se.logit[which(project$sumstats$code=="INSO02")]=T #Tested
+project$sumstats$se.logit[which(project$sumstats$code=="INTE03")]=F #Continuous
+project$sumstats$se.logit[which(project$sumstats$code=="LONG07")]=F #Continuous
+project$sumstats$se.logit[which(project$sumstats$code=="MIGR01")]=F #Continuous
+project$sumstats$se.logit[which(project$sumstats$code=="NEUR01")]=F #Continuous
+project$sumstats$se.logit[which(project$sumstats$code=="PTSD04")]=F #Meta analysis
+project$sumstats$se.logit[which(project$sumstats$code=="RISK01")]=F #Continuous
+project$sumstats$se.logit[which(project$sumstats$code=="RISK02")]=F #Continuous
+project$sumstats$se.logit[which(project$sumstats$code=="RISK03")]=F #Continuous
+project$sumstats$se.logit[which(project$sumstats$code=="SCHI04")]=T #Tested
+project$sumstats$se.logit[which(project$sumstats$code=="SUBJ01")]=F #Continuous
+project$sumstats$se.logit[which(project$sumstats$code=="TIRE01")]=F #Continuous
+
 
 
 
@@ -581,15 +610,16 @@ project$sumstats<-project$sumstats[order(project$sumstats$code),]
 
 #selection based on specific traits
 #project$sumstats.sel.code<-c("ANXI04")
-#project$sumstats.sel.code<-c("ANXI03","DEPR05","DEPR08")
+#project$sumstats.sel.code<-c("ANXI04","DEPR08")
 #project$sumstats.sel.code<-c("TIRE01")
 #project$sumstats.sel.code<-c("ADHD05","ALCD03","ANOR02","ANXI03","AUTI07","BIPO02", "DEPR05","DEPR08","EDUC03","EXTR01","HEAL01","INCO03","INSO02","INTE03","LONG07", "MIGR01","NEUR01","PTSD04","RISK01","RISK02","RISK03","SCHI04","SUBJ01","TIRE01")
+#project$sumstats.sel.code<-c("ADHD05","ALCD03","ANXI03","AUTI07","BIPO02", "DEPR05","DEPR08","HEAL01","INCO03","INSO02","MIGR01","NEUR01","RISK02","RISK03","SCHI04","SUBJ01","TIRE01") #as fitted in setup3 with 10 latent factors
 project$sumstats.sel.code<-c("ADHD05","ALCD03","ANOR02","ANXI03","ANXI04","AUTI07","BIPO02", "DEPR05","DEPR08","EDUC03","EXTR01","HEAL01","INCO03","INSO02","INTE03","LONG07", "MIGR01","NEUR01","PTSD04","RISK01","RISK02","RISK03","SCHI04","SUBJ01","TIRE01")
 project$sumstats.sel<-project$sumstats[which(project$sumstats$code %in% project$sumstats.sel.code),]
 
 #project$sumstats.sel$code_orig<-project$sumstats.sel$code
 #project$sumstats.sel$code<-project$sumstats.sel$code.trait
-project$sumstats.sel[,c("code","name","name.nice","name.nice.and_code", "year","n_case","n_control","n_total","pmid","reference_doi","samplePrevalence","populationPrevalence","effect.logit","se.logit","dependent_variable.OLS","mungedpath")]
+project$sumstats.sel[,c("code","name","name.nice","name.nice.and_code", "year","n_case","n_control","n_total","pmid","reference_doi","samplePrevalence","populationPrevalence","dependent_variable.OLS","dependent_variable.linprob","se.logit","mungedpath")]
 project$k.sel<-nrow(project$sumstats.sel)
 #View(project$sumstats.sel[,c("code","n_total","pmid","reference_doi","samplePrevalence","populationPrevalence","mungedpath")])
 
@@ -631,7 +661,8 @@ if(project$clOptions$task=="munge"){
             traitNames = project$munge$traitNamesToUse,
             setChangeEffectDirectionOnAlleleFlip = T, #T=same behaviour as genomic SEM
             N = project$munge$NToUse,
-            pathDirOutput = project$folderpath.data.sumstats.munged
+            pathDirOutput = project$folderpath.data.sumstats.munged,
+            invertEffectDirectionOn = c("ANXI04") #ANXI4 has an inverted effect direction for some reason
               ) 
     
   project$sumstats.meta <- project$sumstats.meta %>% gt()
@@ -642,6 +673,7 @@ if(project$clOptions$task=="munge"){
   }
 
 ```
+
 # Generate noise variables - if needed
 ```{r GWAS sumstat generate noise}
 if(project$clOptions$task=="noise"){
@@ -677,9 +709,10 @@ The summary statistics is prepared for analysis by using the sumstats()-function
 #eval=FALSE
 #use ^this to knit without running the code in the chunk
 
-
-  #we need to introduce checks of the summary statistics and which scale they are on
-  # f.ex. Leo checks my s.e. 2 * pnorm(log(1.003) / 0.021644, mean = 0, lower.tail = FALSE)
+#test
+# tSumstats <- read.table(project$sumstats.sel["SCHI04",]$cleanedpath,header=T, quote="\"",fill=T,na.string=c(".",NA,"NA",""))
+# tSumstats$ptest<- 2*pnorm(abs(log(tSumstats$OR))/tSumstats$SE, lower.tail = F)
+# tSumstats$ptest<- 2*pnorm(abs(tSumstats$OR)/tSumstats$SE, lower.tail = F)
 
 project$filepath.lfgwas.sumstats<-file.path(project$folderpath.workingDirectory,paste0("lfGWAS.sumstats.",project$setup.code,".Rds"))
 
@@ -687,18 +720,24 @@ if(!file.exists(project$filepath.lfgwas.sumstats) && project$clOptions$task=="pr
 {
   print("Preparing summary statistics for latent factor GWAS. This might take a while.")
 
-
+  #special modification for running at rosalind
+  project$sumstats.sel["ANXI04",]$cleanedpath<-"/users/k19049801/project/JZ_GED_PHD_C1/data/gwas_sumstats/raw/GAD7_BGENIE_SexRegressed_For_LDSC.gz"
+  #project$sumstats.sel["ANXI04",]$cleanedpath<-"/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/raw/GAD7_BGENIE_SexRegressed_For_LDSC.gz"
+  
+  #prop: In order to perform the argument 6 conversion above from OLS betas to logistic betas, argument 7 takes the proportion of cases over the total sample size (range: 0 - 1). This argument should only contain numeric values if argument 6 is TRUE. If no information is provided the default is for the function to assume NULL.
+  #NULL prop crashes the function though
+  
   project$lfGWAS$sumstats<-sumstats.mod(
     files = project$sumstats.sel$cleanedpath,
     ref=project$filepath.SNPReference.1kg,
     trait.names=project$sumstats.sel$code,
     se.logit=project$sumstats.sel$se.logit,
     OLS=project$sumstats.sel$dependent_variable.OLS,
-    linprob=NULL, #THIS SHOULD BE INVESTIGATED FURTHER, IF A LINEAR OLS ESTIMATOR ON A DICHOTOMOUS DEP. VARIABLE WAS USED FOR ANY OF THE DATSETS 
-    prop=NULL,
+    linprob=project$sumstats.sel$dependent_variable.linprob,
+    prop=(project$sumstats.sel$n_case/project$sumstats.sel$n_total),
     N=project$sumstats.sel$n_total,
-    info.filter=project$lfGWAS$info.filter,
-    maf.filter=project$lfGWAS$maf.filter,
+    info.filter=0.6,
+    maf.filter=0.01,
     keep.indel=F,
     parallel=F, #The default = T eats lots of memory at once.
     cores=NULL
@@ -766,21 +805,21 @@ if (file.exists(project$filepath.mvLD)) {
   
   if(project$clOptions$task=="mvLD" || !file.exists(project$filepath.mvLD)){
     #run mvLDSC
-    # project$mvLD$covstruct.mvLDSC.hm3<-ldsc.mod(
-    #   traits = project$sumstats.sel$mungedpath,
-    #   sample.prev =  project$sumstats.sel$samplePrevalence,
-    #   population.prev = project$sumstats.sel$populationPrevalence,
-    #   trait.names = project$sumstats.sel$code,
-    #   ld = project$folderpath.data.mvLDSC.ld.hm3,
-    #   wld = project$folderpath.data.mvLDSC.ld.hm3,
-    #   n.blocks = 200, #this was standard for the hm3 set of snps
-    #   info.filter = 0.6,
-    #   maf.filter = 0.01,
-    #   N = project$sumstats.sel$n_total,
-    #   ldsc.log = project$setup.code.date,
-    #   stand = T,
-    #   limited = T
-    #   )
+    project$mvLD$covstruct.mvLDSC.hm3<-ldsc.mod(
+      traits = project$sumstats.sel$mungedpath,
+      sample.prev =  project$sumstats.sel$samplePrevalence,
+      population.prev = project$sumstats.sel$populationPrevalence,
+      trait.names = project$sumstats.sel$code,
+      ld = project$folderpath.data.mvLDSC.ld.hm3,
+      wld = project$folderpath.data.mvLDSC.ld.hm3,
+      n.blocks = 200, #this was standard for the hm3 set of snps
+      info.filter = 0.6,
+      frq.filter = 0.01,
+      mhc.filter = 37,
+      N = project$sumstats.sel$n_total,
+      ldsc.log = project$setup.code.date,
+      stand = T
+      )
     
     project$mvLD$covstruct.mvLDSC.1kg<-ldsc.mod(
       traits = project$sumstats.sel$mungedpath,
@@ -791,7 +830,7 @@ if (file.exists(project$filepath.mvLD)) {
       wld = project$folderpath.data.mvLDSC.ld.1kg,
       n.blocks = 600,
       info.filter = 0.6,
-      maf.filter = 0.01,
+      frq.filter = 0.01,
       mhc.filter = 37,
       N = project$sumstats.sel$n_total,
       ldsc.log = project$setup.code.date,
@@ -800,7 +839,20 @@ if (file.exists(project$filepath.mvLD)) {
     
   }
     
-  #Sys.sleep(time = 5)
+  # #Sys.sleep(time = 5)
+  # #flip effect direction of trait
+  # SModifier<-matrix(nrow = nrow(project$mvLD$covstruct.mvLDSC.1kg$S), ncol = ncol(project$mvLD$covstruct.mvLDSC.1kg$S), dimnames = list(
+  #   colnames(project$mvLD$covstruct.mvLDSC.1kg$S),
+  #   colnames(project$mvLD$covstruct.mvLDSC.1kg$S)
+  #   )
+  #   )
+  # 
+  # SModifier["ANXI04",]<--1
+  # SModifier[,"ANXI04"]<--1
+  # SModifier["ANXI04","ANXI04"]<-NA
+  # # View(SModifier)
+  # 
+  # project$mvLD$covstruct.mvLDSC.1kg$S[!is.na(SModifier)]<-project$mvLD$covstruct.mvLDSC.1kg$S[!is.na(SModifier)]*SModifier[!is.na(SModifier)]
   
   #set the default mvLDSC object to use
   project$mvLD$covstruct.mvLDSC<-project$mvLD$covstruct.mvLDSC.1kg
@@ -840,10 +892,10 @@ if(project$clOptions$task=="mvLD"){
 
   
 #add newly computed heritabilities to the selected summary statistics table
-project$sumstats.sel$h2.liability_mvLDSC.1kg<-diag(project$mvLD$covstruct.mvLDSC.1kg$S)
-project$sumstats.sel$h2.se.liability_mvLDSC.1kg<-diag(project$mvLD$covstruct.mvLDSC.1kg$S.SE)
-# project$sumstats.sel$h2.liability_mvLDSC.hm3<-diag(project$mvLD$covstruct.mvLDSC.hm3$S)
-# project$sumstats.sel$h2.se.liability_mvLDSC.hm3<-diag(project$mvLD$covstruct.mvLDSC.hm3$S.SE)
+project$sumstats.sel$h2.liability_mvLDSC.1kg<-diag(project$mvLD$covstruct.mvLDSC.1kg$S[project$sumstats.sel$code,project$sumstats.sel$code])
+project$sumstats.sel$h2.se.liability_mvLDSC.1kg<-diag(project$mvLD$covstruct.mvLDSC.1kg$S.SE[project$sumstats.sel$code,project$sumstats.sel$code])
+project$sumstats.sel$h2.liability_mvLDSC.hm3<-diag(project$mvLD$covstruct.mvLDSC.hm3$S[project$sumstats.sel$code,project$sumstats.sel$code])
+project$sumstats.sel$h2.se.liability_mvLDSC.hm3<-diag(project$mvLD$covstruct.mvLDSC.hm3$S.SE[project$sumstats.sel$code,project$sumstats.sel$code])
 
 
 #View(project$sumstats.sel)
@@ -855,8 +907,15 @@ project$sumstats.sel$h2.se.liability_mvLDSC.1kg<-diag(project$mvLD$covstruct.mvL
 ## Overview of rG between selected traits
 ```{r overview pairwise rG, fig.width=9, fig.height=6, out.width="1600px", out.height="1000px", purl=FALSE}
 library(corrplot) #do not run on cluster, does not work?
+
+
+
 #c(theme.color$contrastDark3,theme.color$contrastLight3)
-project$printCorr <- function(corr, SE=NULL, filename, addrect = 4, is.corr = T, number.cex = 1.5, number.digits=2){
+project$printCorr <- function(corr, SE=NULL, filename, addrect = 4, is.corr = T, number.cex = 1, number.digits=2){
+  # corr <- project$mvLD$covstruct.mvLDSC.1kg$S_Stand.forPlot
+  # SE <- project$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE[project$sumstats.sel$code,project$sumstats.sel$code]
+  # filename <- file.path(project$folderpath.plots,"rg.1kg_ld.png")
+  # is.corr <- T
   
   # if(absScale){
   #   palette<-colorRampPalette(c("#FFFFFF",theme.color$contrastLight3))
@@ -870,8 +929,8 @@ project$printCorr <- function(corr, SE=NULL, filename, addrect = 4, is.corr = T,
     corr.uppCI <- NULL
     corr.lowCI <- NULL
   } else {
-    corr.uppCI<-corr + 1.96 * SE
-    corr.lowCI<-corr - 1.96 * SE
+    corr.uppCI<-clipValues(corr + 1.96 * SE, -1,1)
+    corr.lowCI<-clipValues(corr - 1.96 * SE, -1,1)
   }
   
   png(filename = filename, width = 1200, height = 1000)
@@ -951,19 +1010,19 @@ dev.off()
   
 }
 
-project$mvLD$covstruct.mvLDSC.1kg$S_Stand.forPlot<-project$mvLD$covstruct.mvLDSC.1kg$S_Stand
+project$mvLD$covstruct.mvLDSC.1kg$S_Stand.forPlot<-project$mvLD$covstruct.mvLDSC.1kg$S_Stand[project$sumstats.sel$code,project$sumstats.sel$code]
 rownames(project$mvLD$covstruct.mvLDSC.1kg$S_Stand.forPlot)<-project$sumstats.sel$name.nice
 colnames(project$mvLD$covstruct.mvLDSC.1kg$S_Stand.forPlot)<-project$sumstats.sel$name.nice
 
 project$printCorrSimplified(
-  corr = project$mvLD$covstruct.mvLDSC.1kg$S_Stand.forPlot,
+  corr = clipValues(project$mvLD$covstruct.mvLDSC.1kg$S_Stand.forPlot,-1,1),
   #SE = project$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE,
   filename = file.path(project$folderpath.plots,"rg.1kg_ld.simple.png"),
-  is.corr = F
+  is.corr = T
   )
 
 project$printCorrSimplified(
-  corr = abs(project$mvLD$covstruct.mvLDSC.1kg$S_Stand.forPlot),
+  corr = clipValues(abs(project$mvLD$covstruct.mvLDSC.1kg$S_Stand.forPlot),-1,1),
   #SE = project$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE,
   filename = file.path(project$folderpath.plots,"absrg.1kg_ld.simple.png"),
   is.corr = F,
@@ -971,10 +1030,10 @@ project$printCorrSimplified(
   )
 
 project$printCorr(
-  corr = project$mvLD$covstruct.mvLDSC.1kg$S_Stand,
-  SE = project$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE,
+  corr = clipValues(project$mvLD$covstruct.mvLDSC.1kg$S_Stand[project$sumstats.sel$code,project$sumstats.sel$code],-1,1),
+  SE = project$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE[project$sumstats.sel$code,project$sumstats.sel$code],
   filename = file.path(project$folderpath.plots,"rg.1kg_ld.png"),
-  is.corr = F
+  is.corr = T
   )
 
 # project$printCorr(
@@ -1033,7 +1092,6 @@ project$printCorr(
 #View(project$sumstats.sel)
 
 project$sumstats.sel.table<-project$sumstats.sel[,c("name.nice","code","year","n_case_total","n_control", "samplePrevalence","populationPrevalence","h2.liability_mvLDSC.1kg","h2.se.liability_mvLDSC.1kg","h2.liability_mvLDSC.hm3","h2.se.liability_mvLDSC.hm3")]
-rownames(project$sumstats.sel.table)<-NULL #Remove the rowname column
 #View(project$sumstats.sel.table)
 #project$sumstats.sel.table
 
@@ -1168,10 +1226,10 @@ project$EFA<-readRDS(file=project$filepath.efa)
 
 CFA.
 
-### Create CFA models
+### Create CFA indicator loading patterns
 
-```{r CFA model creation}
-print("***CFA model creation***")
+```{r CFA indicator loading pattern creation}
+print("***CFA indicator loading pattern creation***")
 
 ## CFA aditional settings
 project$sumstats.sel$residualSizeLimitMax<-NA_real_
@@ -1190,16 +1248,15 @@ if(!file.exists(project$filepath.cfa)){
   #iFactorConfiguration<-1
   for(iFactorConfiguration in 1:length(project$CFA$nFactors)) {
 
-  #PCA based models
-  project$CFA$indicatorLoadingPatterns.PCA[[iFactorConfiguration]]<-semplate$generateIndicatorLoadingPatternsFromFactorLoadings(factorLoadings = project$EFA$PCA[[iFactorConfiguration]]$vector_values, increment = 0.0005,forceOneIndicatorLoading = T)
-    
-  ##fa based models
-  project$CFA$indicatorLoadingPatterns.fa[[iFactorConfiguration]]<-semplate$generateIndicatorLoadingPatternsFromFactorLoadings(factorLoadings = project$EFA$fa.result[[iFactorConfiguration]]$loadings, increment = 0.0005,forceOneIndicatorLoading = T)
-  
   ##kmeans clustering based models
   project$CFA$indicatorLoadingPatterns.kmeans[[iFactorConfiguration]]<-semplate$generateIndicatorLoadingPatternsFromFactorLoadings(factorLoadings = t(project$EFA$kmeans.result[[iFactorConfiguration]]$centers), increment = 0.0005,forceOneIndicatorLoading = T)
   
-  
+  ##fa based models
+  project$CFA$indicatorLoadingPatterns.fa[[iFactorConfiguration]]<-semplate$generateIndicatorLoadingPatternsFromFactorLoadings(factorLoadings = project$EFA$fa.result[[iFactorConfiguration]]$loadings, increment = 0.0005,forceOneIndicatorLoading = T)
+    
+  #PCA based models
+  project$CFA$indicatorLoadingPatterns.PCA[[iFactorConfiguration]]<-semplate$generateIndicatorLoadingPatternsFromFactorLoadings(factorLoadings = project$EFA$PCA[[iFactorConfiguration]]$vector_values, increment = 0.0005,forceOneIndicatorLoading = T)
+    
   project$CFA$sessionIndicatorLoadingPatterns[[iFactorConfiguration]]<-unique(rbind(project$CFA$indicatorLoadingPatterns.kmeans[[iFactorConfiguration]],project$CFA$indicatorLoadingPatterns.fa[[iFactorConfiguration]],project$CFA$indicatorLoadingPatterns.PCA[[iFactorConfiguration]]))
   
   }
@@ -1213,8 +1270,8 @@ if(!file.exists(project$filepath.cfa)){
 
 ### Evaluate CFA models
 
-```{r CFA evaluation}
-print("***CFA evaluation***")
+```{r CFA model evaluation}
+print("***CFA model evaluation***")
 
 match.row<-function(row_v,tomatch_df){
   #row_v<-lp
@@ -1237,18 +1294,27 @@ project$CFA<-readRDS(file=project$filepath.cfa)
 } else {
   
   nModel<-0
+  nFittingModelsFound<-0
+  #compute total number of models across factor configurations
+  totalNumberOfModels<-0
   for(iFactorConfiguration in 1:length(project$CFA$nFactors)) {
     sessionPatternLength<-nrow(project$CFA$sessionIndicatorLoadingPatterns[[iFactorConfiguration]])
+    totalNumberOfModels<-totalNumberOfModels+sessionPatternLength
+  }
+  
+  for(iFactorConfiguration in 1:length(project$CFA$nFactors)) {
+    #test
+    #iFactorConfiguration<-1
+    sessionPatternLength<-nrow(project$CFA$sessionIndicatorLoadingPatterns[[iFactorConfiguration]])
     
-    cat("\nAnalysing ",sessionPatternLength, "models...\n")
-    nFittingModelsFound<-0
+    cat("\nAnalysing",sessionPatternLength, "patterns...\n")
     for(nSessioPattern in 1:sessionPatternLength){
       #new model row
       
       #test
-      #nSessioPattern=1
+      #nSessioPattern<-11
       
-      nModel=nModel+1
+      nModel<-nModel+1
       
       if(!is.null(project$CFA$models.selected)){
         if(!nModel %in% project$CFA$models.selected$nModel) next
@@ -1265,9 +1331,9 @@ project$CFA<-readRDS(file=project$filepath.cfa)
       project$CFA$models[nModel,c("nModel")]<-nModel
       
         #code
-      project$CFA$models[nModel,c("code")]<-paste0("M",project$CFA$nFactors[iFactorConfiguration],"-",project$CFA$nIndicators,
-      ".",project$CFA$estimator,
-      ".",nSessioPattern
+      project$CFA$models[nModel,c("code")]<-paste0("M",project$CFA$nIndicators,"-",project$CFA$nFactors[iFactorConfiguration],
+      ".",nSessioPattern,
+      ".",project$CFA$estimator
       )
       
       #nFactors
@@ -1297,6 +1363,8 @@ project$CFA<-readRDS(file=project$filepath.cfa)
     
       #allow evaluation if filter rules are met
       if(all(indicatorsLoadedOnFactors) & all(factorsHasIndicatorsLoaded)){
+        
+        #generate lavaan model
         project$CFA$models[nModel,c("lModel")]<- semplate$generateLavaanCFAModel(
           allow_loading.table.indicator_factor = cIndicatorLoadings,
           indicatorArgs = project$sumstats.sel[,c("code","residualSizeLimitMax")],
@@ -1304,8 +1372,8 @@ project$CFA<-readRDS(file=project$filepath.cfa)
           orthogonal = T #using orthogonal configs for multiple factors
           )
         
-        #evaluate model
-        cat("\n#Found fitting=",nFittingModelsFound,"\n", project$CFA$models[nModel,c("searchBitValue")],":",project$CFA$models[nModel,c("code")], ":",nModel,"/",sessionPatternLength,"\n")
+        #evaluate lavaan model in GenomicSEM
+        cat("\n\n#Found fitting=",nFittingModelsFound,",\tevaluating new model:\t",nModel,"/",totalNumberOfModels,"\n", project$CFA$models[nModel,c("code")],"\n")
         cModelResults = tryCatch(
           usermodel.mod(covstruc = project$mvLD$covstruct.mvLDSC,
             model = project$CFA$models[nModel,c("lModel")],
@@ -1319,7 +1387,7 @@ project$CFA<-readRDS(file=project$filepath.cfa)
           if(nrow(cModelResults$modelfit)>0 && any(project$CFA$resultColumnNames %in% colnames(cModelResults$modelfit))) {
             print(cModelResults$modelfit)
             #record results even though not fitting
-            project$CFA$models[[nModel,c("gsemResults")]]<-cModelResults
+            project$CFA$models[[nModel,c("gsemResults")]]<-list(cModelResults)
             cRescolnames<-intersect(project$CFA$resultColumnNames,colnames(cModelResults$modelfit))
             project$CFA$models[nModel,cRescolnames]<-cModelResults$modelfit[1,cRescolnames]
             if(is.numeric(cModelResults$modelfit$chisq)){
@@ -1327,7 +1395,11 @@ project$CFA<-readRDS(file=project$filepath.cfa)
               nFittingModelsFound<-nFittingModelsFound+1
               cat("\nFITTING!:",project$CFA$models[nModel,c("code")],"\n")
             }
+          } else {
+            cat("\nThe model did not yield correct results.")
           }
+        } else {
+          cat("\nThe model did not converge.")
         }
         
         
@@ -1349,54 +1421,63 @@ if(project$clOptions$task=="cfa"){quit(save = "no")}
 
 ```
 
-### Investigate CFA results
+### Investigate and select CFA results
 
-```{r CFA investigate, purl=FALSE}
+```{r CFA select}
+print("***CFA select***")
 
-#project$CFA$models.selected<-project$CFA$models.selected<-project$CFA$models[which(project$CFA$models$SRMR<1),c("totalBitValue","code","lModel",project$CFA$resultColumnNames)]
-project$CFA$models.selected<-project$CFA$models[which(project$CFA$models$AIC<2000),c("code","nModel", "loading_pattern","loading_pattern_pca","loading_pattern_fa","loading_pattern_kmeans",project$CFA$resultColumnNames)]
+rownames(project$CFA$models)<-project$CFA$models$code
+#View(project$CFA$models[which(project$CFA$models$AIC<6000),c("code","nModel", "loading_pattern","loading_pattern_pca","loading_pattern_fa","loading_pattern_kmeans",project$CFA$resultColumnNames)])
+
+project$CFA$models.selected<-project$CFA$models[c("M25-4.74.ML","M25-7.29.ML","M25-10.55.ML"),] #this is a manual setting after choosing the best fitting models from the previous results 
 #View(project$CFA$models.selected)
 
 
 ```
 
 
-### Select CFA results
+### Process CFA result models and prepare them for latent factor GWAS
 
-```{r CFA select}
-print("***CFA select***")
+```{r Process CFA results}
 
-#View(project$CFA$models.selected<-project$CFA$models[which(project$CFA$models$SRMR<1),c("totalBitValue","code","lModel",project$CFA$resultColumnNames)])
-#project$CFA$models.selected<-project$CFA$models[which(project$CFA$models$AIC<100),c("totalBitValue","code","lModel",project$CFA$resultColumnNames)]
-#View(project$CFA$models.selected)
-project$CFA$model.bestFitting<-project$CFA$models[which(project$CFA$models$nModel==267),] #this is a manual setting after choosing the best fitting model from the previous results 
+project$CFA$models.selected$parsedGsemResults<-NA
+project$CFA$models.selected$lModel.fixed<-NA
+for(iSelected in 1:nrow(project$CFA$models.selected)){
+  #test
+  #iSelected<-1
+  project$CFA$models.selected[[iSelected,c("parsedGsemResults")]]<-list(semplate$parseGenomicSEMResultAsMatrices(project$CFA$models.selected[iSelected,]$gsemResults[[1]][[1]]$results))
+  
+  # model explained variance is calculated by the parse function from the standardised residuals
+  # vars<-vector()
+  # for(iManifest in 1:nrow(project$mvLD$covstruct.mvLDSC$S)){
+  #   vars[iManifest]<-project$mvLD$covstruct.mvLDSC$S[iManifest,iManifest]
+  # }
+  # 1-(project$CFA$models.selected[[iSelected,c("parsedGsemResults")]][[1]]$residualVaraiances.matrix/vars)
+  
+  
+  #using the standardised pattern coefficients to fix the model
+  #summary(project$CFA$model.bestFitting$gsemResults[[1]]$lresults, standardized=T)
+  project$CFA$models.selected[[iSelected,c("parsedGsemResults")]][[1]]$patternCoefficientsSTDGenotype.matrix
+  
+  #prepare fixed lavaan model
+      
+  cIndicatorLoadings.loadingPattern<-matrix(
+    data = project$CFA$models.selected[iSelected,]$loading_pattern[[1]][[1]],
+    ncol = ncol(project$CFA$models.selected[iSelected,]$parsedGsemResults[[1]][[1]]$patternCoefficientsSTDGenotype.matrix),
+    nrow = nrow(project$CFA$models.selected[iSelected,]$parsedGsemResults[[1]][[1]]$patternCoefficientsSTDGenotype.matrix)) 
+  row.names(cIndicatorLoadings.loadingPattern)<-project$sumstats.sel$code
+  cIndicatorLoadings.result<-!is.na(project$CFA$models.selected[iSelected,]$parsedGsemResults[[1]][[1]]$patternCoefficientsSTDGenotype.matrix)
+  
+  if(!all(cIndicatorLoadings.loadingPattern==cIndicatorLoadings.result)) stop("Difference in provided and result loading patterns detected!")
+  
+  cIndicatorLoadings<-cIndicatorLoadings.loadingPattern
+  
+  project$CFA$models.selected[[iSelected,c("lModel.fixed")]]<-semplate$generateLavaanCFAModel(
+    allow_loading.table.indicator_factor = cIndicatorLoadings,
+    fix_loading.table.indicator_factor = project$CFA$models.selected[iSelected,]$parsedGsemResults[[1]][[1]]$patternCoefficientsSTDGenotype.matrix, fix_loading.table.residual_variance = project$CFA$models.selected[iSelected,]$parsedGsemResults[[1]][[1]]$residualVaraiancesSTDGenotype.matrix,
+    orthogonal = T)
 
-
-project$CFA$model.bestFitting$df
-project$CFA$model.bestFitting$chisq
-project$CFA$model.bestFitting$p_chisq
-project$CFA$model.bestFitting$AIC
-project$CFA$model.bestFitting$SRMR
-
-project$CFA$model.bestFitting$lModel
-
-project$CFA$model.bestFitting$parsedGenomicSEMResult<-list(semplate$parseGenomicSEMResultAsMatrices(project$CFA$model.bestFitting$gsemResults[[1]]$results))
-
-#summary(project$CFA$model.bestFitting$gsemResults[[1]]$lresults, standardized=T)
-project$CFA$model.bestFitting$parsedGenomicSEMResult[[1]]$patternCoefficients
-
-#prepare fixed lavaan model
-    
-cIndicatorLoadings<-matrix(
-  data = project$CFA$model.bestFitting$loading_pattern[[1]][[1]],
-  nrow = project$CFA$nIndicators,
-  ncol = project$CFA$nFactors) 
-row.names(cIndicatorLoadings)<-project$sumstats.sel$code
-
-project$CFA$model.bestFitting$lmodel.fixed<-semplate$generateLavaanCFAModel(
-  allow_loading.table.indicator_factor = cIndicatorLoadings,
-  fix_loading.table.indicator_factor = project$CFA$model.bestFitting$parsedGenomicSEMResult[[1]]$patternCoefficients, fix_loading.table.residual_variance = project$CFA$model.bestFitting$parsedGenomicSEMResult[[1]]$residualVariances,
-  orthogonal = T)
+}
 
 ```
 
@@ -1409,96 +1490,122 @@ This will not work if the model does not converge.
 library(tidySEM)
 library(DiagrammeR)
 
-#project$CFA$model.bestFitting$lModel
-#project$CFA$model.bestFitting$lResults
+for(iSelected in 1:nrow(project$CFA$models.selected)){
 
-
-
-#plot full model
-
-project$CFA$semGraphLayout <- get_layout("F1","","F2","","F3","","F4","","F5","","F6","","F8","","F9","","F10",
-          "ADHD05","ALCD03","ANXI03","AUTI07","BIPO02", "DEPR05","DEPR08","HEAL01","INCO03","INSO02", "MIGR01","NEUR01","RISK02","RISK03","SCHI04","SUBJ01","TIRE01",
-          "","","","","","","","","","","","","","","","","",
-          rows = 3)
-
-graph_sem(
-  #model = cModelResults$lresults,
-model=project$CFA$model.bestFitting$gsemResults[[1]]$lresults,
-layout = project$CFA$semGraphLayout,
-spacing_y=8,
-spacing_x=4,
-ellipses_width=5,
-rect_width=3,
-variance_diameter=0.5,
-angle=180
-)
-ggsave(filename=file.path(project$folderpath.plots,paste0("cfa.plot.bestfitting.png")), plot = last_plot(), width = 500, height = 300, units = "mm")
-
-
-
-#cModelResults$modelfit
-#nFactor<-1
-for(nFactor in 1:project$CFA$nFactors){
-  project$CFA$semGraphLayout <- get_layout("","","","","","","","",paste0("F",nFactor),"","","","","","","","",
-          "ADHD05","ALCD03","ANXI03","AUTI07","BIPO02", "DEPR05","DEPR08","HEAL01","INCO03","INSO02", "MIGR01","NEUR01","RISK02","RISK03","SCHI04","SUBJ01","TIRE01",
-          "","","","","","","","","","","","","","","","","",
-          rows = 3)
-
+  #test
+  #iSelected<-1
   
-  # graph_sem(
-  #   #model = cModelResults$lresults,
-  # model=project$CFA$model.bestFitting$gsemResults[[1]]$lresults,
-  # layout = project$CFA$semGraphLayout,
-  # spacing_y=8,
-  # spacing_x=4,
-  # ellipses_width=7,
-  # rect_width=3,
-  # variance_diameter=0.5,
-  # angle=180
-  # )
-  #ggsave(filename=file.path(project$folderpath.plots,paste0("cfa.plot.bestfitting.F",nFactor,".png")), plot = last_plot(), width = 500, height = 300, units = "mm")
-  #dev.off()
+  #plot full model
+  cModel<-project$CFA$models.selected[iSelected,]
   
-  dftoplot<-data.frame(
-    indicator=project$sumstats.sel$name.nice,
-    #indicator=rownames(project$CFA$model.bestFitting$parsedGenomicSEMResult[[1]]$patternCoefficients),
-    pattern=project$CFA$model.bestFitting$parsedGenomicSEMResult[[1]]$patternCoefficients[,nFactor]
-    )
-  dftoplot$bar_aes <- ifelse(dftoplot$pattern < 0, "-1", "1")
-  ggplot(
-    data = dftoplot,
-    aes(x=indicator, y=pattern)) + 
-    geom_bar(stat = "identity", aes(fill=bar_aes), width = 0.5) +
-    scale_fill_manual(name="Indicator pattern loading", 
-                    labels = c("Negative", "Positive"), 
-                    values = c("-1"=theme.color$contrastDark3, "1"=theme.color$contrastLight3)) +
-    geom_text(aes(label=paste(indicator,round(pattern,digits = 3),sep = "\n")), size=4.5) +
-    #geom_text(aes(label=paste(indicator,round(pattern,digits = 3),sep = "\n")), vjust=-0.3, size=5) +
-    labs(title=paste0("Factor",nFactor),
-         y="Std. indicator loading",
-         x="Indicator"
-       ) +
-    theme_minimal()
+  dir.create(path = file.path(project$folderpath.plots,cModel$code))
   
-  ggsave(filename=file.path(project$folderpath.plots,paste0("cfa.plot.bestfitting.F",nFactor,".png")), plot = last_plot(), width = 500, height = 300, units = "mm")
-    #coord_flip()
+  project$CFA$semGraphLayout <- get_layout(
+    "F1","","F2","","F3","","F4","","F5","","F6","","F7","","F8","","F9","","F10","","","","","","",
+            "ADHD05","ALCD03","ANOR02","ANXI03","ANXI04","AUTI07","BIPO02", "DEPR05","DEPR08","EDUC03","EXTR01","HEAL01","INCO03","INSO02","INTE03","LONG07", "MIGR01","NEUR01","PTSD04","RISK01","RISK02","RISK03","SCHI04","SUBJ01","TIRE01",
+            "","","","","","","","","","","","","","","","","","","","","","","","","",
+            rows = 3)
   
-  #semplate$parseAndPrintGenomicSEMResult(resultDf = project$CFA$model.bestFitting$gsemResults[[1]]$results)
+  graph_sem(
+    #model = cModelResults$lresults,
+  model=cModel$gsemResults[[1]][[1]]$lresults,
+  layout = project$CFA$semGraphLayout,
+  spacing_y=8,
+  spacing_x=4,
+  ellipses_width=5,
+  rect_width=3,
+  variance_diameter=0.5,
+  angle=180
+  )
+  
+  ggsave(filename=file.path(project$folderpath.plots,cModel$code,paste0("cfa.png")), plot = last_plot(), width = 1200, height = 600, units = "mm")
+  
+  
+  #https://rpubs.com/danmirman/plotting_factor_analysis
+  df<-as.data.frame(cModel$parsedGsemResults[[1]][[1]]$patternCoefficientsSTDGenotype.matrix)
+  df[,c("~disturbance")]<-cModel$parsedGsemResults[[1]][[1]]$residualVaraiancesSTDGenotype.matrix #add disturbances
+  df<-rownames_to_column(df,var = "var")
+  df.l <- pivot_longer(data = df,  -var)
+  
+  ggplot(df.l, aes(var, abs(value), fill=value)) + 
+  facet_wrap(~ name, nrow=1) + #place the factors in separate facets
+  geom_bar(stat="identity") + #make the bars
+  coord_flip() + #flip the axes so the test names can be horizontal  
+  #define the fill color gradient: blue=positive, red=negative
+  scale_fill_gradient2(name = "Loading", 
+                       high = theme.color$contrastLight3, mid = "white", low = theme.color$contrastDark3, 
+                       midpoint=0, guide=F) +
+  ylab("Pattern coefficients (std)") + #improve y-axis label
+  xlab("Indicator") +
+  theme_bw(base_size=10) #use a black-and white theme with set font size
+  
+  ggsave(filename=file.path(project$folderpath.plots,cModel$code, paste0("ipc.png")), plot = last_plot(), width = 800, height = 400, units = "mm")
+  
+  #cModelResults$modelfit
+  #nFactor<-1
+  for(nFactor in 1:ncol(cModel$parsedGsemResults[[1]][[1]]$patternCoefficientsSTDGenotype.matrix)){
+    project$CFA$semGraphLayout <- get_layout("","","","","","","","","","","",paste0("F",nFactor),"","","","","","","","","","","","","",
+            "ADHD05","ALCD03","ANOR02","ANXI03","ANXI04","AUTI07","BIPO02", "DEPR05","DEPR08","EDUC03","EXTR01","HEAL01","INCO03","INSO02","INTE03","LONG07", "MIGR01","NEUR01","PTSD04","RISK01","RISK02","RISK03","SCHI04","SUBJ01","TIRE01",
+            "","","","","","","","","","","","","","","","","","","","","","","","","",
+            rows = 3)
+  
+    
+    # graph_sem(
+    #   #model = cModelResults$lresults,
+    # model=project$CFA$model.bestFitting$gsemResults[[1]]$lresults,
+    # layout = project$CFA$semGraphLayout,
+    # spacing_y=8,
+    # spacing_x=4,
+    # ellipses_width=7,
+    # rect_width=3,
+    # variance_diameter=0.5,
+    # angle=180
+    # )
+    #ggsave(filename=file.path(project$folderpath.plots,paste0("cfa.plot.bestfitting.F",nFactor,".png")), plot = last_plot(), width = 500, height = 300, units = "mm")
+    #dev.off()
+    
+    # dftoplot<-data.frame(
+    #   indicator=project$sumstats.sel$name.nice,
+    #   #indicator=rownames(project$CFA$model.bestFitting$parsedGenomicSEMResult[[1]]$patternCoefficients),
+    #   pattern=cModel$parsedGsemResults[[1]][[1]]$patternCoefficients[,nFactor]
+    #   )
+    # dftoplot$bar_aes <- ifelse(dftoplot$pattern < 0, "-1", "1")
+    # ggplot(
+    #   data = dftoplot,
+    #   aes(x=indicator, y=pattern)) + 
+    #   geom_bar(stat = "identity", aes(fill=bar_aes), width = 0.5) +
+    #   scale_fill_manual(name="Indicator pattern loading", 
+    #                   labels = c("Negative", "Positive"), 
+    #                   values = c("-1"=theme.color$contrastDark3, "1"=theme.color$contrastLight3)) +
+    #   geom_text(aes(label=paste(indicator,round(pattern,digits = 3),sep = "\n")), size=4.5) +
+    #   #geom_text(aes(label=paste(indicator,round(pattern,digits = 3),sep = "\n")), vjust=-0.3, size=5) +
+    #   labs(title=paste0("Factor",nFactor),
+    #        y="Std. indicator loading",
+    #        x="Indicator"
+    #      ) +
+    #   theme_minimal()
+    
+    #ggsave(filename=file.path(project$folderpath.plots,cModel$code, paste0("cfa.F",nFactor,".png")), plot = last_plot(), width = 500, height = 300, units = "mm")
+      #coord_flip()
+    
+    #semplate$parseAndPrintGenomicSEMResult(resultDf = project$CFA$model.bestFitting$gsemResults[[1]]$results)
+  }
+  
+  
+  # project$CFA$semGraphLayout <- get_layout("F1","","F2","","F3","","F4","","F5","","F6","","F7","","F8","","F9",
+  #           "ADHD05","ALCD03","ANXI03","AUTI07","BIPO02", "DEPR05","DEPR08","HEAL01","INCO03","INSO02", "MIGR01","NEUR01","RISK02","RISK03","SCHI04","SUBJ01","TIRE01",
+  #           "","","","","","","","","","","","","","","","","",
+  #           rows = 3)
+  
+  
+  
+  
+  # graph_sem(model=cModelResults$lresults)
+  #parsedSEMResult<-semplate$parseGenomicSEMResult(cModelResults$results)
+  #dot<-semplate$generateDOT(nodeDf=parsedSEMResult$nodeDf, edgeDf=parsedSEMResult$edgeDf)
+  #grViz(semplate$parseAndPrintGenomicSEMResult(resultDf = cModelResults$results))
+
 }
-
-
-# project$CFA$semGraphLayout <- get_layout("F1","","F2","","F3","","F4","","F5","","F6","","F7","","F8","","F9",
-#           "ADHD05","ALCD03","ANXI03","AUTI07","BIPO02", "DEPR05","DEPR08","HEAL01","INCO03","INSO02", "MIGR01","NEUR01","RISK02","RISK03","SCHI04","SUBJ01","TIRE01",
-#           "","","","","","","","","","","","","","","","","",
-#           rows = 3)
-
-
-
-
-# graph_sem(model=cModelResults$lresults)
-#parsedSEMResult<-semplate$parseGenomicSEMResult(cModelResults$results)
-#dot<-semplate$generateDOT(nodeDf=parsedSEMResult$nodeDf, edgeDf=parsedSEMResult$edgeDf)
-#grViz(semplate$parseAndPrintGenomicSEMResult(resultDf = cModelResults$results))
 
 ```
 
@@ -1511,75 +1618,95 @@ https://rpubs.com/MichelNivard/640145
 "... Note that with out of sample LD hdl() may esitmate somewhat lower heritability, and a higher intercept, this means you should NOT use the intercept to shrink effect sizes if you run a GWAS in GenomicSEM."
 
 ```{r latent factor GWAS}
+
 print("***latent factor GWAS***")
 #library(lavaan)
-cat("\nChromosomes in lfGWAS sumstats:\n",unique(project$lfGWAS$sumstats$CHR),"\n")
+#library(gdata)
+
 
 #inactivated if sumstats are not prepared
 if(!is.null(project$lfGWAS$sumstats)){
   
+  cat("\nChromosomes in lfGWAS sumstats:\n",unique(project$lfGWAS$sumstats$CHR),"\n")
+  
   #test 
-  #project$clOptions$task_argument<-"1:1"
-  #project$clOptions$task_argument<-"1"
+  #project$clOptions$task_argument<-"M25-4.74.ML:1"
+  #project$clOptions$task_argument<-"M25-4.74.ML"
   
    #load intermediate results
   if(!project$clOptions$task=="lfgwas" & !file.exists(file.path(project$folderpath.workingDirectory,paste0("lfGWAS.gwas.",project$setup.code,".Rds")))){
     print("Reading in latent factor gwas intermediate results.")
-    project$lfGWAS$intermediateResultFiles<-list.files(path = project$folderpath.workingDirectory, pattern = paste0("^lfGWAS\\.gwas\\.F.+",project$setup.code,"\\.Rds"), full.names = T, ignore.case=T)
-    nIntermediateFactors<-NULL
-    for(nIntermediateResultFile in 1:length(project$lfGWAS$intermediateResultFiles)){
-      #nIntermediateResultFile<-1
-      intermediateResult<-readRDS(file=project$lfGWAS$intermediateResultFiles[nIntermediateResultFile])
-      #initialise storage
-      if(is.null(nIntermediateFactors)){
-        project$lfGWAS$gwas<-list()
-        nIntermediateFactors<-length(intermediateResult)
-        for(nFactor in 1:nIntermediateFactors){
-          project$lfGWAS$gwas[[nFactor]]<-intermediateResult[[nFactor]]
-        }
-      } else {
-        for(nFactor in 1:nIntermediateFactors){
-          project$lfGWAS$gwas[[nFactor]]<-rbind(project$lfGWAS$gwas[[nFactor]],intermediateResult[[nFactor]]) 
+    project$lfGWAS$gwas<-list()
+    
+    for(iModel in 1:nrow(project$CFA$models.selected)){
+      #test
+      #iModel<-2
+      cModel<-project$CFA$models.selected[iModel,]
+      project$lfGWAS$gwas[[cModel$code]]<-list()
+      
+      project$lfGWAS$intermediateResultFiles<-list.files(path = project$folderpath.workingDirectory, pattern = paste0("^lfGWAS\\.gwas\\.",project$setup.code,"\\.",cModel$code,"\\.F.+\\..+\\.Rds"), full.names = T, ignore.case=T)
+      #project$lfGWAS$intermediateResultFiles<-list.files(path = project$folderpath.workingDirectory, pattern = paste0("^lfGWAS\\.gwas\\.",project$setup.code,"\\.M.+-.+\\..+\\..+\\.F.+\\..+\\.Rds"), full.names = T, ignore.case=T)
+      #lfGWAS.gwas.setup4.M25-4.74.ML.F_ALL.chr8.Rds
+      nIntermediateFactors<-NULL
+      if(length(project$lfGWAS$intermediateResultFiles)>0){
+        for(nIntermediateResultFile in 1:length(project$lfGWAS$intermediateResultFiles)){
+          #nIntermediateResultFile<-1
+          intermediateResult<-readRDS(file=project$lfGWAS$intermediateResultFiles[nIntermediateResultFile])
+          #initialise storage
+          if(is.null(nIntermediateFactors)){
+            #project$lfGWAS$gwas<-list()
+            nIntermediateFactors<-length(intermediateResult)
+            for(nFactor in 1:nIntermediateFactors){
+              project$lfGWAS$gwas[[cModel$code]][[nFactor]]<-intermediateResult[[nFactor]]
+            }
+          } else {
+            for(nFactor in 1:nIntermediateFactors){
+              project$lfGWAS$gwas[[cModel$code]][[nFactor]]<-rbind(project$lfGWAS$gwas[[cModel$code]][[nFactor]],intermediateResult[[nFactor]]) 
+            }
+          }
         }
       }
+      
     }
-
+    
     if(length(project$lfGWAS$gwas)>0){
       saveRDS(object = project$lfGWAS$gwas,file = file.path(project$folderpath.workingDirectory,paste0("lfGWAS.gwas.",project$setup.code,".Rds")))
     }
     print("Read latent factor gwas results and saved latent factor summary file.")
   }
   
-  if(!file.exists(file.path(project$folderpath.workingDirectory,paste0("lfGWAS.gwas.",project$setup.code,".Rds")))) 
+  if(project$clOptions$task=="lfgwas" & !file.exists(file.path(project$folderpath.workingDirectory,paste0("lfGWAS.gwas.",project$setup.code,".Rds")))) 
   {
-    
-   
-    
+    project$lfGWAS$cModel<-NULL
     project$lfGWAS$cFn<-NULL
     project$lfGWAS$cChr<-NULL
-    if(project$clOptions$task=="lfgwas")
-    {
-      if(length(grep(pattern = "\\:",x = project$clOptions$task_argument))>0){
-      project$lfGWAS$cFn<-strsplit(x = project$clOptions$task_argument, split = ':')[[1]][1]
-      project$lfGWAS$cChr<-strsplit(x = project$clOptions$task_argument, split = ':')[[1]][2]
-      } else {
-        project$lfGWAS$cChr<-project$clOptions$task_argument
-      }
+    
+    if(length(grep(pattern = "\\:",x = project$clOptions$task_argument))>0){
+    project$lfGWAS$cModel<-strsplit(x = project$clOptions$task_argument, split = ':')[[1]][1]
+    project$lfGWAS$cChr<-strsplit(x = project$clOptions$task_argument, split = ':')[[1]][2]
+    } else {
+      project$lfGWAS$cModel<-project$clOptions$task_argument
     }
+    
     
     #if(is.null(project$lfGWAS$cFn)) project$lfGWAS$cFn<-"1"
     #if(is.null(project$lfGWAS$cChr)) project$lfGWAS$cChr<-"1"
     
     
-    cat("\nPerforming latent factor GWAS on factor ",ifelse(is.null(project$lfGWAS$cFn),"ALL",paste0(project$lfGWAS$cFn))," and chromosome ",paste0(project$lfGWAS$cChr),". This will take a while.\n")
+    cat("\nPerforming latent factor GWAS")
+    cat("\nSelected model:",project$lfGWAS$cModel)
+    cat("\nSelected factor ",ifelse(is.null(project$lfGWAS$cFn),"ALL",paste0(project$lfGWAS$cFn))," and chromosome ",paste0(project$lfGWAS$cChr),". This will take a while!\n")
+    
+    #select model from code
+    cModel<-project$CFA$models.selected[project$lfGWAS$cModel,]
     
     if(is.null(project$lfGWAS$cFn)){
-      project$lfGWAS$lmodel<-paste0(project$CFA$model.bestFitting$lmodel.fixed,paste0("\nF",(1:project$CFA$nFactors),"~SNP", collapse = ""))
+      project$lfGWAS$lmodel<-paste0(cModel$lModel.fixed,paste0("\nF",(1:cModel$nFactors),"~SNP", collapse = ""))
     } else {
-      project$lfGWAS$lmodel<-paste0(project$CFA$model.bestFitting$lmodel.fixed,paste0("\nF",project$lfGWAS$cFn,"~SNP"))
+      project$lfGWAS$lmodel<-paste0(cModel$lModel.fixed,paste0("\nF",project$lfGWAS$cFn,"~SNP"))
     }
     
-    
+    cat("\nExpanded CFA model with SNP effects:")
     print(project$lfGWAS$lmodel)
     
     if(length(project$lfGWAS$cChr)>0){
@@ -1594,24 +1721,29 @@ if(!is.null(project$lfGWAS$sumstats)){
     project$lfGWAS$gwas<-userGWAS.mod(
       covstruc = project$mvLD$covstruct.mvLDSC,
       SNPs = project$lfGWAS$sumstats.selected,
-      estimation = "ML",
+      estimation = "DWLS",
       model = project$lfGWAS$lmodel,
       modelchi = FALSE,
       printwarn = TRUE,
-      sub=paste0("F",(1:project$CFA$nFactors),"~SNP"),
+      sub=paste0("F",(1:cModel$nFactors),"~SNP"),
       #GC="none",
-      parallel=F
+      parallel=F,
+      GC="standard",
+      smooth_check = T,
+      TWAS = F
       )
     
     if(is.null(project$lfGWAS$cFn)) project$lfGWAS$cFn<-"_ALL"
     
-    saveRDS(object = project$lfGWAS$gwas,file = file.path(project$folderpath.workingDirectory,paste0("lfGWAS.gwas.F",project$lfGWAS$cFn,".",ifelse(length(project$lfGWAS$cChr)>0,paste0("chr",project$lfGWAS$cChr,"."),""),project$setup.code,".Rds")))
+    saveRDS(object = project$lfGWAS$gwas,file = file.path(project$folderpath.workingDirectory,paste0("lfGWAS.gwas.",project$setup.code,".",project$lfGWAS$cModel,
+                                                                                                     ".F",ifelse(length(project$lfGWAS$cFn)>0,project$lfGWAS$cFn,"ALL"),
+                                                                                                     ".",ifelse(length(project$lfGWAS$cChr)>0,paste0("chr",project$lfGWAS$cChr),"ALL"),".Rds")))
     
     print("DONE performing latent factor GWAS. The results should have been saved to a file.")
   
   } else {
     project$lfGWAS$gwas<-readRDS(file=file.path(project$folderpath.workingDirectory,paste0("lfGWAS.gwas.",project$setup.code,".Rds")))
-    print("Read previous latent factor GWAS results from file.")
+    print("Read previously stored latent factor GWAS results from file.")
   }
 
 }
@@ -1620,74 +1752,99 @@ if(project$clOptions$task=="lfgwas"){quit(save = "no")}
 
 ```
 
-```{r latent factor GWAS visualisation, purl=FALSE}
+## Process the latent factor GWAS results
+
+```{r process latent factor GWAS results}
+
+for(iModel in 1:nrow(project$CFA$models.selected)){
+  #test
+  #iModel<-3
+  cModel<-project$CFA$models.selected[iModel,]
+  
+  inflationFactor<-1/cModel$parsedGsemResults[[1]][[1]]$modelFit$totalVarianceExplained[1]
+  if(!is.null(project$lfGWAS$gwas[[cModel$code]])){
+    for(iFactor in 1:cModel$nFactors){
+      #test
+      #iFactor<-1
+      
+      #head(project$lfGWAS$gwas[[cModel$code]][[iFactor]])
+      project$lfGWAS$gwas[[cModel$code]][[iFactor]]$Z_adj<-project$lfGWAS$gwas[[cModel$code]][[iFactor]]$Z_Estimate*inflationFactor
+      #project$lfGWAS$gwas[[cModel$code]][[iFactor]]$p_adj<-2*pnorm(q = project$lfGWAS$gwas[[cModel$code]][[iFactor]]$Z_Estimate, sd = (1/sqrt(nrow(project$sumstats.sel))), lower.tail = F)
+      project$lfGWAS$gwas[[cModel$code]][[iFactor]]$p_adj<-2*pnorm(q = project$lfGWAS$gwas[[cModel$code]][[iFactor]]$Z_adj, lower.tail = F)
+      #head(project$lfGWAS$gwas[[cModel$code]][[iFactor]])[,c("SNP","Z_Estimate","Z_smooth","Z_adj", "Pval_Estimate","p_adj")]
+      }
+  }
+  
+}
+
+```
+
+## Visualise the latent factor GWAS results
+
+```{r latent factor GWAS visualisation, purl=FALSE, eval=FALSE}
 
 #install.packages("qqman")
 
-
-#from https://www.r-graph-gallery.com/101_Manhattan_plot.html
-
-#View(project$lfGWAS$gwas[[1]])
-for(igwas in 1:length(project$lfGWAS$gwas)){
+for(iModel in 1:length(project$lfGWAS$gwas)){
   #test
-  #igwas<-1
-  project$lfGWAS$gwas.for.display <- project$lfGWAS$gwas[[igwas]]
+  #iModel<-1
   
-  #top SNPs
-  #View(project$lfGWAS$gwas.for.display[order(project$lfGWAS$gwas.for.display$Pval_Estimate),c("SNP","CHR","MAF","Pval_Estimate")])
-  
-  project$lfGWAS$gwas.for.display <- project$lfGWAS$gwas.for.display %>% 
+  cModel<-project$CFA$models.selected[iModel,]
+  for(iGwas in 1:length(project$lfGWAS$gwas[[iModel]])){
+    #test
+    #iGwas<-1
+    project$lfGWAS$gwas.for.display <- project$lfGWAS$gwas[[iModel]][[iGwas]]
     
-  # Compute chromosome size
-  group_by(CHR) %>% 
-  summarise(BPmax.chr=max(BP)) %>% 
-  
-  # Calculate cumulative position of each chromosome
-  mutate(BP.tot.chr=cumsum(as.numeric(BPmax.chr))-BPmax.chr) %>%
-  select(-BPmax.chr) %>%
-  
-  # Add this info to the initial dataset
-  left_join(project$lfGWAS$gwas.for.display, ., by=c("CHR"="CHR"))
-  
-  project$lfGWAS$gwas.for.display <- project$lfGWAS$gwas.for.display %>%
-  # Add a cumulative position of each SNP
-  arrange(CHR, BP) %>%
-  mutate(BP.tot=BP+BP.tot.chr)
-  
-  #View(project$lfGWAS$gwas.for.display)
-  
-  axisdefinition = project$lfGWAS$gwas.for.display %>% group_by(CHR) %>% summarize(center=( max(BP.tot) + min(BP.tot) ) / 2 )
-  
-  project$plot.lfGWAS <- ggplot(project$lfGWAS$gwas.for.display, aes(x=BP.tot, y=-log10(Pval_Estimate))) +
-      
-      # Show all points
-      geom_point( aes(color=as.factor(CHR)), alpha=0.8, size=1.3) +
-      scale_color_manual(values = rep(c("grey", theme.color$contrastLight1), 22 )) +
-      
-      # custom X axis:
-      scale_x_continuous( label = axisdefinition$CHR, breaks= axisdefinition$center ) +
-      scale_y_continuous(expand = c(0, 0) ) +     # remove space between plot area and x axis
+    #top SNPs
+    #View(project$lfGWAS$gwas.for.display[order(project$lfGWAS$gwas.for.display$Pval_Estimate),c("SNP","CHR","MAF","Pval_Estimate")])
     
-      geom_label_repel(data=subset(project$lfGWAS$gwas.for.display, -log10(Pval_Estimate)>2.5), aes(label=SNP), size=3) +
-    
-      # Custom the theme:
-      theme_bw() +
-      theme( 
-        legend.position="none",
-        panel.border = element_blank(),
-        panel.grid.major.x = element_blank(),
-        panel.grid.minor.x = element_blank()
-      )
+    cTable <- project$lfGWAS$gwas.for.display[order(project$lfGWAS$gwas.for.display$Pval_Estimate),c("SNP","CHR","MAF","p_adj")] %>% 
+      slice_head(n = 200) %>%
+      mutate(i=row_number()) %>%
+      select(i,SNP,CHR,MAF,p=p_adj) %>%
+    gt() %>% 
+    fmt_scientific(columns = vars(p), decimals = 2) %>%
+    fmt_number(columns = vars(MAF), decimals = 4) %>%
+    fmt_number(columns = vars(CHR), decimals = 0) %>%
+    tab_header(
+      title = paste0("Top variants for ",cModel$code," F",iGwas)
+    ) %>%
+    tab_style(
+      style = cell_text(size = px(12)),
+      locations = cells_column_labels(everything())       
+    ) %>%
+    tab_style(
+      style = cell_text(size = px(12),weight = "bold"),
+      locations = cells_body(everything())        
+    )
   
-  project$plot.lfGWAS
-  ggsave(filename=file.path(project$folderpath.plots,paste0("lfGWAS.",igwas,".png")), plot = last_plot(), width = 500, height = 300, units = "mm")
-  
-  #qqman::qq(project$lfGWAS$gwas.for.display$Pval_Estimate)
-  
-  # png(filename = file.path(project$folderpath.plots,paste0("lfGWAS.",igwas,".qq.png")), width = 800, height = 600)
-  #   qqman::qq(project$lfGWAS$gwas.for.display$Pval_Estimate)
-  # dev.off()
+    cTable
 
+    gtsave(data = cTable, filename = file.path(project$folderpath.plots,cModel$code,paste0("top.F",iGwas,".rtf")))
+    
+    #manhattan plot
+    #cPlot <- manhattan.custom(df = project$lfGWAS$gwas.for.display)
+    #cPlot
+    #ggsave(filename=file.path(project$folderpath.plots,cModel$code,paste0("gwas.F",iGwas,".png")), plot = last_plot(), width = 500, height = 300, units = "mm")
+    
+    #qqman adaptations
+    qqmanGwas<-project$lfGWAS$gwas.for.display
+    qqmanGwas$P<-qqmanGwas$p_adj
+    qqmanGwas<-qqmanGwas[,c("SNP","BP","CHR","P")]
+    
+    
+    #manhattan plot 2
+    png(filename = file.path(project$folderpath.plots,cModel$code,paste0("man.F",iGwas,".png")), width = 800, height = 600)
+    qqman::manhattan(x = qqmanGwas)
+    dev.off()
+    
+    #qqman::qq(project$lfGWAS$gwas.for.display$Pval_Estimate)
+    
+    png(filename = file.path(project$folderpath.plots,cModel$code,paste0("qq.F",iGwas,".png")), width = 800, height = 600)
+    qqman::qq(qqmanGwas$P)
+    dev.off()
+  
+  }
 }
 
 ```
@@ -1799,10 +1956,11 @@ project$test$gwasResults<-usermodel.mod(
   #model = project$efaSEM$lmodel,
   estimation = project$CFA$estimator,
   fix_resid = FALSE,
-  CFIcalc = F,
+  CFIcalc = T,
   imp_cov = T
   )
 
+project$test$gwasResults$modelfit
 project$test$gwasResults$results
 
 ```
