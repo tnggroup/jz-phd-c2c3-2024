@@ -95,9 +95,18 @@ for chr in 1; do sbatch --time 2-00:00:00 --partition brc,shared --job-name="lga
 for chr in 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22; do sbatch --time 2-00:00:00 --partition brc,shared --job-name="lga1_$chr" --ntasks 1 --cpus-per-task 2 --mem 16G --wrap="Rscript setup4.R -t lfgwas -a M25-7.29.ML:$chr -l cluster" --output "setup4.lfgwas.M25-7.29.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
 for chr in 1; do sbatch --time 4-00:00:00 --partition brc,shared --job-name="lga1_$chr" --ntasks 1 --cpus-per-task 2 --mem 16G --wrap="Rscript setup4.R -t lfgwas -a M25-10.55.ML:$chr -l cluster" --output "setup4.lfgwas.M25-10.55.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
 for chr in 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22; do sbatch --time 4-00:00:00 --partition brc,shared --job-name="lga1_$chr" --ntasks 1 --cpus-per-task 2 --mem 16G --wrap="Rscript setup4.R -t lfgwas -a M25-10.55.ML:$chr -l cluster" --output "setup4.lfgwas.M25-10.55.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
+sbatch --time 2-00:00:00 --partition brc,shared --job-name="mvLD2" --ntasks 1 --cpus-per-task 4 --mem 64G --wrap="Rscript setup4.R -t mvLD2 -l cluster" --output "setup4.mvLD2.$(date +%Y%m%d).out.txt"
 
+#setup5
+sbatch --time 2-00:00:00 --partition brc,shared --job-name="mvLD" --ntasks 1 --cpus-per-task 4 --mem 64G --wrap="Rscript setup5.R -t mvLD -l cluster" --output "setup5.mvLD.$(date +%Y%m%d).out.txt"
+sbatch --time 4-00:00:00 --partition brc,shared --job-name="gsem" --ntasks 1 --cpus-per-task 3 --mem 32G --wrap="Rscript setup5.R -t cfa -l cluster" --output "setup5.cfa.$(date +%Y%m%d).out.txt"
+sbatch --time 4-00:00:00 --partition brc,shared --job-name="lga1" --ntasks 1 --cpus-per-task 3 --mem 24G --wrap="Rscript setup5.R -t lfgwas -a M18-4.64.ML -l cluster" --output "setup5.lfgwas.M18-4.64.ML.FALL.chrALL.$(date +%Y%m%d).out.txt"
+sbatch --time 4-00:00:00 --partition brc,shared --job-name="preplfgwas" --ntasks 1 --cpus-per-task 3 --mem 64G --wrap="Rscript setup5.R -t preplfgwas -l cluster" --output "setup5.lfGWAS.sumstats.$(date +%Y%m%d).out.txt"
+for chr in 1; do sbatch --time 2-00:00:00 --partition brc,shared --job-name="lga1_$chr" --ntasks 1 --cpus-per-task 2 --mem 16G --wrap="Rscript setup5.R -t lfgwas -a M18_4_14.C.DWLS:$chr -l cluster" --output "setup5.lfgwas.M18_4_14.C.DWLS.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
+for chr in 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22; do sbatch --time 2-00:00:00 --partition brc,shared --job-name="lga1_$chr" --ntasks 1 --cpus-per-task 2 --mem 16G --wrap="Rscript setup5.R -t lfgwas -a M18_4_14.C.DWLS:$chr -l cluster" --output "setup5.lfgwas.M18_4_14.C.DWLS.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
+#sbatch --time 4-00:00:00 --partition brc,shared --job-name="lga1" --ntasks 1 --cpus-per-task 2 --mem 16G --wrap="Rscript setup5.R -t lfgwas -a M18_4_7.O.DWLS -l cluster" --output "setup5.lfgwas.M18_4_7.O.DWLS.FALL.chr$chr.$(date +%Y%m%d).out.txt" #ran out of memory?
 
-
-
+#setup6
+sbatch --time 4-00:00:00 --partition brc,shared --job-name="gsem" --ntasks 1 --cpus-per-task 3 --mem 32G --wrap="Rscript setup6.R -t cfa -l cluster" --output "setup6.cfa.$(date +%Y%m%d).out.txt"
 
 
