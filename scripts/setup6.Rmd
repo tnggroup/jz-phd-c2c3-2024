@@ -159,7 +159,7 @@ if(project$host=="local") {
 }
 
 ##Reference SNP-list (HapMap3 SNPs for example). Used for munging sumstat SNP data.
-project$filepath.SNPReference.hm3<-normalizePath(file.path(project$folderpath.data,"w_hm3.snplist.flaskapp2018")) #HapMap3 SNPs
+project$filepath.SNPReference.hm3<-normalizePath(file.path(project$folderpath.data,"w_hm3.noMHC.snplist")) #HapMap3 SNPs
 ## Used in the preparation step for performing latent factor GWAS as reference for calculating SNP variance across traits.
 #project$filepath.SNPReference<-normalizePath(paste0(project$folderpath.data,"/","reference.1000G.maf.0.005.txt")) #1000 genomes phase 3
 project$filepath.SNPReference.1kg<-normalizePath(file.path(project$folderpath.data,"combined.hm3_1kg.snplist.vanilla.jz2020.txt")) #custom hm3 + 1kg SNPs
@@ -194,7 +194,7 @@ project$filepath.r<-normalizePath(file.path(project$folderpath.scripts,project$f
 ##CFA settings
 project$CFA<-c()
 #project$CFA$estimator=c("ML")
-project$CFA$correlation<-c("OBL","COR") #ORT, OBL, and COR
+project$CFA$correlation<-c("COR") #ORT, OBL, and COR
 project$CFA$estimator=c("ML")
 project$CFA$nFactors=c(4,7,10)
 
@@ -643,7 +643,17 @@ write.table(project$sumstats.sel[,c("code", "name","year", "n_case","n_control",
 # Raw data preparatory steps
 
 ## GWAS summary statistics munge - if needed
+Munging of GWAS sumstat datasets. The summary statistics is also prepared for latent factor GWAS (previously, the sumstats()-function of the GSEM package). Here reference alleles are standardised across all datasets, and SNP effects and their s.e. are scaled to match unit-variance phenotypes.
 ```{r GWAS sumstat munge}
+#test
+#project$clOptions$task<-"munge"
+
+#special modification for running at rosalind
+project$sumstats.sel["ANXI04",]$cleanedpath<-"/users/k19049801/project/JZ_GED_PHD_C1/data/gwas_sumstats/raw/GAD7_BGENIE_SexRegressed_For_LDSC.gz"
+#project$sumstats.sel["ANXI04",]$cleanedpath<-"/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/raw/GAD7_BGENIE_SexRegressed_For_LDSC.gz"
+
+project$filepath.lfgwas.sumstats<-file.path(project$folderpath.workingDirectory,paste0("lfGWAS.sumstats.",project$setup.code,".Rds"))
+
 if(project$clOptions$task=="munge"){
   
   project$munge<-c()
@@ -656,33 +666,53 @@ if(project$clOptions$task=="munge"){
     project$munge$filesToUse<-project$sumstats.sel$cleanedpath[which(project$sumstats.sel$code==project$clOptions$task_argument)]
     project$munge$traitNamesToUse<-project$sumstats.sel$code[which(project$sumstats.sel$code==project$clOptions$task_argument)]
     project$munge$NToUse<-project$sumstats.sel$n_total[which(project$sumstats.sel$code==project$clOptions$task_argument)]
+    project$munge$OLSToUse<-project$sumstats.sel$dependent_variable.OLS[which(project$sumstats.sel$code==project$clOptions$task_argument)]
+    project$munge$linprobToUse<-project$sumstats.sel$dependent_variable.linprob[which(project$sumstats.sel$code==project$clOptions$task_argument)]
+    project$munge$se.logitToUse<-project$sumstats.sel$se.logit[which(project$sumstats.sel$code==project$clOptions$task_argument)]
+    project$munge$propToUse<-(project$sumstats.sel$n_case/project$sumstats.sel$n_total)[which(project$sumstats.sel$code==project$clOptions$task_argument)]
     
   } else {
     #defaults
     project$munge$filesToUse<-project$sumstats.sel$cleanedpath
     project$munge$traitNamesToUse<-project$sumstats.sel$code
     project$munge$NToUse<-project$sumstats.sel$n_total
+    project$munge$OLSToUse<-project$sumstats.sel$dependent_variable.OLS
+    project$munge$linprobToUse<-project$sumstats.sel$dependent_variable.linprob
+    project$munge$se.logitToUse<-project$sumstats.sel$se.logit
+    project$munge$propToUse<-(project$sumstats.sel$n_case/project$sumstats.sel$n_total)
   }
   
   #mask<-c(F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,T,T,T,T,T)
   #munging with no filters applied
-  project$sumstats.meta <- supermunge(filePaths = project$munge$filesToUse,
+  project$supermunge.results <- supermunge(filePaths = project$munge$filesToUse,
             refFilePath = project$filepath.SNPReference.1kg,
             #refFilePath = project$filepath.SNPReference.hm3,
             #mask = mask,
             traitNames = project$munge$traitNamesToUse,
             setChangeEffectDirectionOnAlleleFlip = T, #T=same behaviour as genomic SEM
+            produceVariantTable = T,
             N = project$munge$NToUse,
+            OLS=project$munge$OLSToUse,
+            linprob=project$munge$linprobToUse,
+            se.logit = project$munge$se.logitToUse,
+            prop=project$munge$propToUse,
             pathDirOutput = project$folderpath.data.sumstats.munged,
             invertEffectDirectionOn = c("ANXI04") #ANXI4 has an inverted effect direction for some reason
               ) 
     
-  project$sumstats.meta <- project$sumstats.meta %>% gt()
+  project$supermunge.results$sumstats.meta %>% gt()
   
-  gtsave(data = project$sumstats.meta, filename = file.path(project$folderpath.workingDirectory,"supermunge.meta.rtf"))
+  gtsave(data = (project$supermunge.results$sumstats.meta %>% gt()), filename = file.path(project$folderpath.workingDirectory,"supermunge.meta.rtf"))
+  
+  project$lfGWAS$sumstats<-project$supermunge.results$variantTable
+  saveRDS(object = project$lfGWAS$sumstats, file = project$filepath.lfgwas.sumstats)
+  print("Done preparing summary statistics for latent factor GWAS. The result should have been saved to a file.")
     
-    quit(save = "no")
-  }
+  quit(save = "no")
+} else if(file.exists(project$filepath.lfgwas.sumstats)) {
+  project$lfGWAS$sumstats<-readRDS(file=project$filepath.lfgwas.sumstats)
+  print("Read summary statistics for latent factor GWAS from file.")
+}
 
 ```
 
@@ -714,60 +744,6 @@ if(project$clOptions$task=="noise"){
 }
 ```
 
-
-## Prepare summary statistics for latent factor GWAS
-The summary statistics is prepared for analysis by using the sumstats()-function of the GSEM package. Here reference alleles are standardised across all datasets, and SNP effects and their s.e. are scaled to match unit-variance phenotypes.
-```{r prepare summary statistics for latent factor gwas}
-#eval=FALSE
-#use ^this to knit without running the code in the chunk
-
-#test
-# tSumstats <- read.table(project$sumstats.sel["SCHI04",]$cleanedpath,header=T, quote="\"",fill=T,na.string=c(".",NA,"NA",""))
-# tSumstats$ptest<- 2*pnorm(abs(log(tSumstats$OR))/tSumstats$SE, lower.tail = F)
-# tSumstats$ptest<- 2*pnorm(abs(tSumstats$OR)/tSumstats$SE, lower.tail = F)
-
-project$filepath.lfgwas.sumstats<-file.path(project$folderpath.workingDirectory,paste0("lfGWAS.sumstats.",project$setup.code,".Rds"))
-
-if(!file.exists(project$filepath.lfgwas.sumstats) && project$clOptions$task=="preplfgwas") 
-{
-  print("Preparing summary statistics for latent factor GWAS. This might take a while.")
-
-  #special modification for running at rosalind
-  #project$sumstats.sel["ANXI04",]$cleanedpath<-"/users/k19049801/project/JZ_GED_PHD_C1/data/gwas_sumstats/raw/GAD7_BGENIE_SexRegressed_For_LDSC.gz"
-  #project$sumstats.sel["ANXI04",]$cleanedpath<-"/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/raw/GAD7_BGENIE_SexRegressed_For_LDSC.gz"
-  
-  #prop: In order to perform the argument 6 conversion above from OLS betas to logistic betas, argument 7 takes the proportion of cases over the total sample size (range: 0 - 1). This argument should only contain numeric values if argument 6 is TRUE. If no information is provided the default is for the function to assume NULL.
-  #NULL prop crashes the function though
-  
-  project$lfGWAS$sumstats<-sumstats.mod(
-    files = project$sumstats.sel$cleanedpath,
-    ref=project$filepath.SNPReference.1kg,
-    trait.names=project$sumstats.sel$code,
-    se.logit=project$sumstats.sel$se.logit,
-    OLS=project$sumstats.sel$dependent_variable.OLS,
-    linprob=project$sumstats.sel$dependent_variable.linprob,
-    prop=(project$sumstats.sel$n_case/project$sumstats.sel$n_total),
-    N=project$sumstats.sel$n_total,
-    info.filter=0.6,
-    maf.filter=0.01,
-    keep.indel=F,
-    parallel=F, #The default = T eats lots of memory at once.
-    cores=NULL
-    #num = 1 #test
-  )
-
-#Error in files[[i]]$effect[[1]] : subscript out of bounds
-
-  saveRDS(object = project$lfGWAS$sumstats,file = project$filepath.lfgwas.sumstats)
-  print("Done preparing summary statistics for latent factor GWAS. The result should have been saved to a file.")
-} else if(file.exists(project$filepath.lfgwas.sumstats)) {
-  project$lfGWAS$sumstats<-readRDS(file=project$filepath.lfgwas.sumstats)
-  print("Read summary statistics for latent factor GWAS from file.")
-}
-
-if(project$clOptions$task=="preplfgwas") quit(save = "no")
-
-```
 
 ## GWAS summary statistics imputation - if needed - NOT WORKING
 ```{r GWAS sumstat imputation}
@@ -1156,8 +1132,8 @@ print("***EFA***")
 #saving efa results between runs as to always use the same randomised start for clustering for example
 project$filepath.efa<-file.path(project$folderpath.workingDirectory,paste0("efa.",project$setup.code,".Rds"))
 if (file.exists(project$filepath.efa)) {
-print("Using existing EFA results from previous run.")
-project$EFA<-readRDS(file=project$filepath.efa)
+  print("Using existing EFA results from previous run.")
+  project$EFA<-readRDS(file=project$filepath.efa)
 } else {
 
   #visualisation of up to max factors EFA models with varimax
@@ -1189,7 +1165,9 @@ project$EFA<-readRDS(file=project$filepath.efa)
     rownames(project$EFA$PCA[[iFactorConfiguration]]$vectors)<-project$sumstats.sel.code
     project$EFA$PCA[[iFactorConfiguration]]$vector_values<-(project$EFA$PCA[[iFactorConfiguration]]$vectors*project$EFA$PCA[[iFactorConfiguration]]$values)[,1:cNFactors]
   
-    project$EFA$fa.result[[iFactorConfiguration]] <- psych::fa(r = abs(project$mvLD$covstruct.mvLDSC$S.smooth),nfactors = cNFactors, rotate = 'varimax', symmetric = T, warnings = T, fm='ols', max.iter = 1000)
+    project$EFA$fa.result.ORT[[iFactorConfiguration]] <- psych::fa(r = abs(project$mvLD$covstruct.mvLDSC$S.smooth),nfactors = cNFactors, rotate = 'varimax', symmetric = T, warnings = T, fm='ols', max.iter = 1000)
+    
+    project$EFA$fa.result.OBL[[iFactorConfiguration]] <- psych::fa(r = abs(project$mvLD$covstruct.mvLDSC$S.smooth),nfactors = cNFactors, rotate = 'oblimin', symmetric = T, warnings = T, fm='ols', max.iter = 1000)
     
     project$EFA$kmeans.result[[iFactorConfiguration]]<- kmeans(x = abs(project$mvLD$covstruct.mvLDSC$S_Stand), centers = cNFactors, iter.max = 1000, nstart = 30)
     #View(project$clustering$centers)
@@ -1214,8 +1192,10 @@ project$EFA<-readRDS(file=project$filepath.efa)
     
   cat("\nPCA vector values\n")
   print(project$EFA$PCA[[iFactorConfiguration]]$vector_values)
-  cat("\nFA fa result\n")
-  print(project$EFA$fa.result[[iFactorConfiguration]])
+  cat("\nFA fa result, ORTHOGONAL rotation\n")
+  print(project$EFA$fa.result.ORT[[iFactorConfiguration]])
+  cat("\nFA fa result, OBLIQUE rotation\n")
+  print(project$EFA$fa.result.OBL[[iFactorConfiguration]])
   #cat("\nFA factanal result\n")
   #print(project$EFA$factanal.result)
   cat("\nKmeans clustering centers\n")
@@ -1252,20 +1232,24 @@ project$CFA$nIndicators=length(project$sumstats.sel$code)
 
 project$filepath.cfa<-file.path(project$folderpath.workingDirectory,paste0("cfa.",project$setup.code,".Rds"))
 #project$filepath.cfa_converged_results<-file.path(project$folderpath.workingDirectory,paste0("cfa.",project$setup.code,".converged.txt"))
+project$filepath.cfa.FactorConfiguration<-c()
 
 if(!file.exists(project$filepath.cfa)){
   
   project$CFA$indicatorLoadingPatterns.PCA<-c()
-  project$CFA$indicatorLoadingPatterns.fa<-c()
+  project$CFA$indicatorLoadingPatterns.fa.ORT<-c()
+  project$CFA$indicatorLoadingPatterns.fa.OBL<-c()
   project$CFA$indicatorLoadingPatterns.kmeans<-c()
   #iFactorConfiguration<-1
   for(iFactorConfiguration in 1:length(project$CFA$nFactors)) {
-
   ##kmeans clustering based models
   project$CFA$indicatorLoadingPatterns.kmeans[[iFactorConfiguration]]<-semplate$generateIndicatorLoadingPatternsFromFactorLoadings(factorLoadings = t(project$EFA$kmeans.result[[iFactorConfiguration]]$centers), increment = 0.0005,forceOneIndicatorLoading = T)
   
-  ##fa based models
-  project$CFA$indicatorLoadingPatterns.fa[[iFactorConfiguration]]<-semplate$generateIndicatorLoadingPatternsFromFactorLoadings(factorLoadings = project$EFA$fa.result[[iFactorConfiguration]]$loadings, increment = 0.0005,forceOneIndicatorLoading = T)
+  ##fa, orthogonal based models
+  project$CFA$indicatorLoadingPatterns.fa.ORT[[iFactorConfiguration]]<-semplate$generateIndicatorLoadingPatternsFromFactorLoadings(factorLoadings = project$EFA$fa.result.ORT[[iFactorConfiguration]]$loadings, increment = 0.0005,forceOneIndicatorLoading = T)
+  
+  ##fa, oblique based models
+  project$CFA$indicatorLoadingPatterns.fa.OBL[[iFactorConfiguration]]<-semplate$generateIndicatorLoadingPatternsFromFactorLoadings(factorLoadings = project$EFA$fa.result.OBL[[iFactorConfiguration]]$loadings, increment = 0.0005,forceOneIndicatorLoading = T)
     
   #PCA based models
   project$CFA$indicatorLoadingPatterns.PCA[[iFactorConfiguration]]<-semplate$generateIndicatorLoadingPatternsFromFactorLoadings(factorLoadings = project$EFA$PCA[[iFactorConfiguration]]$vector_values, increment = 0.0005,forceOneIndicatorLoading = T)
@@ -1285,6 +1269,10 @@ if(!file.exists(project$filepath.cfa)){
 
 ```{r CFA model evaluation}
 print("***CFA model evaluation***")
+
+#test
+#project$clOptions$task<-"cfa"
+#project$clOptions$task_argument<-"1"
 
 match.row<-function(row_v,tomatch_df){
   #row_v<-lp
@@ -1310,6 +1298,8 @@ if (file.exists(project$filepath.cfa)) {
   nFittingModelsFound<-0
   #compute total number of models across factor configurations
   totalNumberOfModels<-0
+  nVariables<-ncol(project$mvLD$covstruct.mvLDSC$S)
+  nUniqueCovariances<-nVariables*(nVariables+1)/2
   for(iFactorConfiguration in 1:length(project$CFA$nFactors)) {
     sessionPatternLength<-nrow(project$CFA$sessionIndicatorLoadingPatterns[[iFactorConfiguration]])
     totalNumberOfModels<-totalNumberOfModels+sessionPatternLength*length(project$CFA$correlation)*length(project$CFA$estimator)
@@ -1318,15 +1308,41 @@ if (file.exists(project$filepath.cfa)) {
   for(iFactorConfiguration in 1:length(project$CFA$nFactors)) {
     #test
     #iFactorConfiguration<-1
+    
+    if(project$clOptions$task=="cfa" & length(project$clOptions$task_argument)>0 & project$clOptions$task_argument!=iFactorConfiguration) next
+    
+    project$filepath.cfa.FactorConfiguration[iFactorConfiguration]<-file.path(project$folderpath.workingDirectory,paste0("cfa.",project$setup.code,"_",iFactorConfiguration,".Rds"))
+    
+    if(file.exists(project$filepath.cfa.FactorConfiguration[iFactorConfiguration])){
+      storedFactorConfigurationModelResults <- readRDS(file=project$filepath.cfa.FactorConfiguration[iFactorConfiguration])
+      project$CFA$models <- rbind(project$CFA$models,storedFactorConfigurationModelResults)
+      nModel<-nrow(project$CFA$models)
+      next
+    }
+    
+    
+    if(project$clOptions$task!="cfa") next #do not evaluate models if not in cfa task
+    
     sessionPatternLength<-nrow(project$CFA$sessionIndicatorLoadingPatterns[[iFactorConfiguration]])
     
-    cat("\nAnalysing",sessionPatternLength, "patterns...\n")
+    cat("\nAnalysing",sessionPatternLength, "patterns for this factor configuration...\n")
     for(nSessioPattern in 1:sessionPatternLength){
       #test
       #nSessioPattern<-1
+      
       for(iCorrelationConfiguration in 1:length(project$CFA$correlation)){
         #iCorrelationConfiguration<-1
         cCorrelation<-project$CFA$correlation[iCorrelationConfiguration]
+        
+        # #avoid correlated factors if above 7 factors
+        # if(project$CFA$nFactors[iFactorConfiguration]>8 & cCorrelation=="COR") next
+        # 
+        # #avoid oblique factors if below 9 factors
+        # if(project$CFA$nFactors[iFactorConfiguration]<9 & cCorrelation=="OBL") next
+        # 
+        # #avoid orthogonal factors if below 12 factors
+        # if(project$CFA$nFactors[iFactorConfiguration]<12 & cCorrelation=="ORT") next
+        
         for(iParameterEstimator in 1:length(project$CFA$estimator)){
           #iParameterEstimator<-1
           cEstimator<-project$CFA$estimator[iParameterEstimator]
@@ -1377,15 +1393,20 @@ if (file.exists(project$filepath.cfa)) {
           row.names(cIndicatorLoadings)<-project$sumstats.sel$code
           
           project$CFA$models[nModel,c("loading_pattern_pca")]<-any(match.row(lp,project$CFA$indicatorLoadingPatterns.PCA[[iFactorConfiguration]]))
-          project$CFA$models[nModel,c("loading_pattern_fa")]<-any(match.row(lp,project$CFA$indicatorLoadingPatterns.fa[[iFactorConfiguration]]))
+          project$CFA$models[nModel,c("loading_pattern_fa.ORT")]<-any(match.row(lp,project$CFA$indicatorLoadingPatterns.fa.ORT[[iFactorConfiguration]]))
+          project$CFA$models[nModel,c("loading_pattern_fa.OBL")]<-any(match.row(lp,project$CFA$indicatorLoadingPatterns.fa.OBL[[iFactorConfiguration]]))
           project$CFA$models[nModel,c("loading_pattern_kmeans")]<-any(match.row(lp,project$CFA$indicatorLoadingPatterns.kmeans[[iFactorConfiguration]]))
           
           #further filter rules
           indicatorsLoadedOnFactors <- apply(cIndicatorLoadings, 1, FUN = any)
           factorsHasIndicatorsLoaded <- apply(cIndicatorLoadings, 2, FUN = any)
+          ##check factor configuration is of an identified model
+          isIdentified <- (2*sum(cIndicatorLoadings) + factorial(nVariables)/(factorial(2)*factorial(nVariables-2))) <= nUniqueCovariances #real condition
+          project$CFA$models[nModel,c("identified")]<-isIdentified
+           isIdentified <- (2*sum(cIndicatorLoadings) + (factorial(nVariables)/(factorial(2)*factorial(nVariables-2)))/2) <= nUniqueCovariances #relax this condition in case my calculation is wrong
         
           #allow evaluation if filter rules are met
-          if(all(indicatorsLoadedOnFactors) & all(factorsHasIndicatorsLoaded)){
+          if(all(indicatorsLoadedOnFactors) & all(factorsHasIndicatorsLoaded) & isIdentified){
             
             #generate lavaan model
             project$CFA$models[nModel,c("lModel")]<- semplate$generateLavaanCFAModel(
@@ -1393,7 +1414,7 @@ if (file.exists(project$filepath.cfa)) {
               #indicatorArgs = project$sumstats.sel[,c("code","residualSizeLimitMax")],
               #universalResidualLimitMin = 0.0001,
               orthogonal = (cCorrelation=="ORT"),
-              universalCorrelationLimitMax = ifelse((cCorrelation=="OBL"),0.2,NA)
+              universalCorrelationLimitMax = ifelse((cCorrelation=="OBL"),0.3,NA)
               )
             
             #evaluate lavaan model in GenomicSEM
@@ -1426,14 +1447,22 @@ if (file.exists(project$filepath.cfa)) {
               cat("\nThe model did not converge.")
             }
             
-          } #evaluation block
+          } else {warning("\nThe pattern configuration was deemed to yield an non-identified or otherwise not plausible model!")} #evaluation block
         } #for(iParameterEstimator in 1:length(project$CFA$estimator))
       } #for(iCorrelationConfiguration in 1:length(project$CFA$correlation))
     } #for(nSessioPattern in 1:sessionPatternLength)
   
-  }
     
-  saveRDS(object = project$CFA,file = file.path(project$folderpath.workingDirectory,paste0("cfa.",project$setup.code,".Rds")))
+    saveRDS(object = project$CFA$models,file = project$filepath.cfa.FactorConfiguration[iFactorConfiguration])
+  print("Intermediate CFA results for this factor configuration are now done and the result should have been saved into a file.")
+  
+  if(project$clOptions$task=="cfa" & project$clOptions$task_argument==iFactorConfiguration){quit(save = "no")}
+  
+  }
+  
+  rownames(project$CFA$models)<-project$CFA$models$code
+    
+  saveRDS(object = project$CFA,file = project$filepath.cfa)
   print("CFA for this session is now done and the result should have been saved into a file.")
 }
 
@@ -1450,10 +1479,9 @@ if(project$clOptions$task=="cfa"){quit(save = "no")}
 ```{r CFA select}
 print("***CFA select***")
 
-rownames(project$CFA$models)<-project$CFA$models$code
 #View(project$CFA$models[which(project$CFA$models$AIC<6000),c("code","nModel", "loading_pattern","loading_pattern_pca","loading_pattern_fa","loading_pattern_kmeans",project$CFA$resultColumnNames)])
 
-project$CFA$models.selected<-project$CFA$models[c("M18_4_7.O.DWLS","M18_4_14.C.DWLS"),] #this is a manual setting after choosing the best fitting models from the previous results 
+project$CFA$models.selected<-project$CFA$models[c("M25_4_27.COR.ML","M25_7_195.COR.ML","M25_10_176.OBL.ML"),] #this is a manual setting after choosing the best fitting models from the previous results 
 #View(project$CFA$models.selected)
 
 
@@ -1468,7 +1496,7 @@ project$CFA$models.selected$parsedGsemResults<-NA
 project$CFA$models.selected$lModel.fixed<-NA
 for(iSelected in 1:nrow(project$CFA$models.selected)){
   #test
-  #iSelected<-1
+  #iSelected<-3
   project$CFA$models.selected[[iSelected,c("parsedGsemResults")]]<-list(semplate$parseGenomicSEMResultAsMatrices(project$CFA$models.selected[iSelected,]$gsemResults[[1]][[1]]$results))
   
   # model explained variance is calculated by the parse function from the standardised residuals
@@ -1499,6 +1527,7 @@ for(iSelected in 1:nrow(project$CFA$models.selected)){
   project$CFA$models.selected[[iSelected,c("lModel.fixed")]]<-semplate$generateLavaanCFAModel(
     allow_loading.table.indicator_factor = cIndicatorLoadings,
     fix_loading.table.indicator_factor = project$CFA$models.selected[iSelected,]$parsedGsemResults[[1]][[1]]$patternCoefficientsSTDGenotype.matrix, fixResidualVariance_v = project$CFA$models.selected[iSelected,]$parsedGsemResults[[1]][[1]]$residualVaraiancesSTDGenotype.matrix,
+    fix_correlation.table.factor_factor = project$CFA$models.selected[iSelected,]$parsedGsemResults[[1]][[1]]$covariancesSTDGenotype.matrix,
     orthogonal = (project$CFA$models.selected[iSelected,]$correlation[[1]][[1]]=="ORT"))
 
 }
@@ -1517,7 +1546,7 @@ library(DiagrammeR)
 for(iSelected in 1:nrow(project$CFA$models.selected)){
 
   #test
-  #iSelected<-1
+  #iSelected<-2
   
   #plot full model
   cModel<-project$CFA$models.selected[iSelected,]
@@ -1547,17 +1576,19 @@ for(iSelected in 1:nrow(project$CFA$models.selected)){
   
   #https://rpubs.com/danmirman/plotting_factor_analysis
   df<-as.data.frame(cModel$parsedGsemResults[[1]][[1]]$patternCoefficientsSTDGenotype.matrix)
-  df[,c("~disturbance")]<-cModel$parsedGsemResults[[1]][[1]]$residualVaraiancesSTDGenotype.matrix #add disturbances
+  #add proportion of explained variance
+  colnames(df)<-paste0(colnames(df),"(mExp=",round(cModel$parsedGsemResults[[1]][[1]]$meanRelativeVarianceExplainedPerFactor,digits = 2),")")
+  df[,c(paste0("~disturbance(mExp=",round(cModel$parsedGsemResults[[1]][[1]]$meanTotalRelativeVarianceExplained,digits = 2),")"))]<-cModel$parsedGsemResults[[1]][[1]]$residualVariancesSTDGenotype.matrix #add disturbances
   df<-rownames_to_column(df,var = "var")
   df.l <- pivot_longer(data = df,  -var)
   
   ggplot(df.l, aes(var, abs(value), fill=value)) + 
-  facet_wrap(~ name, nrow=1) + #place the factors in separate facets
+  facet_wrap(~ name, nrow=1, scales = "free_x") + #place the factors in separate facets
   geom_bar(stat="identity") + #make the bars
   coord_flip() + #flip the axes so the test names can be horizontal  
   #define the fill color gradient: blue=positive, red=negative
   scale_fill_gradient2(name = "Loading", 
-                       high = theme.color$contrastLight3, mid = "white", low = theme.color$contrastDark3, 
+                       high = theme.color$contrastLight3, mid = "grey90", low = theme.color$contrastDark3, 
                        midpoint=0, guide=F) +
   ylab("Pattern coefficients (std)") + #improve y-axis label
   xlab("Indicator") +
@@ -1654,7 +1685,7 @@ if(!is.null(project$lfGWAS$sumstats)){
   cat("\nChromosomes in lfGWAS sumstats:\n",unique(project$lfGWAS$sumstats$CHR),"\n")
   
   #test 
-  #project$clOptions$task_argument<-"M18_4_7.O.DWLS"
+  #project$clOptions$task_argument<-"M25_4_27.COR.ML"
   #project$clOptions$task<-"lfgwas"
   
    #load intermediate results
