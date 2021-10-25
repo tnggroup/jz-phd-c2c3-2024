@@ -115,7 +115,7 @@ for chr in 1; do sbatch --time 2-00:00:00 --partition brc,shared --job-name="lga
 for chr in 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22; do sbatch --time 2-00:00:00 --partition brc,shared --job-name="lga1_$chr" --ntasks 1 --cpus-per-task 2 --mem 16G --wrap="Rscript setup6.R -t lfgwas -a M25_4_27.COR.ML:$chr -l cluster" --output "setup6.lfgwas.M25_4_27.COR.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
 for chr in 1; do sbatch --time 4-00:00:00 --partition brc,shared --job-name="lga1_$chr" --ntasks 1 --cpus-per-task 2 --mem 16G --wrap="Rscript setup6.R -t lfgwas -a M25_7_195.COR.ML:$chr -l cluster" --output "setup6.lfgwas.M25_7_195.COR.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
 for chr in 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22; do sbatch --time 4-00:00:00 --partition brc,shared --job-name="lga1_$chr" --ntasks 1 --cpus-per-task 2 --mem 16G --wrap="Rscript setup6.R -t lfgwas -a M25_7_195.COR.ML:$chr -l cluster" --output "setup6.lfgwas.M25_7_195.COR.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
-sbatch --time 4:00:00 --partition brc,shared --job-name="nmeta" --ntasks 1 --cpus-per-task 5 --mem 64G --wrap="Rscript setup6.R -t nmeta -l cluster" --output "setup6.nmeta.$(date +%Y%m%d).out.txt"
-
+sbatch --time 4-00:00:00 --partition brc,shared --job-name="nmeta" --ntasks 1 --cpus-per-task 5 --mem 64G --wrap="Rscript setup6.R -t nmeta -a M25_4_74.ORT.ML -l cluster" --output "setup6.nmeta.M25_4_74.ORT.ML.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition brc,shared --job-name="nmeta" --ntasks 1 --cpus-per-task 5 --mem 64G --wrap="Rscript setup6.R -t nmeta -a M25_7_26.ORT.ML:5 -l cluster" --output "setup6.nmeta.M25_7_26.ORT.ML:5.$(date +%Y%m%d).out.txt"
 
 
