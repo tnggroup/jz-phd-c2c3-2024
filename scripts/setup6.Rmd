@@ -762,29 +762,28 @@ if(file.exists(project$filepath.lfgwas.sumstats)) {
   head(project$lfGWAS$sumstats)
   
 } else if(project$clOptions$task=="munge"){
-  project$supermunge.results<-shru::supermunge(filePaths = project$sumstats.sel$mungedpath, refFilePath = project$filepath.SNPReference.1kg, traitNames = project$sumstats.sel$code, produceVariantTable = T, process = F, writeOutput = F)
+  project$supermunge.results<-shru::supermunge(filePaths = project$sumstats.sel$mungedpath, refFilePath = project$filepath.SNPReference.1kg, traitNames = project$sumstats.sel$code, produceVariantTable = T, process = F, writeOutput = F, info.filter = 0.6, frq.filter = 0.01)
     
   project$lfGWAS$sumstats<-project$supermunge.results$variantTable
-  rm(project$supermunge.results$variantTable)
   
-  print("Processing summary statistics for latent factor GWAS - NA values")
-  #fill NA values
-  #project$lfGWAS$sumstats<-as.data.frame(project$lfGWAS$sumstats)
-  chromosomes<- sort(as.integer(unique(project$lfGWAS$sumstats$CHR)))
-  colBeta<-colnames(project$lfGWAS$sumstats)[grep("^BETA\\.", ignore.case = TRUE,colnames(project$lfGWAS$sumstats))]
-  colSE<-colnames(project$lfGWAS$sumstats)[grep("^SE\\.", ignore.case = TRUE,colnames(project$lfGWAS$sumstats))]
-  
-  #cSumstats<-project$lfGWAS$sumstats[1:10000,]
-  
-  for (i in colBeta)
-    project$lfGWAS$sumstats[is.na(get(i)), (i):=(1e-20)]
-  
-  for (i in colSE)
-    project$lfGWAS$sumstats[is.na(get(i)), (i):=1]
+  # print("Processing summary statistics for latent factor GWAS - NA values")
+  # #fill NA values
+  # #project$lfGWAS$sumstats<-as.data.frame(project$lfGWAS$sumstats)
+  # chromosomes<- sort(as.integer(unique(project$lfGWAS$sumstats$CHR)))
+  # colBeta<-colnames(project$lfGWAS$sumstats)[grep("^BETA\\.", ignore.case = TRUE,colnames(project$lfGWAS$sumstats))]
+  # colSE<-colnames(project$lfGWAS$sumstats)[grep("^SE\\.", ignore.case = TRUE,colnames(project$lfGWAS$sumstats))]
+  # 
+  # #cSumstats<-project$lfGWAS$sumstats[1:10000,]
+  # 
+  # for (i in colBeta)
+  #   project$lfGWAS$sumstats[is.na(get(i)), (i):=(1e-20)]
+  # 
+  # for (i in colSE)
+  #   project$lfGWAS$sumstats[is.na(get(i)), (i):=1]
 
   saveRDS(object = project$lfGWAS$sumstats, file = project$filepath.lfgwas.sumstats)
   print("Done preparing summary statistics for latent factor GWAS. The result should have been saved to a file.")
-  
+  rm("project$supermunge.results$variantTable")
 }
 
 if(project$clOptions$task=="munge") quit(save = "no")
@@ -1763,21 +1762,23 @@ if(project$clOptions$task=="nmeta"){
   
   project$nmeta<-c()
   
-  project$lfGWAS$sumstats<-readRDS(file=project$filepath.lfgwas.sumstats_full)
-  print("Read summary statistics for latent factor GWAS from file.")
+  #project$lfGWAS$sumstats<-readRDS(file=project$filepath.lfgwas.sumstats)
+  #print("Read summary statistics for latent factor GWAS from file.")
   
   colBeta<-colnames(project$lfGWAS$sumstats)[grep("^BETA\\.", ignore.case = TRUE,colnames(project$lfGWAS$sumstats))]
   colSE<-colnames(project$lfGWAS$sumstats)[grep("^SE\\.", ignore.case = TRUE,colnames(project$lfGWAS$sumstats))]
   
   #sumstats QC
   ## effects
-  rsum<-rowSums(abs(project$lfGWAS$sumstats[,..colBeta]))
+  rsum<-rowSums(abs(project$lfGWAS$sumstats[,..colBeta]),na.rm = T)
   rem<-rsum<(length(colBeta)*1e-19)
   project$lfGWAS$sumstats<-project$lfGWAS$sumstats[!rem,]
   cat("\nRemoved ",sum(rem), " variants as part of QC before nmeta.\n")
   
   SESNP<-project$lfGWAS$sumstats[,..colSE]
-  POPVARSNP<-project$lfGWAS$sumstats$MAF*(1-project$lfGWAS$sumstats$MAF)
+  for(i in colSE)
+    SESNP[is.na(get(i)), (i):=1] #assign the value 1 to NA SNP SE
+  POPVARSNP<-2*project$lfGWAS$sumstats$MAF*(1-project$lfGWAS$sumstats$MAF) #2pq according to the genomic SEM publication
   
   #S<-as.matrix(project$mvLD$covstruct.mvLDSC$S)
   #V<-as.matrix(project$mvLD$covstruct.mvLDSC$V)
@@ -1835,26 +1836,39 @@ if(project$clOptions$task=="nmeta"){
       #test
       #iFactor<-5
       if(is.null(project$nmeta$cFactor)){} else if(project$nmeta$cFactor!=iFactor) next
-      modelGWAS<-project$lfGWAS$sumstats[,c("SNP","CHR","BP","MAF","A1","A2")]
-      cat("\nFactor:  ",iFactor)
+      factorFilepath<-file.path(project$folderpath.workingDirectory,paste0("nmeta.",cModel$code,".F",iFactor,".",project$setup.code,".Rds"))
+      if(file.exists(factorFilepath)){
+        modelGWAS<-readRDS(factorFilepath)
+        iSNPStart<-nrow(modelGWAS[!is.na(BETA)])+1
+        cat("\nContinuing nmeta from variant with index ",iSNPStart,"\n")
+      } else {
+        modelGWAS<-project$lfGWAS$sumstats[,c("SNP","CHR","BP","MAF","A1","A2")]
+        iSNPStart<-1
+      }
+      cat("\nFactor:  ",iFactor,"\n")
       W<-cModel$parsedGsemResults[[1]][[1]]$relativeVarianceExplainedPerFactor[,iFactor]*sign(cModel$parsedGsemResults[[1]][[1]]$patternCoefficients.matrix[,iFactor]) #only weighted by the factor loadings here, rather than on the dataset variances
       W2<-W^2
       k<-sum(!is.na(W))
+      k_tot<-ncol(SESNP)
       W0<-W
       W0[is.na(W0)]<-0
       #C_old<-sum(W,na.rm = T)-sum(W2,na.rm = T)/sum(W,na.rm = T)
       
-      for(iSNP in 1:nrow(BETASNP)){
+      for(iSNP in iSNPStart:nrow(BETASNP)){
         #test
         #iSNP<-1L
-        if(!iSNP %% 100 == 0) next  #for testing
-        if(iSNP %% 100000 == 0) cat("\n#SNP ",iSNP, project$lfGWAS$sumstats[[iSNP,c("SNP")]],"\n")
+        #if(!iSNP %% 100 == 0) next  #for testing
+        if(iSNP %% 100000 == 0) cat("\n#SNP ",iSNP, project$lfGWAS$sumstats[[iSNP,c("SNP")]])
+        if(iSNP %% 200000 == 0) {
+          saveRDS(object = modelGWAS,file = factorFilepath)
+          #cat("\nSaved intermediate results!\n")
+          }
         
         mCovar<-diag(nrow(I))
         #mI<-diag(nrow(I))
         #set snp variances adjusted for ldsc intercepts and sample overlap (through the ldsc intercepts - see genomic sem publication)
-        for (x in 1:ncol(SESNP)) {
-          for (y in 1:ncol(SESNP)) {
+        for (x in 1:k_tot) {
+          for (y in 1:k_tot) {
             mCovar[[x,y]]<-(SESNP[[iSNP,y]]*SESNP[[iSNP,x]]*mI[[x,y]]*POPVARSNP[[iSNP]]^2)
             #mI[[x,y]]<-I[[x,y]]*I[[x,x]]*I[[y,y]]
             # if (x != y)
@@ -1864,7 +1878,7 @@ if(project$clOptions$task=="nmeta"){
         }
         
         mCovar.sum<-colSums(mCovar,na.rm = T)
-        
+
         BETASNP.wmean<-weighted.mean(x = BETASNP[iSNP,], w = W0, na.rm = T)
         C<-sum(W/abs(mCovar.sum),na.rm = T)-sum(W2/(abs(mCovar.sum)^2),na.rm = T)/sum(W/abs(mCovar.sum),na.rm = T)
         Q<-sum(((BETASNP[iSNP,]-BETASNP.wmean)^2)/abs(mCovar.sum), na.rm = T)
@@ -1872,18 +1886,17 @@ if(project$clOptions$task=="nmeta"){
           (W0*Q - (k-1))/C,
           0
           ))
-        
-        
-       
+
         W_FULL<-W/(abs(mCovar.sum)+T2)
-        
-        
         
         set(x = modelGWAS,i =iSNP, j = "BETA",
             value = sum(W_FULL*BETASNP[iSNP,],na.rm = T)/sum(W_FULL, na.rm = T)
             )
         set(x = modelGWAS,i =iSNP, j = "SE",
-            value = sqrt(sum(abs(mCovar.sum)))
+            value = sqrt(abs(sum(mCovar.sum))) #/k_tot sends the effects through the roof!
+            )
+        set(x = modelGWAS,i =iSNP, j = "K",
+            value = k
             )
         set(x = modelGWAS,i =iSNP, j = "Q",
             value = Q
@@ -1891,9 +1904,12 @@ if(project$clOptions$task=="nmeta"){
         
       } #for iSNP
       
-      modelGWAS[, P:=pnorm(q = abs((BETA/SE)),mean = 0, sd = 1, lower.tail = F)]
+      modelGWAS[, NEF:=(SE^2)/POPVARSNP] #Calculate Effective Sample Size for Factor 1 - from the Genomic SEM Wiki, citation: https://www.biorxiv.org/content/10.1101/603134v3
+      modelGWAS[, P:=2*pnorm(q = abs((BETA/SE)),mean = 0, sd = 1, lower.tail = F)] #two sided!
       
-      saveRDS(object = modelGWAS,file = file.path(project$folderpath.workingDirectory,paste0("nmeta.",cModel$code,".F",iFactor,".",project$setup.code,".Rds")))
+      #just to conform to the use of FRQ rather than MAF when possible
+      if(any(colnames(modelGWAS)=="MAF") && !any(colnames(modelGWAS)=="FRQ")) colnames(modelGWAS)[colnames(modelGWAS)=="MAF"]<-"FRQ"
+      saveRDS(object = modelGWAS,file = factorFilepath) #compress = "bzip2"
   print("Naive metaanalysis of this model factor is done and the result has been saved to a file.")
     }
   }
@@ -2077,7 +2093,7 @@ for(iModel in 1:nrow(project$CFA$models.selected)){
       #iFactor<-1
       
       ##Calculate Effective Sample Size for Factor 1 - from the Genomic SEM Wiki
-      #citation: https://www.biorxiv.org/content/10.1101/603134v1.abstract
+      #citation: https://www.biorxiv.org/content/10.1101/603134v3
       #restrict to MAF of 40% and 10%
       gwasForEffectiveN<-subset(project$lfGWAS$gwas[[cModel$code]][[iFactor]], project$lfGWAS$gwas[[cModel$code]][[iFactor]]$MAF <= .4 & project$lfGWAS$gwas[[cModel$code]][[iFactor]]$MAF >= .1)
     
@@ -2160,12 +2176,12 @@ for(iModel in 1:length(project$CFA$models.selected)){
     #View(project$lfGWAS$gwas.for.display[order(project$lfGWAS$gwas.for.display$P),c("SNP","CHR","MAF","P")])
     
     cTable <- project$lfGWAS$gwas.for.display[order(project$lfGWAS$gwas.for.display$Z,decreasing = T),] %>% 
-      slice_head(n = 300) %>%
+      slice_head(n = 100) %>%
       mutate(i=row_number()) %>%
-      select(i,SNP,CHR,MAF,BETA,SE,Z,P,Q) %>%
+      select(i,SNP,CHR,FRQ,BETA,SE,Z,NEF,P) %>%
     gt() %>% 
     fmt_scientific(columns = vars(P), decimals = 4) %>%
-    fmt_number(columns = vars(MAF,Z,SE,Q), decimals = 4) %>%
+    fmt_number(columns = vars(FRQ,Z,SE,NEF), decimals = 4) %>%
     #fmt_number(columns = vars(CHR), decimals = 0) %>%
     tab_header(
       title = paste0("Top variants for ",cModel$code," F",iFactor)
@@ -2190,20 +2206,20 @@ for(iModel in 1:length(project$CFA$models.selected)){
     
     #qqman adaptations
     qqmanGwas<-project$lfGWAS$gwas.for.display
-    qqmanGwas$P<- shru::clipValues(qqmanGwas$P,min = 10^(-300), max = NULL)
+    qqmanGwas$P<- shru::clipValues(qqmanGwas$P,min = 10^(-20), max = NULL)
     qqmanGwas<-qqmanGwas[which(!is.na(qqmanGwas$P)),]
     qqmanGwas<-qqmanGwas[,c("SNP","BP","CHR","P")]
     qqmanGwas$CHR<-as.integer(qqmanGwas$CHR)
     
     
     #manhattan plot 2
-    png(filename = file.path(project$folderpath.plots,cModel$code,paste0("man.F",iFactor,".png")), width = 800, height = 600)
+    png(filename = file.path(project$folderpath.plots,cModel$code,paste0("man.F",iFactor,".png")), width = 1200, height = 600)
     qqman::manhattan(x = qqmanGwas)
     dev.off()
     
     #qqman::qq(project$lfGWAS$gwas.for.display$Pval_Estimate)
     
-    png(filename = file.path(project$folderpath.plots,cModel$code,paste0("qq.F",iFactor,".png")), width = 800, height = 600)
+    png(filename = file.path(project$folderpath.plots,cModel$code,paste0("qq.F",iFactor,".png")), width = 600, height = 600)
     qqman::qq(qqmanGwas$P)
     dev.off()
   
