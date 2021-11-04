@@ -726,8 +726,8 @@ if(project$clOptions$task=="munge" & !all(file.exists(project$sumstats.sel$munge
 }
 
 if(file.exists(project$filepath.lfgwas.sumstats)) {
-  project$lfGWAS$sumstats<-readRDS(file=project$filepath.lfgwas.sumstats)
-  print("Read summary statistics for latent factor GWAS from file.")
+  # project$lfGWAS$sumstats<-readRDS(file=project$filepath.lfgwas.sumstats)
+  # print("Read summary statistics for latent factor GWAS from file.")
   
   #compare with genomic SEM produced sumstats 
   # project$filepath.lfgwas.sumstats2<-file.path(project$folderpath.workingDirectory,paste0("lfGWAS.sumstats.setup4.Rds"))
@@ -759,7 +759,7 @@ if(file.exists(project$filepath.lfgwas.sumstats)) {
   #   
   # }
   
-  head(project$lfGWAS$sumstats)
+  # head(project$lfGWAS$sumstats)
   
 } else if(project$clOptions$task=="munge"){
   project$supermunge.results<-shru::supermunge(filePaths = project$sumstats.sel$mungedpath, refFilePath = project$filepath.SNPReference.1kg, traitNames = project$sumstats.sel$code, produceVariantTable = T, process = F, writeOutput = F, info.filter = 0.6, frq.filter = 0.01)
@@ -784,6 +784,7 @@ if(file.exists(project$filepath.lfgwas.sumstats)) {
   saveRDS(object = project$lfGWAS$sumstats, file = project$filepath.lfgwas.sumstats)
   print("Done preparing summary statistics for latent factor GWAS. The result should have been saved to a file.")
   rm("project$supermunge.results$variantTable")
+  rm("project$lfGWAS$sumstats")
 }
 
 if(project$clOptions$task=="munge") quit(save = "no")
@@ -1762,8 +1763,9 @@ if(project$clOptions$task=="nmeta"){
   
   project$nmeta<-c()
   
-  #project$lfGWAS$sumstats<-readRDS(file=project$filepath.lfgwas.sumstats)
-  #print("Read summary statistics for latent factor GWAS from file.")
+  project$lfGWAS$sumstats<-readRDS(file=project$filepath.lfgwas.sumstats)
+  print("Read summary statistics for latent factor GWAS from file.")
+  head(project$lfGWAS$sumstats)
   
   colBeta<-colnames(project$lfGWAS$sumstats)[grep("^BETA\\.", ignore.case = TRUE,colnames(project$lfGWAS$sumstats))]
   colSE<-colnames(project$lfGWAS$sumstats)[grep("^SE\\.", ignore.case = TRUE,colnames(project$lfGWAS$sumstats))]
@@ -1773,6 +1775,7 @@ if(project$clOptions$task=="nmeta"){
   rsum<-rowSums(abs(project$lfGWAS$sumstats[,..colBeta]),na.rm = T)
   rem<-rsum<(length(colBeta)*1e-19)
   project$lfGWAS$sumstats<-project$lfGWAS$sumstats[!rem,]
+  rm("rsum")
   cat("\nRemoved ",sum(rem), " variants as part of QC before nmeta.\n")
   
   SESNP<-project$lfGWAS$sumstats[,..colSE]
@@ -1810,10 +1813,7 @@ if(project$clOptions$task=="nmeta"){
     #BETASNP[, (col):=(col)(I_diag[[iCol]])]
   }
   
-  #set(x = BETASNP, j = colnames(BETASNP), value = BETASNP/t(I_diag))
-  
-  #BETASNP.mean<-rowMeans(BETASNP,na.rm = T)
-  #BETASNP.sdiff<-BETASNP-BETASNP.mean
+  #k<-apply(X = BETASNP,MARGIN = 1,FUN = function(x){sum(!is.na(x))})
   
   if(length(grep(pattern = "\\:",x = project$clOptions$task_argument))>0){
     project$nmeta$cModel<-strsplit(x = project$clOptions$task_argument, split = ':')[[1]][1]
@@ -1848,59 +1848,78 @@ if(project$clOptions$task=="nmeta"){
       cat("\nFactor:  ",iFactor,"\n")
       W<-cModel$parsedGsemResults[[1]][[1]]$relativeVarianceExplainedPerFactor[,iFactor]*sign(cModel$parsedGsemResults[[1]][[1]]$patternCoefficients.matrix[,iFactor]) #only weighted by the factor loadings here, rather than on the dataset variances
       W2<-W^2
-      k<-sum(!is.na(W))
+      sqrt.W<-sqrt(abs(W))
+      signed.sqrt.W<-sign(W)*sqrt.W
+      k_W<-sum(!is.na(W))
       k_tot<-ncol(SESNP)
-      W0<-W
-      W0[is.na(W0)]<-0
+      #W0<-W
+      #W0[is.na(W0)]<-0
+      nSNP<-nrow(BETASNP)
+      
+      #mCovarTemplate<-setDT(as.data.frame(diag(k_tot)))
       #C_old<-sum(W,na.rm = T)-sum(W2,na.rm = T)/sum(W,na.rm = T)
       
-      for(iSNP in iSNPStart:nrow(BETASNP)){
+      
+      for(iSNP in iSNPStart:nSNP){
         #test
         #iSNP<-1L
-        #if(!iSNP %% 100 == 0) next  #for testing
-        if(iSNP %% 100000 == 0) cat("\n#SNP ",iSNP, project$lfGWAS$sumstats[[iSNP,c("SNP")]])
-        if(iSNP %% 200000 == 0) {
+        #iSNP<-8952400L
+        #if(!iSNP %% 10 == 0) next  #for testing
+        if(iSNP %% 100000 == 0){
+          cat("#SNP ",iSNP, project$lfGWAS$sumstats[[iSNP,c("SNP")]],"\n")
+
           saveRDS(object = modelGWAS,file = factorFilepath)
           #cat("\nSaved intermediate results!\n")
           }
         
-        mCovar<-diag(nrow(I))
+        mCovar<-diag(k_tot)
         #mI<-diag(nrow(I))
         #set snp variances adjusted for ldsc intercepts and sample overlap (through the ldsc intercepts - see genomic sem publication)
         for (x in 1:k_tot) {
           for (y in 1:k_tot) {
-            mCovar[[x,y]]<-(SESNP[[iSNP,y]]*SESNP[[iSNP,x]]*mI[[x,y]]*POPVARSNP[[iSNP]]^2)
-            #mI[[x,y]]<-I[[x,y]]*I[[x,x]]*I[[y,y]]
-            # if (x != y)
-            #   V_SNP[[x,y]]<-(SESNP[[iSNP,y]]*SESNP[[iSNP,x]]*I[[x,y]]*I[[x,x]]*I[[y,y]]*VARSNP[[iSNP]]^2)                else if (x == y)
-            #   V_SNP[[x,x]]<-(SESNP[[iSNP,x]]*I[[x,x]]*VARSNP[[iSNP]])^2
+            #mCovar[x,y]<-(SESNP[[iSNP,y]]*SESNP[[iSNP,x]]*mI[[x,y]]*POPVARSNP[[iSNP]]^2)
+            #mCovar[[x,y]]<-(SESNP[[iSNP,y]]*SESNP[[iSNP,x]]*mI[[x,y]]*POPVARSNP[[iSNP]]^2)
+            mCovar[[x,y]]<-(signed.sqrt.W[x]*signed.sqrt.W[y]*SESNP[[iSNP,y]]*SESNP[[iSNP,x]]*mI[[x,y]]*POPVARSNP[[iSNP]]^2)
           }
         }
         
-        mCovar.sum<-colSums(mCovar,na.rm = T)
+        abs.mCovar.sum<-abs(colSums(mCovar,na.rm = T)) #The individual variance components of each separate dataset
 
-        BETASNP.wmean<-weighted.mean(x = BETASNP[iSNP,], w = W0, na.rm = T)
-        C<-sum(W/abs(mCovar.sum),na.rm = T)-sum(W2/(abs(mCovar.sum)^2),na.rm = T)/sum(W/abs(mCovar.sum),na.rm = T)
-        Q<-sum(((BETASNP[iSNP,]-BETASNP.wmean)^2)/abs(mCovar.sum), na.rm = T)
-        T2<-max( c(
-          (W0*Q - (k-1))/C,
-          0
-          ))
+        #BETASNP.wmean<-weighted.mean(x = BETASNP[iSNP,], w = W0, na.rm = T)
+        #BETASNP.wmean<-weighted.mean(x = BETASNP[iSNP,], w = W0/sqrt(abs.mCovar.sum), na.rm = T) #slightly corrected by the covariances
+        # C<-sum(W/abs.mCovar.sum,na.rm = T)-sum(W2/(abs.mCovar.sum^2),na.rm = T)/sum(W/abs.mCovar.sum,na.rm = T)
+        # Q_part<-((BETASNP[iSNP,]-BETASNP.wmean)^2)/abs.mCovar.sum
+        # Q_part[is.na(Q_part)]<-0
+        #Q<-sum(Q_part)
+        #Q<-sum(((BETASNP[iSNP,]-BETASNP.wmean)^2)/abs.mCovar.sum, na.rm = T)
+        #k<-sum(!is.na(W*BETASNP[iSNP,]))
+        # T2<-max( c(
+        #   (W0*Q - (k_W-1))/C,
+        #   0
+        #   ))
+        # T2_part<-(W*Q_part - 1 + 1/k_W)/C
+        # T2_part[T2_part<0]<-0
 
-        W_FULL<-W/(abs(mCovar.sum)+T2)
+        #W_FULL<-W/(abs.mCovar.sum+T2) #as in a standard random effects meta-analysis
+        #W_FULL<-W/(abs.mCovar.sum+T2_part)
+        #W_FULL<-W/abs.mCovar.sum #fixed-effect meta-analysis
+        #W_FULL<-W/(1+abs.mCovar.sum) #fixed-effect meta-analysis
+        W_FULL<-W/(abs.mCovar.sum) #fixed-effect meta-analysis
         
         set(x = modelGWAS,i =iSNP, j = "BETA",
-            value = sum(W_FULL*BETASNP[iSNP,],na.rm = T)/sum(W_FULL, na.rm = T)
+            #value = sum(W_FULL*BETASNP[iSNP,],na.rm = T)/sum(abs(W_FULL), na.rm = T)
+            value = sum(W_FULL*BETASNP[iSNP,],na.rm = T)/sum(abs(W_FULL[!is.na(BETASNP[iSNP,])]), na.rm = T)
             )
         set(x = modelGWAS,i =iSNP, j = "SE",
-            value = sqrt(abs(sum(mCovar.sum))) #/k_tot sends the effects through the roof!
+            value = sqrt(sum(abs.mCovar.sum))
+            #value = sqrt(sum(abs.mCovar.sum)/sqrt(k_tot)) #reduced SE correction, /k_tot sends the effects through the roof!
             )
-        set(x = modelGWAS,i =iSNP, j = "K",
-            value = k
-            )
-        set(x = modelGWAS,i =iSNP, j = "Q",
-            value = Q
-            )
+        # set(x = modelGWAS,i =iSNP, j = "k",
+        #     value = k[iSNP]
+        #     )
+        # set(x = modelGWAS,i =iSNP, j = "Q",
+        #     value = sum(Q_part)
+        #     )
         
       } #for iSNP
       
