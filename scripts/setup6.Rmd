@@ -2164,7 +2164,7 @@ for(iModel in 1:length(project$CFA$models.selected)){
     if(!file.exists(project$lfGWAS$gwas.for.display.filename)) next
     
     project$lfGWAS$gwas.for.display <- na.omit(readRDS(project$lfGWAS$gwas.for.display.filename))
-    project$lfGWAS$gwas.for.display <- project$lfGWAS$gwas.for.display[,Z:=BETA/SE]
+    project$lfGWAS$gwas.for.display <- project$lfGWAS$gwas.for.display[,Z:=BETA/SE][FRQ>=0.01] ##ONLY COMMON VARIANTS, anything rarer looks horrible
     
     # restore chr info if missing
     # ref <- read.table(project$filepath.SNPReference.1kg,header=T, quote="\"",fill=T,na.string=c(".",NA,"NA",""))

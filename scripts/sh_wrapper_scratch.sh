@@ -120,3 +120,7 @@ sbatch --time 2-00:00:00 --partition brc,shared --job-name="nmeta" --ntasks 1 --
 sbatch --time 3-00:00:00 --partition brc,shared --job-name="nmeta" --ntasks 1 --cpus-per-task 4 --mem 16G --wrap="Rscript setup6.R -t nmeta -a M25_7_26.ORT.ML:6 -l cluster" --output "setup6.nmeta.M25_7_26.ORT.ML:6.$(date +%Y%m%d).out.txt"
 sbatch --time 3-00:00:00 --partition brc,shared --job-name="nmeta" --ntasks 1 --cpus-per-task 4 --mem 16G --wrap="Rscript setup6.R -t nmeta -a M25_10_244.ORT.ML:1 -l cluster" --output "setup6.nmeta.M25_10_244.ORT.ML:1.$(date +%Y%m%d).out.txt"
 
+#setup7
+sbatch --time 8:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 32G --wrap="Rscript setup7.R -t munge -l cluster" --output "setup7.munge.$(date +%Y%m%d).out.txt"
+sbatch --time 12:00:00 --partition brc,shared --job-name="mvLD" --ntasks 1 --cpus-per-task 4 --mem 64G --wrap="Rscript setup7.R -t mvLD -l cluster" --output "setup7.mvLD.$(date +%Y%m%d).out.txt"
+sbatch --time 1-12:00:00 --partition brc,shared --job-name="gsem" --ntasks 1 --cpus-per-task 4 --mem 32G --wrap="Rscript setup7.R -t cfa -a 1 -l cluster" --output "setup7.cfa.$(date +%Y%m%d).out.txt"
