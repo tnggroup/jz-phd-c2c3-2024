@@ -124,3 +124,19 @@ sbatch --time 3-00:00:00 --partition brc,shared --job-name="nmeta" --ntasks 1 --
 sbatch --time 8:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 32G --wrap="Rscript setup7.R -t munge -l cluster" --output "setup7.munge.$(date +%Y%m%d).out.txt"
 sbatch --time 12:00:00 --partition brc,shared --job-name="mvLD" --ntasks 1 --cpus-per-task 4 --mem 64G --wrap="Rscript setup7.R -t mvLD -l cluster" --output "setup7.mvLD.$(date +%Y%m%d).out.txt"
 sbatch --time 1-12:00:00 --partition brc,shared --job-name="gsem" --ntasks 1 --cpus-per-task 4 --mem 32G --wrap="Rscript setup7.R -t cfa -a 1 -l cluster" --output "setup7.cfa.$(date +%Y%m%d).out.txt"
+#on activating implicit multithreading
+#https://hpc.nih.gov/apps/R.html#threading
+#for chr in 1; do sbatch --time 4-00:00:00 --partition brc,shared --job-name="lga_$chr" --ntasks 1 --cpus-per-task 3 --mem 16G --wrap="OMP_NUM_THREADS=3; Rscript setup7.R -t lfgwas -a M20_6_198.COR.ML:$chr:1 -l cluster" --output "setup7.lfgwas.M20_6_198.COR.ML.F1.chr$chr.$(date +%Y%m%d).out.txt"; done
+#test
+#for chr in 22; do sbatch --time 1:00:00 --partition brc,shared --job-name="lga_$chr" --ntasks 1 --cpus-per-task 10 --mem 32G --wrap="Rscript setup7.R -t lfgwas -a M20_6_198.COR.ML:$chr -l cluster" --output "setup7.lfgwas.M20_6_198.COR.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
+
+for chr in 22; do sbatch --time 6-00:00:00 --partition brc,shared --job-name="lga_$chr" --ntasks 1 --cpus-per-task 10 --mem 32G --wrap="Rscript setup7.R -t lfgwas -a M20_6_198.COR.ML:$chr -l cluster" --output "setup7.lfgwas.M20_6_198.COR.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
+for chr in 21; do sbatch --time 6-00:00:00 --partition brc,shared --job-name="lga_$chr" --ntasks 1 --cpus-per-task 10 --mem 32G --wrap="Rscript setup7.R -t lfgwas -a M20_6_198.COR.ML:$chr -l cluster" --output "setup7.lfgwas.M20_6_198.COR.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
+for chr in 20; do sbatch --time 6-00:00:00 --partition brc,shared --job-name="lga_$chr" --ntasks 1 --cpus-per-task 10 --mem 32G --wrap="Rscript setup7.R -t lfgwas -a M20_6_198.COR.ML:$chr -l cluster" --output "setup7.lfgwas.M20_6_198.COR.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
+for chr in 15 16 17 18 19; do sbatch --time 6-00:00:00 --partition brc,shared --job-name="lga_$chr" --ntasks 1 --cpus-per-task 10 --mem 32G --wrap="Rscript setup7.R -t lfgwas -a M20_6_198.COR.ML:$chr -l cluster" --output "setup7.lfgwas.M20_6_198.COR.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
+for chr in 3 4 5 6 7 8 9 10 11 12 13 14; do sbatch --time 6-00:00:00 --partition brc,shared --job-name="lga_$chr" --ntasks 1 --cpus-per-task 10 --mem 32G --wrap="Rscript setup7.R -t lfgwas -a M20_6_198.COR.ML:$chr -l cluster" --output "setup7.lfgwas.M20_6_198.COR.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
+for chr in 1 2; do sbatch --time 6-00:00:00 --partition brc,shared --job-name="lga_$chr" --ntasks 1 --cpus-per-task 10 --mem 32G --wrap="Rscript setup7.R -t lfgwas -a M20_6_198.COR.ML:$chr -l cluster" --output "setup7.lfgwas.M20_6_198.COR.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
+sbatch --time 24:00:00 --partition brc,shared --job-name="mvLD2" --ntasks 1 --cpus-per-task 4 --mem 64G --wrap="Rscript setup7.R -t mvLD2 -l cluster" --output "setup7.mvLD2.$(date +%Y%m%d).out.txt"
+
+magma --annotate window=4,1 --snp-loc ../data/gwas_sumstats/export/M20_6_198.COR.ML.F1.SNPLOC --gene-loc ../data/gene_mapping/NCBI37.3.gene.loc --out setup7.annotate.F1
+magma --bfile ../data/reference_panel/1KG_eur.plink/g1000_eur --gene-annot setup7.annotate.F1.genes.annot --pval ../data/gwas_sumstats/export/M20_6_198.COR.ML.F1.PVAL ncol=N
