@@ -1661,12 +1661,13 @@ for(iSelected in 1:nrow(p$CFA$models.selected)){
   
   cIndicatorLoadings<-cIndicatorLoadings.loadingPattern
   
-  #test of free model rather than fixed
+  #test of free SEM parameters rather than fixed
   # p$CFA$models.selected[[iSelected,c("lModel.fixed")]]<-semplate$generateLavaanCFAModel(
   #   allow_loading.table.indicator_factor = cIndicatorLoadings,
   #   universalResidualLimitMin = NA,
   #   orthogonal = (p$CFA$models.selected[iSelected,]$correlation[[1]][[1]]=="ORT"))
   
+  #original fixed setup
   p$CFA$models.selected[[iSelected,c("lModel.fixed")]]<-semplate$generateLavaanCFAModel(
     allow_loading.table.indicator_factor = cIndicatorLoadings,
     fix_loading.table.indicator_factor = p$CFA$models.selected[iSelected,]$parsedGsemResults[[1]][[1]]$patternCoefficientsSTDGenotype.matrix, fixResidualVariance_v = p$CFA$models.selected[iSelected,]$parsedGsemResults[[1]][[1]]$residualVaraiancesSTDGenotype.matrix,
@@ -1818,8 +1819,7 @@ for(iSelected in 1:nrow(p$CFA$models.selected)){
 ```{r naive variant effect meta-analysis }
 #test
 #p$clOptions$task<-"nmeta"
-#p$clOptions$task_argument<-"M25_7_26.ORT.ML:5"
-#p$clOptions$task_argument<-"M25_7_26.ORT.ML"
+#p$clOptions$task_argument<-"M20_6_198.COR.ML:1"
 
 cat("\n***Naive variant effect meta-analysis***\n")
 
@@ -1828,6 +1828,7 @@ if(p$clOptions$task=="nmeta"){
   p$nmeta<-c()
   
   p$lfGWAS$sumstats<-readRDS(file=p$filepath.lfgwas.sumstats)
+  setDT(p$lfGWAS$sumstats)
   print("Read summary statistics for latent factor GWAS from file.")
   head(p$lfGWAS$sumstats)
   
@@ -1890,7 +1891,7 @@ if(p$clOptions$task=="nmeta"){
   
   for(iModel in 1:nrow(p$CFA$models.selected)){
     #test
-    #iModel<-4
+    #iModel<-1
     
     cModel<-p$CFA$models.selected[iModel,]
     if(!is.null(p$nmeta$cModel) & p$nmeta$cModel!=cModel$code) next
@@ -1898,7 +1899,7 @@ if(p$clOptions$task=="nmeta"){
     
     for(iFactor in 1:cModel$nFactors){
       #test
-      #iFactor<-5
+      #iFactor<-3
       if(is.null(p$nmeta$cFactor)){} else if(p$nmeta$cFactor!=iFactor) next
       factorFilepath<-file.path(p$folderpath.workingDirectory,paste0("nmeta.",cModel$code,".F",iFactor,".",p$setup.code,".Rds"))
       if(file.exists(factorFilepath)){
@@ -1987,15 +1988,19 @@ if(p$clOptions$task=="nmeta"){
         
       } #for iSNP
       
-      modelGWAS[, NEF:=(SE^2)/POPVARSNP] #Calculate Effective Sample Size for Factor 1 - from the Genomic SEM Wiki, citation: https://www.biorxiv.org/content/10.1101/603134v3
+      #this is probably wrong
+      #modelGWAS[, NEF:=(SE^2)/POPVARSNP] #Calculate Effective Sample Size for Factor 1 - from the Genomic SEM Wiki, citation: https://www.biorxiv.org/content/10.1101/603134v3
       modelGWAS[, P:=2*pnorm(q = abs((BETA/SE)),mean = 0, sd = 1, lower.tail = F)] #two sided!
       
       #just to conform to the use of FRQ rather than MAF when possible
       if(any(colnames(modelGWAS)=="MAF") && !any(colnames(modelGWAS)=="FRQ")) colnames(modelGWAS)[colnames(modelGWAS)=="MAF"]<-"FRQ"
       saveRDS(object = modelGWAS,file = factorFilepath) #compress = "bzip2"
-  print("Naive metaanalysis of this model factor is done and the result has been saved to a file.")
+      factorCode<-paste0("nmeta.",cModel$code,".F",iFactor,".",p$setup.code)
+      #fwrite(x = modelGWAS, file = factorFilepath, append = F, quote = F, sep = "\t", nThread=5)
+      supermunge.result<-supermunge(list_df = list(modelGWAS),traitNames = factorCode, pathDirOutput = p$folderpath.data.sumstats.munged)
+      print("Naive metaanalysis of this model factor is done and the result has been exported to a file.")
     }
-  }
+  } #for iModel
   
 }
 
@@ -2040,13 +2045,14 @@ if(!file.exists(file.path(p$folderpath.workingDirectory,paste0("lfGWAS.gwas.",p$
     #test
     #iModel<-1
     cModel<-p$CFA$models.selected[iModel,]
-    p$lfGWAS$gwas[[cModel$code]]<-list()
+    
     
     p$lfGWAS$intermediateResultFiles<-list.files(path = p$folderpath.workingDirectory, pattern = paste0("^lfGWAS\\.gwas\\.",p$setup.code,"\\.",cModel$code,"\\.F.+\\..+\\.Rds"), full.names = T, ignore.case=T)
     #p$lfGWAS$intermediateResultFiles<-list.files(path = p$folderpath.workingDirectory, pattern = paste0("^lfGWAS\\.gwas\\.",p$setup.code,"\\.M.+-.+\\..+\\..+\\.F.+\\..+\\.Rds"), full.names = T, ignore.case=T)
     #lfGWAS.gwas.setup4.M25-4.74.ML.F_ALL.chr8.Rds
     nIntermediateFactors<-NULL
     if(length(p$lfGWAS$intermediateResultFiles)>0){
+      p$lfGWAS$gwas[[cModel$code]]<-list()
       for(nIntermediateResultFile in 1:length(p$lfGWAS$intermediateResultFiles)){
         #nIntermediateResultFile<-1
         intermediateResult<-readRDS(file=p$lfGWAS$intermediateResultFiles[nIntermediateResultFile])
@@ -2091,8 +2097,6 @@ if(p$clOptions$task=="lfgwas" & !file.exists(file.path(p$folderpath.workingDirec
   colBeta<-colnames(p$lfGWAS$sumstats)[grep("^BETA\\.", ignore.case = TRUE,colnames(p$lfGWAS$sumstats))]
   colSE<-colnames(p$lfGWAS$sumstats)[grep("^SE\\.", ignore.case = TRUE,colnames(p$lfGWAS$sumstats))]
 
-  #cSumstats<-p$lfGWAS$sumstats[1:10000,]
-
   for (i in colBeta)
     p$lfGWAS$sumstats[is.na(get(i)), (i):=(1e-20)]
 
@@ -2114,9 +2118,9 @@ if(p$clOptions$task=="lfgwas" & !file.exists(file.path(p$folderpath.workingDirec
   #test #p$lfGWAS$cChr<-22
   
   if(length(grep(pattern = "\\:",x = p$clOptions$task_argument))>0){
-  p$lfGWAS$cModel<-strsplit(x = p$clOptions$task_argument, split = ':')[[1]][1]
-  p$lfGWAS$cChr<-strsplit(x = p$clOptions$task_argument, split = ':')[[1]][2]
-  #p$lfGWAS$cFn<-strsplit(x = p$clOptions$task_argument, split = ':')[[1]][3]
+    p$lfGWAS$cModel<-strsplit(x = p$clOptions$task_argument, split = ':')[[1]][1]
+    p$lfGWAS$cChr<-strsplit(x = p$clOptions$task_argument, split = ':')[[1]][2]
+    #p$lfGWAS$cFn<-strsplit(x = p$clOptions$task_argument, split = ':')[[1]][3]
   } else if(exists(p$clOptions$task_argument)){
     p$lfGWAS$cModel<-p$clOptions$task_argument
   } else {
@@ -2152,7 +2156,7 @@ if(p$clOptions$task=="lfgwas" & !file.exists(file.path(p$folderpath.workingDirec
   }
   
   #TEST settings - restrict to a subset of variants
-  #p$lfGWAS$sumstats<-head(p$lfGWAS$sumstats, n = 1000)
+  #p$lfGWAS$sumstats<-head(p$lfGWAS$sumstats, n = 100)
   
   print("Head of processed sumstats table selection")
   head(p$lfGWAS$sumstats)
@@ -2165,7 +2169,6 @@ if(p$clOptions$task=="lfgwas" & !file.exists(file.path(p$folderpath.workingDirec
     modelchi = FALSE,
     printwarn = TRUE,
     sub=paste0("F",(1:cModel$nFactors),"~SNP"),
-    #GC="none",
     parallel=T,
     GC="conserv",
     smooth_check = T,
@@ -2270,47 +2273,60 @@ if(!file.exists(file.path(p$folderpath.data.sumstats.munged,paste0(p$CFA$models.
 
 ```{r setup additional traits}
 
-factorCode<-"M20_6_198.COR.ML.F1"
-p$sumstats[factorCode,c("code","name","name.nice","n_effective")]<-c(factorCode,factorCode,"Anxiety F1",28196)
-factorCode<-"M20_6_198.COR.ML.F2"
-p$sumstats[factorCode,c("code","name","name.nice","n_effective")]<-c(factorCode,factorCode,"PTSD F2",17826)
-factorCode<-"M20_6_198.COR.ML.F3"
-p$sumstats[factorCode,c("code","name","name.nice","n_effective")]<-c(factorCode,factorCode,"Depression F3",12867)
-factorCode<-"M20_6_198.COR.ML.F4"
-p$sumstats[factorCode,c("code","name","name.nice","n_effective")]<-c(factorCode,factorCode,"Educational attainment F4",386339)
-factorCode<-"M20_6_198.COR.ML.F5"
-p$sumstats[factorCode,c("code","name","name.nice","n_effective")]<-c(factorCode,factorCode,"Externalising F5",347490)
-factorCode<-"M20_6_198.COR.ML.F6"
-p$sumstats[factorCode,c("code","name","name.nice","n_effective")]<-c(factorCode,factorCode,"Autism F6",12225)
+p$sumstats$code.file<-p$sumstats$code #default as code
 
-p$sumstats.sel.code<-c("M20_6_198.COR.ML.F1","M20_6_198.COR.ML.F2","M20_6_198.COR.ML.F3","M20_6_198.COR.ML.F4","M20_6_198.COR.ML.F5","M20_6_198.COR.ML.F6")
+#GSEM latent factor GWAS
+factorCode<-"GSEM.F1"
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_198.COR.ML.F1","Anxiety F",28196)
+factorCode<-"GSEM.F2"
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_198.COR.ML.F2","PTSD F",17826)
+factorCode<-"GSEM.F3"
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_198.COR.ML.F3","Depression F",12867)
+factorCode<-"GSEM.F4"
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_198.COR.ML.F4","Educational attainment F",386339)
+factorCode<-"GSEM.F5"
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_198.COR.ML.F5","Externalising F",347490)
+factorCode<-"GSEM.F6"
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_198.COR.ML.F6","Autism F",12225)
+
+#nmeta latent factor GWAS
+factorCode<-"nmeta.F1"
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"nmeta.M20_6_198.COR.ML.F1.setup7","Anxiety F",48757)
+factorCode<-"nmeta.F3"
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"nmeta.M20_6_198.COR.ML.F3.setup7","Depression F",183691)
+
+p$sumstats.sel.code<-c("GSEM.F1","GSEM.F2","GSEM.F3","GSEM.F4","GSEM.F5","GSEM.F6","nmeta.F1","nmeta.F3")
+
+# set nice name for selected traits
+p$sumstats[p$sumstats.sel.code,]$name.nice<-p$sumstats[p$sumstats.sel.code,]$name
 
 ##Add sumstat cleaned and munged file paths
-p$sumstats[p$sumstats.sel.code,c("cleanedpath")]<-file.path(p$folderpath.data.sumstats.cleaned,paste0(p$sumstats$code,p$filename.suffix.data.sumstats.munged))[which(p$sumstats$code %in% p$sumstats.sel.code)]
+p$sumstats[p$sumstats.sel.code,c("cleanedpath")]<-file.path(p$folderpath.data.sumstats.cleaned,paste0(p$sumstats$code.file,p$filename.suffix.data.sumstats.munged))[which(p$sumstats$code %in% p$sumstats.sel.code)]
 
-p$sumstats[p$sumstats.sel.code,c("mungedpath")]<-file.path(p$folderpath.data.sumstats.munged,paste0(p$sumstats$code,p$filename.suffix.data.sumstats.munged))[which(p$sumstats$code %in% p$sumstats.sel.code)]
+p$sumstats[p$sumstats.sel.code,c("mungedpath")]<-file.path(p$folderpath.data.sumstats.munged,paste0(p$sumstats$code.file,p$filename.suffix.data.sumstats.munged))[which(p$sumstats$code %in% p$sumstats.sel.code)]
 
 ##Add a combined nice name plus code label
 p$sumstats$name.nice.and_code<-paste0(p$sumstats$name.nice," (",p$sumstats$code,")")
 
 #set order of datasets to sorted by code
-p$sumstats<-p$sumstats[order(p$sumstats$code),]
+p$sumstats<-p$sumstats[order(p$sumstats$name.nice),]
 
-if(F){ #set to true to re-calculate effective N from file information
+#re-calculate effective N from file information - perform manually as needed
+if(F){
+        factorCode<-"nmeta.F3"
+        gwasForEffectiveN<-fread(file = p$sumstats[factorCode,]$mungedpath, na.strings =c(".",NA,"NA",""), encoding = "UTF-8",check.names = T, fill = T, blank.lines.skip = T, key = c("SNP","CHR","BP"), data.table = T,showProgress = F, nThread=5)
   ##Calculate Effective Sample Size for Factor 1 - from the Genomic SEM Wiki
         #citation: https://www.biorxiv.org/content/10.1101/603134v3
         #restrict to MAF of 40% and 10%
         #change to use adjusted Z if this has been set above
         #added to supermunge also
-        gwasForEffectiveN<-subset(p$lfGWAS$gwas[[cModel$code]][[iFactor]], p$lfGWAS$gwas[[cModel$code]][[iFactor]]$MAF <= .4 & p$lfGWAS$gwas[[cModel$code]][[iFactor]]$MAF >= .1)
-        
+        gwasForEffectiveN[,MAF:=ifelse(FRQ>0.5,1-FRQ,FRQ)][,VSNP:=2*FRQ*(1-FRQ)]
+        gwasForEffectiveN<-gwasForEffectiveN[MAF>=.1 & MAF<=.4,]
         setDT(gwasForEffectiveN)
-        effectiveN[iFactor]<-mean(gwasForEffectiveN[,NEF:=((Z_Estimate/est)^2)/(2*MAF*(1-MAF))][,NEF],na.rm=T)
-        #effectiveN[iFactor]<-(mean(((gwasForEffectiveN$Z_Estimate/gwasForEffectiveN$est)^2)/(2*gwasForEffectiveN$MAF*(1-gwasForEffectiveN$MAF))))
-        #p$lfGWAS$gwas[[cModel$code]][[iFactor]]$NEF<-effectiveN[iFactor]
+        gwasForEffectiveN[,NEF:=round(((Z/EFFECT)^2)/VSNP,digits = 0)]
+        effectiveN<-mean(gwasForEffectiveN$NEF,na.rm=T)
+        effectiveN
         
-        #add factor trait to sumstats info
-        p$sumstats[factorCode,c("code","name","n_effective")]<-c(factorCode,factorCode,effectiveN[iFactor])
 }
 ```
 
@@ -2324,8 +2340,9 @@ if(F){ #set to true to re-calculate effective N from file information
 #p$sumstats.sel.code<-c("RISK02","RISK03","SCHI04","SUBJ01","TIRE01")
 #p$sumstats.sel.code<-c("TIRE01")
 p$sumstats.sel.uv.code<-c("ADHD05","ALCD03","ANOR02","ANXI03","ANXI04","AUTI07","BIPO02", "DEPR05","DEPR08","EDUC03","HEAL01","INCO03","INSO02","NEUR02", "PTSD04","RISK02","RISK03","SCHI04","SUBJ01","TIRE01")
-p$sumstats.sel.l.code<-c("M20_6_198.COR.ML.F1","M20_6_198.COR.ML.F2","M20_6_198.COR.ML.F3","M20_6_198.COR.ML.F4","M20_6_198.COR.ML.F5","M20_6_198.COR.ML.F6")
-p$sumstats.sel.code<-c(p$sumstats.sel.uv.code,p$sumstats.sel.l.code)
+p$sumstats.sel.lfgwas.code<-c("GSEM.F1","GSEM.F2","GSEM.F3","GSEM.F4","GSEM.F5","GSEM.F6")
+p$sumstats.sel.nmeta.code<-c("nmeta.F1","nmeta.F3")
+p$sumstats.sel.code<-c(p$sumstats.sel.uv.code,p$sumstats.sel.lfgwas.code,p$sumstats.sel.nmeta.code)
 p$sumstats.sel<-p$sumstats[which(p$sumstats$code %in% p$sumstats.sel.code),]
 
 p$sumstats.sel[,c("code","name","name.nice","name.nice.and_code", "year","n_case","n_control","n_total","n_effective", "pmid","reference_doi","samplePrevalence","populationPrevalence","dependent_variable.OLS","dependent_variable.linprob","se.logit","mungedpath")]
@@ -2372,6 +2389,7 @@ if (file.exists(p$filepath.mvLD2)) {
       info.filter = 0.6,
       frq.filter = 0.01,
       mhc.filter = 37,
+      chisq.min = 1e-3,
       N = p$sumstats.sel$n_total,
       #forceN = T, # Consider this when some of the original N's may be untrustworthy (ANXI04!) - TODO - fix in supermunge
       ldsc.log = p$setup.code.date
@@ -2425,8 +2443,8 @@ p$printCorrSimplified(
   )
 
 p$printCorr(
-  corr = clipValues(p$mvLD2$covstruct.mvLDSC$S_Stand[p$sumstats.sel$code,p$sumstats.sel$code],-1,1),
-  SE = p$mvLD2$covstruct.mvLDSC$S_Stand.SE[p$sumstats.sel$code,p$sumstats.sel$code],
+  corr = clipValues(p$mvLD2$covstruct.mvLDSC$S_Stand.forPlot,-1,1),
+  SE = p$mvLD2$covstruct.mvLDSC$S_Stand.SE,
   filename = file.path(p$folderpath.plots,"rg.full.png"),
   is.corr = T
   )
@@ -2450,7 +2468,8 @@ p$plots.heritabilities
 ```{r improved annotation of latent factor traits, fig.width=10, fig.height=6, out.width="1600px", out.height="1000px", eval=FALSE, purl=FALSE}
 #View(p$sumstats.sel)
 
-p$sumstats.sel.table<-p$sumstats.sel[p$sumstats.sel.l.code,c("name.nice","code","n_effective","h2.liability_mvLDSC","h2.se.liability_mvLDSC","lambda_ldsc")]
+p$sumstats.sel.table<-p$sumstats.sel[,c("name.nice","code","n_effective","h2.liability_mvLDSC","h2.se.liability_mvLDSC","lambda_ldsc")] #full trait list
+#p$sumstats.sel.table<-p$sumstats.sel[p$sumstats.sel.l.code,c("name.nice","code","n_effective","h2.liability_mvLDSC","h2.se.liability_mvLDSC","lambda_ldsc")]
 
 p$sumstats.sel.table$h2.liability_mvLDSC.table<-paste0(round( p$sumstats.sel.table$h2.liability_mvLDSC,digits = 3)," (",round(p$sumstats.sel.table$h2.se.liability_mvLDSC,digits = 4),")")
 
@@ -2513,31 +2532,35 @@ for(iTrait in 1:length(p$sumstats.sel)){
   
   
   
-  
+  #TODO - Add GC to ldsc instead
   #adjust for genomic inflation using either the inflation factor or ldsc intercept
   medianChisq<-median(p$lfGWAS$gwas.for.display$Z^2)
-  #meanChisq<-mean(x = p$lfGWAS$gwas.for.display$Z^2)
+  meanChisq<-mean(x = p$lfGWAS$gwas.for.display$Z^2)
   genomicInflationFactorLambdaGC<-medianChisq/qchisq(0.5,1)
-  #genomicInflationFactorLambdaGC2<-meanChisq/qchisq(0.5,1)
-  cat("\n",p$lfGWAS$gwas.for.display.info$code,", Genomic inflation factor=", genomicInflationFactorLambdaGC)
+  genomicInflationFactorLambdaGC2<-meanChisq/qchisq(0.5,1)
+  cat("\n",p$lfGWAS$gwas.for.display.info$code,", Genomic inflation factor(median,mean)=", genomicInflationFactorLambdaGC,genomicInflationFactorLambdaGC2)
   
   #p$lfGWAS$gwas.for.display[,Z:=Z/sqrt(genomicInflationFactorLambdaGC)]
    cat("\n",p$lfGWAS$gwas.for.display.info$code,", LDSC intercept (uv)=", p$lfGWAS$gwas.for.display.info$lambda_ldsc)
-   #if(p$lfGWAS$gwas.for.display.info$lambda_ldsc>0.5)
-   p$lfGWAS$gwas.for.display[,Z:=Z/sqrt(p$lfGWAS$gwas.for.display.info$lambda_ldsc)]
+   #if(p$lfGWAS$gwas.for.display.info$lambda_ldsc>1) {
+     p$lfGWAS$gwas.for.display[,Z:=Z/sqrt(p$lfGWAS$gwas.for.display.info$lambda_ldsc)]
 
-  # medianChisq<-median(p$lfGWAS$gwas.for.display$Z^2)
-  # genomicInflationFactorLambdaGC<-medianChisq/qchisq(0.5,1)
-  # cat("\n",p$lfGWAS$gwas.for.display.info$code,", New genomic inflation factor=", genomicInflationFactorLambdaGC)
-  
- 
-  p$lfGWAS$gwas.for.display[,EFFECT:=SE*Z]
-  p$lfGWAS$gwas.for.display[,P:=2*pnorm(q = abs(Z),mean = 0, sd = 1, lower.tail = F)]
-  
-  p$lfGWAS$gwas.for.display <- p$lfGWAS$gwas.for.display[P<1e-1]
+    # medianChisq<-median(p$lfGWAS$gwas.for.display$Z^2)
+    # genomicInflationFactorLambdaGC<-medianChisq/qchisq(0.5,1)
+    # cat("\n",p$lfGWAS$gwas.for.display.info$code,", New genomic inflation factor=", genomicInflationFactorLambdaGC)
+    
+   
+    p$lfGWAS$gwas.for.display[,EFFECT:=SE*Z]
+    p$lfGWAS$gwas.for.display[,P:=2*pnorm(q = abs(Z),mean = 0, sd = 1, lower.tail = F)]
+ #  }
+   
+  #p$lfGWAS$gwas.for.display <- p$lfGWAS$gwas.for.display[Z^2>1e-1]
   #p$lfGWAS$gwas.for.display <- p$lfGWAS$gwas.for.display[FRQ>=0.01] ##ONLY COMMON VARIANTS
   
  
+  #export ALL
+  fwrite(x = p$lfGWAS$gwas.for.display, file = file.path(p$folderpath.data.sumstats.export,paste0(p$lfGWAS$gwas.for.display.info$code,".gz")), append = F, quote = F, sep = "\t", nThread=5)  
+    
   #export SNPLOC
   fwrite(x = p$lfGWAS$gwas.for.display[,c("SNP","CHR","BP")], file = file.path(p$folderpath.data.sumstats.export,paste0(p$lfGWAS$gwas.for.display.info$code,".SNPLOC")), append = F, quote = F, sep = "\t", nThread=5)
   
@@ -2627,6 +2650,9 @@ for(iTrait in 1:length(p$sumstats.sel)){
 }
 
 ```
+
+
+
 
 
 #Scratch area
