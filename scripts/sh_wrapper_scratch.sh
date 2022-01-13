@@ -122,6 +122,13 @@ sbatch --time 3-00:00:00 --partition brc,shared --job-name="nmeta" --ntasks 1 --
 
 #setup7
 sbatch --time 8:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 32G --wrap="Rscript setup7.R -t munge -l cluster" --output "setup7.munge.$(date +%Y%m%d).out.txt"
+sbatch --time 10:00:00 --partition brc,shared --job-name="pre" --ntasks 1 --cpus-per-task 4 --mem 32G --wrap="Rscript setup7.R -t pre -l cluster" --output "setup7.pre.$(date +%Y%m%d).out.txt"
+for chr in 22; do sbatch --time 6-00:00:00 --partition brc,shared --job-name="lga_$chr" --ntasks 1 --cpus-per-task 10 --mem 32G --wrap="Rscript setup7.R -t pre -a MPRE_2_1.COR.ML:$chr -l cluster" --output "setup7.lfgwas.MPRE_2_1.COR.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
+for chr in 21; do sbatch --time 6-00:00:00 --partition brc,shared --job-name="lga_$chr" --ntasks 1 --cpus-per-task 10 --mem 32G --wrap="Rscript setup7.R -t pre -a MPRE_2_1.COR.ML:$chr -l cluster" --output "setup7.lfgwas.MPRE_2_1.COR.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
+for chr in 20; do sbatch --time 6-00:00:00 --partition brc,shared --job-name="lga_$chr" --ntasks 1 --cpus-per-task 10 --mem 32G --wrap="Rscript setup7.R -t pre -a MPRE_2_1.COR.ML:$chr -l cluster" --output "setup7.lfgwas.MPRE_2_1.COR.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
+for chr in 15 16 17 18 19; do sbatch --time 6-00:00:00 --partition brc,shared --job-name="lga_$chr" --ntasks 1 --cpus-per-task 10 --mem 32G --wrap="Rscript setup7.R -t pre -a MPRE_2_1.COR.ML:$chr -l cluster" --output "setup7.lfgwas.MPRE_2_1.COR.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
+for chr in 1 2 3 4 5 6 7 8 9 10 11 12 13 14; do sbatch --time 6-00:00:00 --partition brc,shared --job-name="lga_$chr" --ntasks 1 --cpus-per-task 10 --mem 32G --wrap="Rscript setup7.R -t pre -a MPRE_2_1.COR.ML:$chr -l cluster" --output "setup7.lfgwas.MPRE_2_1.COR.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
+
 sbatch --time 12:00:00 --partition brc,shared --job-name="mvLD" --ntasks 1 --cpus-per-task 4 --mem 64G --wrap="Rscript setup7.R -t mvLD -l cluster" --output "setup7.mvLD.$(date +%Y%m%d).out.txt"
 sbatch --time 1-12:00:00 --partition brc,shared --job-name="gsem" --ntasks 1 --cpus-per-task 4 --mem 32G --wrap="Rscript setup7.R -t cfa -a 1 -l cluster" --output "setup7.cfa.$(date +%Y%m%d).out.txt"
 #on activating implicit multithreading

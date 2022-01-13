@@ -123,7 +123,7 @@ theme.color$contrastLight4<-"#F2777A"
 #file path settings
 ##set project shared working directory **change if you have other settings**
 if(p$host=="local") {
-p$folderpath<-normalizePath("~/King's College London/MT-Translational Neuropsychiatric Genomics - Johan_Zvrskovec_PhD - Johan_Zvrskovec_PhD/JZ_GED_PHD_C1")
+p$folderpath<-normalizePath("/Users/jakz/project/JZ_GED_PHD_C1")
 } else if (p$host=="cluster") {
 p$folderpath<-normalizePath("/scratch/users/k19049801/project/JZ_GED_PHD_C1")
 }
@@ -793,7 +793,7 @@ if(p$clOptions$task=="munge" & !all(file.exists(p$sumstats.sel$mungedpath))){
   
 
   #test
-  #p$clOptions$task_argument<-"ANXI04"
+  #p$clOptions$task_argument<-"ANXI03"
   if(!is.na(p$clOptions$task_argument)){
     #task argument sets the specific dataset to munge
     
@@ -824,11 +824,13 @@ if(p$clOptions$task=="munge" & !all(file.exists(p$sumstats.sel$mungedpath))){
             refFilePath = p$filepath.SNPReference.1kg,
             #refFilePath = p$filepath.SNPReference.hm3,
             #mask = mask,
+            ldDirPath=p$folderpath.data.mvLDSC.ld.1kg,
             traitNames = p$munge$traitNamesToUse,
             setChangeEffectDirectionOnAlleleFlip = T, #T=same behaviour as genomic SEM
+            imputeFromLD=T,
             #produceVariantTable = T,
             N = p$munge$NToUse,
-            OLS=p$munge$OLSToUse,
+            OLS = p$munge$OLSToUse,
             linprob=p$munge$linprobToUse,
             se.logit = p$munge$se.logitToUse,
             prop=p$munge$propToUse,
@@ -983,7 +985,6 @@ if(p$clOptions$task=="impute"){
 }
 
 ```
-
 
 
 # Multivariate LD
@@ -1295,7 +1296,7 @@ if (file.exists(p$filepath.efa)) {
     cNFactors<-p$CFA$nFactors[iFactorConfiguration]
     p$EFA$PCA[[iFactorConfiguration]]<-eigen(x = abs(p$mvLD$covstruct.mvLDSC$S_Stand), symmetric = TRUE)
     rownames(p$EFA$PCA[[iFactorConfiguration]]$vectors)<-p$sumstats.sel.code
-    p$EFA$PCA[[iFactorConfiguration]]$vector_values<-(p$EFA$PCA[[iFactorConfiguration]]$vectors*p$EFA$PCA[[iFactorConfiguration]]$values)[,1:cNFactors]
+    p$EFA$PCA[[iFactorConfiguration]]$vector_values<-t(p$EFA$PCA[[iFactorConfiguration]]$vectors*p$EFA$PCA[[iFactorConfiguration]]$values)[,1:cNFactors] #has to be transposed as well!(?)
   
     p$EFA$fa.result.ORT[[iFactorConfiguration]] <- psych::fa(r = abs(p$mvLD$covstruct.mvLDSC$S.smooth),nfactors = cNFactors, rotate = 'varimax', symmetric = T, warnings = T, fm='ols', max.iter = 1000)
     
@@ -1568,6 +1569,7 @@ if (file.exists(p$filepath.cfa)) {
               if(nrow(cModelResults$modelfit)>0 && any(p$CFA$resultColumnNames %in% colnames(cModelResults$modelfit))) {
                 print(cModelResults$modelfit)
                 #record results even though not fitting
+                p$CFA$models[nModel,c("gsemResults")]<-NA
                 p$CFA$models[[nModel,c("gsemResults")]]<-list(cModelResults)
                 cRescolnames<-intersect(p$CFA$resultColumnNames,colnames(cModelResults$modelfit))
                 p$CFA$models[nModel,cRescolnames]<-cModelResults$modelfit[1,cRescolnames]
@@ -1625,7 +1627,197 @@ p$CFA$models.selected<-p$CFA$models[c("M20_6_198.COR.ML","M20_6_23.ORT.ML"),] #t
 ```
 
 
-## Process CFA result models and prepare them for latent factor GWAS
+# Pre-analysis
+
+This is a complete alternate analysis containing a smaller set of traits
+
+```{r pre-analysis}
+
+print("***Pre-analysis***")
+
+if(p$clOptions$task=="pre"){
+  p$sumstats.sel.pre.code<-c("EDUC03","NEUR02","RISK02","RISK03","SCHI04")
+  p$sumstats.sel.pre<-p$sumstats[which(p$sumstats$code %in% p$sumstats.sel.pre.code),]
+  
+  #export modified munged files
+  
+  p$pre<-c()
+  p$pre$filepath.mvLD<-file.path(p$folderpath.workingDirectory,paste0("mvLD.pre.",p$setup.code,".Rds"))
+  p$pre$filepath.models<-file.path(p$folderpath.workingDirectory,paste0("cfa.pre.",p$setup.code,".Rds"))
+  
+  if (file.exists(p$pre$filepath.mvLD)) {
+    print("Using existing covariance structures from previous LD computations.")
+    p$pre$mvLD<-readRDS(file=p$pre$filepath.mvLD)
+  } else {
+      
+    p$pre$mvLD<-c()
+    p$pre$mvLD$covstructs<-c()
+    
+    p$pre$mvLD$covstructs[[1]]<-ldsc.mod(
+        traits = p$sumstats.sel.pre$mungedpath,
+        sample.prev =  p$sumstats.sel.pre$samplePrevalence,
+        population.prev = p$sumstats.sel.pre$populationPrevalence,
+        trait.names = p$sumstats.sel.pre$code,
+        ld = p$folderpath.data.mvLDSC.ld.1kg,
+        wld = p$folderpath.data.mvLDSC.ld.1kg,
+        n.blocks = 600, #a bit more here if it can support the larger reference panel used
+        info.filter = 0.6,
+        frq.filter = 0.01,
+        mhc.filter = 37,
+        N = p$sumstats.sel.pre$n_total,
+        #forceN = T, # Consider this when some of the original N's may be untrustworthy (ANXI04!) - TODO - fix in supermunge
+        ldsc.log = p$setup.code.date
+        )
+    
+    for(iChr in 1:11){
+      p$pre$mvLD$covstructs[[iChr+1]]<-ldsc.mod(
+        traits = p$sumstats.sel.pre$mungedpath,
+        sample.prev =  p$sumstats.sel.pre$samplePrevalence,
+        population.prev = p$sumstats.sel.pre$populationPrevalence,
+        trait.names = p$sumstats.sel.pre$code,
+        ld = p$folderpath.data.mvLDSC.ld.1kg,
+        wld = p$folderpath.data.mvLDSC.ld.1kg,
+        n.blocks = 600, #a bit more here if it can support the larger reference panel used
+        info.filter = 0.6,
+        frq.filter = 0.01,
+        mhc.filter = 37,
+        N = p$sumstats.sel.pre$n_total,
+        #forceN = T, # Consider this when some of the original N's may be untrustworthy (ANXI04!) - TODO - fix in supermunge
+        ldsc.log = p$setup.code.date,
+        leave.chr=c(2*iChr-1,2*iChr)
+        )
+    
+    }
+      
+    #save the mvLD output
+    saveRDS(object = p$pre$mvLD,file = p$pre$filepath.mvLD)
+    print("Multivariate LD correction is done now and the resulting covariance structure should have been saved to a file.")
+      
+  }
+  
+  
+  #analyse the differences in genetic correlation matrices
+  p$pre$mvLD$covstructs.leaveoneout<-p$pre$mvLD$covstructs[2:11]
+  length(p$pre$mvLD$covstructs.leaveoneout)
+  p$pre$mvLD$covstructs[[1]]$S
+  p$pre$mvLD$covstructs[[1]]$S.SE
+  
+  p$pre$mvLD$covstructs[[2]]$S
+  p$pre$mvLD$covstructs[[2]]$S.SE
+  
+  p$pre$mvLD$covstructs.leaveoneout.S<-matrix(NA,nrow = nrow(p$pre$mvLD$covstructs[[1]]$S), ncol = ncol(p$pre$mvLD$covstructs[[1]]$S))
+  
+  length(p$pre$mvLD$covstructs.leaveoneout.S)
+  for(i in 1:length(p$pre$mvLD$covstructs.leaveoneout.S)){
+    #i<-1
+    p$pre$mvLD$covstructs.leaveoneout.S[[i]]<-mean(unlist(lapply(p$pre$mvLD$covstructs.leaveoneout,function(x){x$S[i]})))
+  }
+  p$pre$mvLD$covstructs.leaveoneout.S<-matrix(as.numeric(p$pre$mvLD$covstructs.leaveoneout.S),nrow = nrow(p$pre$mvLD$covstructs[[1]]$S), ncol = ncol(p$pre$mvLD$covstructs[[1]]$S))
+  p$pre$mvLD$covstructs.leaveoneout.S
+  p$pre$mvLD$covstructs[[1]]$S
+  
+  as.matrix( p$pre$mvLD$covstructs.leaveoneout.S) - as.matrix(p$pre$mvLD$covstructs[[1]]$S)
+  mean(as.matrix( p$pre$mvLD$covstructs.leaveoneout.S) - as.matrix(p$pre$mvLD$covstructs[[1]]$S))
+  
+  #EFA
+  p$pre$fa.result.OBL <- psych::fa(r = abs(p$pre$mvLD$covstructs[[1]]$S),nfactors = 2, rotate = 'oblimin', symmetric = T, warnings = T, fm='ols', max.iter = 1000)
+  print(p$pre$fa.result.OBL)
+  p$pre$PCA<-eigen(x = abs(p$pre$mvLD$covstructs[[1]]$S), symmetric = TRUE)
+  print(p$pre$PCA)
+  p$pre$PCA$vector_values<-t(p$pre$PCA$vectors*p$pre$PCA$values)[,1:2]
+  
+  #CFA
+  p$pre$resultColumnNames<-c("chisq","df","p_chisq","AIC","CFI","SRMR")
+  p$pre$indicatorLoadingPatterns<-semplate$generateIndicatorLoadingPatternsFromFactorLoadings(factorLoadings = p$pre$fa.result.OBL$loadings, increment = 0.0005,forceOneIndicatorLoading = T)
+  #p$pre$indicatorLoadingPatterns<-semplate$generateIndicatorLoadingPatternsFromFactorLoadings(factorLoadings = p$pre$PCA$vector_values, increment = 0.0005,forceOneIndicatorLoading = T)
+  p$pre$models<-data.frame(nModel=c(),code=c(),nFactors=c(),correlation=c(),estimator=c(), lModel=c(),lResults=c(),gsemResults=c())
+  
+  
+  if(file.exists(p$pre$filepath.models)) {
+    print("Using existing models.")
+    p$pre$models<-readRDS(file=p$pre$filepath.models)
+  } else {
+    for(iPat in 1:nrow(p$pre$indicatorLoadingPatterns)){
+      #iPat<-1
+      p$pre$models[iPat,]<-NA
+      p$pre$models[iPat,c("nModel")]<-iPat
+      
+      #record code
+      p$pre$models[iPat,c("code")]<-paste0("MPRE_2",
+      "_",iPat,
+      ".COR",
+      ".ML"
+      )
+      
+      p$pre$models[iPat,c("nFactors")]<-2
+      p$pre$models[iPat,c("correlation")]<-"COR"
+      p$pre$models[iPat,c("estimator")]<-"ML"
+            
+      lp<-p$pre$indicatorLoadingPatterns[iPat,]
+      p$pre$models[iPat,c("loading_pattern")]<-NA
+      p$pre$models[[iPat,c("loading_pattern")]]<-list(lp)
+      cIndicatorLoadings<-matrix(data = lp, nrow = nrow(p$pre$mvLD$covstructs[[1]]$S), ncol = 2) 
+      row.names(cIndicatorLoadings)<-row.names(p$pre$mvLD$covstructs[[1]]$S)
+      p$pre$models[iPat,c("lModel")]<-semplate$generateLavaanCFAModel(allow_loading.table.indicator_factor = cIndicatorLoadings)
+      
+      cModelResults = tryCatch(
+        usermodel.mod(covstruc = p$pre$mvLD$covstructs[[1]],
+          model = p$pre$models[iPat,c("lModel")],
+          estimation = "ML",
+          fix_resid = F,
+          CFIcalc = F #ifelse(is.null(p$CFA$models.selected),F,T) #set this to true for CFI evaluation
+          ), error= function(e) e
+        )
+      
+      if(!inherits(cModelResults, "try-error") & !is.null(cModelResults$modelfit)){
+                if(nrow(cModelResults$modelfit)>0 && any(p$pre$resultColumnNames %in% colnames(cModelResults$modelfit))) {
+                  print(cModelResults$modelfit)
+                  #record results even though not fitting
+                  p$pre$models[iPat,c("gsemResults")]<-NA
+                  p$pre$models[[iPat,c("gsemResults")]]<-list(cModelResults)
+                  cRescolnames<-intersect(p$pre$resultColumnNames,colnames(cModelResults$modelfit))
+                  p$pre$models[iPat,cRescolnames]<-cModelResults$modelfit[1,cRescolnames]
+                  if(is.numeric(cModelResults$modelfit$chisq)){
+                    #This is considered a fitting model
+                    cat("\nFITTING!:",p$pre$models[iPat,c("code")],"\n")
+                  }
+                } else {
+                  cat("\nThe model did not yield correct results.")
+                }
+              } else {
+                cat("\nThe model did not converge.")
+              }
+      
+    } #for
+    
+    rownames(p$pre$models)<-p$pre$models$code
+    saveRDS(object = p$pre$models,file = p$pre$filepath.models)
+    print("PRE CFA is done now and the resultins should have been saved to a file.")
+  }
+  
+  #setup results to be run in the later part of the script as if they were coming out of the standard script analysis
+  p$sumstats.sel<-p$sumstats.sel.pre
+  p$mvLD<-c()
+  p$mvLD$covstruct.mvLDSC<-p$pre$mvLD$covstructs[[1]]
+  
+  #Additional computations
+  #saving the original S in case of smoothing experiments later stored in S
+  p$mvLD$covstruct.mvLDSC$S.orig<-p$mvLD$covstruct.mvLDSC$S
+  p$mvLD$covstruct.mvLDSC$S.smooth<-as.matrix((nearPD(p$mvLD$covstruct.mvLDSC$S, corr = FALSE))$mat)
+  
+  
+  p$CFA$models.selected<-p$pre$models[c("MPRE_2_1.COR.ML"),]
+  
+}
+
+if(p$clOptions$task=="pre"){
+  p$clOptions$task<-"lfgwas"
+  }
+
+
+```
+
+# Process CFA result models and prepare them for latent factor GWAS
 
 ```{r Process CFA results}
 
@@ -1661,12 +1853,12 @@ for(iSelected in 1:nrow(p$CFA$models.selected)){
   
   cIndicatorLoadings<-cIndicatorLoadings.loadingPattern
   
-  #test of free SEM parameters rather than fixed
+  #test of free SEM parameters rather than fixed (pretend it is the fixed model)
   # p$CFA$models.selected[[iSelected,c("lModel.fixed")]]<-semplate$generateLavaanCFAModel(
   #   allow_loading.table.indicator_factor = cIndicatorLoadings,
   #   universalResidualLimitMin = NA,
   #   orthogonal = (p$CFA$models.selected[iSelected,]$correlation[[1]][[1]]=="ORT"))
-  
+
   #original fixed setup
   p$CFA$models.selected[[iSelected,c("lModel.fixed")]]<-semplate$generateLavaanCFAModel(
     allow_loading.table.indicator_factor = cIndicatorLoadings,
@@ -1678,7 +1870,7 @@ for(iSelected in 1:nrow(p$CFA$models.selected)){
 
 ```
 
-## Plot CFA results
+# Plot CFA results
 
 This will not work if the model does not converge.
 
@@ -2088,26 +2280,111 @@ if(p$clOptions$task=="lfgwas" & !file.exists(file.path(p$folderpath.workingDirec
   
   p$lfGWAS$sumstats<-readRDS(file=p$filepath.lfgwas.sumstats)
   setDT(p$lfGWAS$sumstats)
+  setkeyv(p$lfGWAS$sumstats, cols = c("SNP","CHR","BP"))
   print("Read summary statistics for latent factor GWAS from file.")
   
+  #Filter columns of chosen traits only
+  #chromosomes<- sort(as.integer(unique(p$lfGWAS$sumstats$CHR)))
+  colBeta<-c()
+  colSE<-c()
+  for(iTrait in 1:nrow(p$sumstats.sel)){
+    #iTrait<-1
+    colBeta<-c(colBeta,colnames(p$lfGWAS$sumstats)[grep(paste0("^BETA\\.",p$sumstats.sel[iTrait,c("code")],"$"), ignore.case = TRUE,colnames(p$lfGWAS$sumstats))])
+    colSE<-c(colSE,colnames(p$lfGWAS$sumstats)[grep(paste0("^SE\\.",p$sumstats.sel[iTrait,c("code")],"$"), ignore.case = TRUE,colnames(p$lfGWAS$sumstats))])
+    # colBeta<-colnames(p$lfGWAS$sumstats)[grep("^BETA\\.", ignore.case = TRUE,colnames(p$lfGWAS$sumstats))]
+    # colSE<-colnames(p$lfGWAS$sumstats)[grep("^SE\\.", ignore.case = TRUE,colnames(p$lfGWAS$sumstats))]
+  }
+  colAll<-c("SNP","CHR","BP","MAF","A1","A2",colBeta,colSE)
+  
+  #full
+  nrow(p$lfGWAS$sumstats)
+  nrow(na.omit(p$lfGWAS$sumstats))
+  
+  #selected subset
+  p$lfGWAS$sumstats<-p$lfGWAS$sumstats[,..colAll]
+  nrow(p$lfGWAS$sumstats)
+  nrow(na.omit(p$lfGWAS$sumstats))
+  
+  #omit NA rows - remove if doing any imputation or replacement instead
+  #p$lfGWAS$sumstats<-na.omit(p$lfGWAS$sumstats)
   
   print("Processing summary statistics for latent factor GWAS - NA values")
-  #fill NA values
-  #chromosomes<- sort(as.integer(unique(p$lfGWAS$sumstats$CHR)))
-  colBeta<-colnames(p$lfGWAS$sumstats)[grep("^BETA\\.", ignore.case = TRUE,colnames(p$lfGWAS$sumstats))]
-  colSE<-colnames(p$lfGWAS$sumstats)[grep("^SE\\.", ignore.case = TRUE,colnames(p$lfGWAS$sumstats))]
-
+  #fill NA values - should be replaced with proper imputation
+  
+  #read LD scores
+  ldscores<-c()
+  for(iChr in 1:22){
+    #iChr<-1
+    ldscores[[iChr]]<-suppressMessages(read_delim(
+        file.path(p$folderpath.data.mvLDSC.ld.1kg, paste0(iChr, ".l2.ldscore.gz")),
+        delim = "\t", escape_double = FALSE, trim_ws = TRUE, progress = FALSE))
+    ldscM<-suppressMessages(read_csv(file.path(p$folderpath.data.mvLDSC.ld.1kg, paste0(iChr, ".l2.M_5_50")), col_names = FALSE))
+    ldscores[[iChr]]$M<-ldscM[[1]]
+  }
+  ldscores<-rbindlist(ldscores)
+  p$lfGWAS$sumstats[ldscores, on='SNP', c('L2','M') := list(i.L2,i.M)]
+  
+  
+  
+  #impute betas using LD
+  cBeta<-"BETA.EDUC03"
+  cSE<-"SE.EDUC03"
+  cImp<-"IMP"
+  cImpSE<-"IMPSE"
+  cImpK<-"IMPK"
+  #frameLen<-1000000
+  frameLen<-10000
+  frameLenHalf<-frameLen/2
+  cCHR<-1
+  cSS<-p$lfGWAS$sumstats[CHR==eval(cCHR),.(SNP,MAF,CHR,BP,L2,BETA=get(cBeta),SE=get(cSE),VAR=get(cSE)^2,Z=get(cBeta)/get(cSE))]
+  setkeyv(cSS, cols = c("SNP","BP")) #chromosome is fixed per chromosome loop
+  #1 cM equates to ~1M bp
+  for(i in 1L:1000){
+  #for(i in 1L:nrow(cSS)){
+    #i<-1L
+    cBP<-cSS[i,BP]
+    #frame<-cSS[BP!=cBP & BP< cBP+frameLenHalf & BP > cBP-frameLenHalf, .(BETA,SE,VAR,L2,W=L2/(abs(cBP-BP)*VAR))][,.(BETA,SE,VAR,L2,W,WBETA=W*BETA,WSE=W*SE)]
+    frame<-cSS[BP!=cBP & BP< cBP+frameLenHalf & BP > cBP-frameLenHalf, .(BETA,SE,VAR,L2,W=L2/VAR)][,.(BETA,SE,VAR,L2,W,WBETA=W*BETA,WSE=W*SE)]
+    #frame<-cSS[BP!=cBP & BP< cBP+frameLenHalf & BP > cBP-frameLenHalf, .(BETA,SE,VAR,L2,W=L2)][,.(BETA,SE,VAR,L2,W,WBETA=W*BETA,WSE=W*SE)]
+    k<-nrow(frame[!is.na(BETA),])
+    W.sum<-sum(frame$W,na.rm = T)
+    frame[,IMP.TERM:=WBETA/W.sum][,IMPSE.TERM:=WSE/W.sum]
+    if(k>0){
+      set(x = cSS,i = i,j = cImp,
+          value = sum(frame$IMP.TERM,na.rm = T)
+            )
+       set(x = cSS,i = i,j = cImpSE,
+          value = sum(frame$IMPSE.TERM,na.rm = T)
+            )
+      set(x = cSS,i = i,j = cImpK,
+          value = k
+            )
+    }
+  }
+  
+  #cSS[,ZIMP:=IMP/IMPSE][,DIFF:=abs(IMP)-abs(BETA)][,DIFFSE:=IMPSE-SE][,ZDIFF:=abs(ZIMP)-abs(Z)][,DIFF2:=DIFF^2][,ZDIFF2:=ZDIFF^2]
+  cSS[,ZIMP:=IMP/IMPSE][,DIFF:=IMP-BETA][,DIFFSE:=IMPSE-SE][,ZDIFF:=ZIMP-Z][,DIFF2:=DIFF^2][,ZDIFF2:=ZDIFF^2]
+  sqrt(mean(cSS[which(MAF>0.05),]$ZDIFF2,na.rm=T))
+  sqrt(mean(cSS[which(MAF<0.05),]$ZDIFF2,na.rm=T))
+  
+  rmse2 <- sqrt(mean(cSS$ZDIFF2,na.rm=T))
+  rmse2
+  #rmse<-rmse2 #10000
+  
+  View(head(cSS, n=1000))
+  
   for (i in colBeta)
     p$lfGWAS$sumstats[is.na(get(i)), (i):=(1e-20)]
 
   for (i in colSE)
     p$lfGWAS$sumstats[is.na(get(i)), (i):=1]
-  
+
   rsum<-rowSums(abs(p$lfGWAS$sumstats[,..colBeta]),na.rm = T)
   rem<-rsum<(length(colBeta)*1e-19)
   p$lfGWAS$sumstats<-p$lfGWAS$sumstats[!rem,]
   rm("rsum")
   cat("\nRemoved ",sum(rem), " variants as part of QC before lfGWAS.\n")
+
   
   #to data frame to conform with userGWAS below
   p$lfGWAS$sumstats<-as.data.frame(p$lfGWAS$sumstats)
@@ -2275,6 +2552,13 @@ if(!file.exists(file.path(p$folderpath.data.sumstats.munged,paste0(p$CFA$models.
 
 p$sumstats$code.file<-p$sumstats$code #default as code
 
+#GSEM pre-analysis (simple, no NA effects)
+factorCode<-"PRE.F1"
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"MPRE_2_1.COR.ML.F1","Risk F1",294363)
+factorCode<-"PRE.F2"
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"MPRE_2_1.COR.ML.F2","Risk F2",364476)
+
+
 #GSEM latent factor GWAS
 factorCode<-"GSEM.F1"
 p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_198.COR.ML.F1","Anxiety F",28196)
@@ -2295,7 +2579,7 @@ p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,
 factorCode<-"nmeta.F3"
 p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"nmeta.M20_6_198.COR.ML.F3.setup7","Depression F",183691)
 
-p$sumstats.sel.code<-c("GSEM.F1","GSEM.F2","GSEM.F3","GSEM.F4","GSEM.F5","GSEM.F6","nmeta.F1","nmeta.F3")
+p$sumstats.sel.code<-c("PRE.F1","PRE.F2","GSEM.F1","GSEM.F2","GSEM.F3","GSEM.F4","GSEM.F5","GSEM.F6","nmeta.F1","nmeta.F3")
 
 # set nice name for selected traits
 p$sumstats[p$sumstats.sel.code,]$name.nice<-p$sumstats[p$sumstats.sel.code,]$name
@@ -2339,10 +2623,12 @@ if(F){
 #p$sumstats.sel.code<-c("ADHD05","ANXI04")
 #p$sumstats.sel.code<-c("RISK02","RISK03","SCHI04","SUBJ01","TIRE01")
 #p$sumstats.sel.code<-c("TIRE01")
-p$sumstats.sel.uv.code<-c("ADHD05","ALCD03","ANOR02","ANXI03","ANXI04","AUTI07","BIPO02", "DEPR05","DEPR08","EDUC03","HEAL01","INCO03","INSO02","NEUR02", "PTSD04","RISK02","RISK03","SCHI04","SUBJ01","TIRE01")
-p$sumstats.sel.lfgwas.code<-c("GSEM.F1","GSEM.F2","GSEM.F3","GSEM.F4","GSEM.F5","GSEM.F6")
-p$sumstats.sel.nmeta.code<-c("nmeta.F1","nmeta.F3")
-p$sumstats.sel.code<-c(p$sumstats.sel.uv.code,p$sumstats.sel.lfgwas.code,p$sumstats.sel.nmeta.code)
+p$sumstats.sel.uv.code<-c("EDUC03","NEUR02","RISK02","RISK03","SCHI04")
+#p$sumstats.sel.uv.code<-c("ADHD05","ALCD03","ANOR02","ANXI03","ANXI04","AUTI07","BIPO02", "DEPR05","DEPR08","EDUC03","HEAL01","INCO03","INSO02","NEUR02", "PTSD04","RISK02","RISK03","SCHI04","SUBJ01","TIRE01")
+p$sumstats.sel.lfgwas.code<-c("PRE.F1","PRE.F2")
+#p$sumstats.sel.lfgwas.code<-c("GSEM.F1","GSEM.F2","GSEM.F3","GSEM.F4","GSEM.F5","GSEM.F6")
+#p$sumstats.sel.nmeta.code<-c("nmeta.F1","nmeta.F3")
+p$sumstats.sel.code<-c(p$sumstats.sel.uv.code,p$sumstats.sel.lfgwas.code)
 p$sumstats.sel<-p$sumstats[which(p$sumstats$code %in% p$sumstats.sel.code),]
 
 p$sumstats.sel[,c("code","name","name.nice","name.nice.and_code", "year","n_case","n_control","n_total","n_effective", "pmid","reference_doi","samplePrevalence","populationPrevalence","dependent_variable.OLS","dependent_variable.linprob","se.logit","mungedpath")]
@@ -2413,7 +2699,9 @@ p$mvLD2$covstruct.mvLDSC<-p$sumstats.sel$h2.liability_mvLDSC.1kg
 p$sumstats.sel$h2.liability_mvLDSC<-diag(p$mvLD2$covstruct.mvLDSC$S[p$sumstats.sel$code,p$sumstats.sel$code])
 p$sumstats.sel$h2.se.liability_mvLDSC<-diag(p$mvLD2$covstruct.mvLDSC$S.SE[p$sumstats.sel$code,p$sumstats.sel$code])
 
-p$sumstats.sel$lambda_ldsc<-diag(p$mvLD2$covstruct.mvLDSC$I)
+colnames(p$mvLD2$covstruct.mvLDSC$I)<-colnames(p$mvLD2$covstruct.mvLDSC$S)
+rownames(p$mvLD2$covstruct.mvLDSC$I)<-rownames(p$mvLD2$covstruct.mvLDSC$S)
+p$sumstats.sel$lambda_ldsc<-diag(p$mvLD2$covstruct.mvLDSC$I[p$sumstats.sel$code,p$sumstats.sel$code])
 
 
 ```
@@ -2532,40 +2820,34 @@ for(iTrait in 1:length(p$sumstats.sel)){
   
   
   
-  #TODO - Add GC to ldsc instead
-  #adjust for genomic inflation using either the inflation factor or ldsc intercept
+  # show inflation
   medianChisq<-median(p$lfGWAS$gwas.for.display$Z^2)
   meanChisq<-mean(x = p$lfGWAS$gwas.for.display$Z^2)
   genomicInflationFactorLambdaGC<-medianChisq/qchisq(0.5,1)
   genomicInflationFactorLambdaGC2<-meanChisq/qchisq(0.5,1)
   cat("\n",p$lfGWAS$gwas.for.display.info$code,", Genomic inflation factor(median,mean)=", genomicInflationFactorLambdaGC,genomicInflationFactorLambdaGC2)
   
-  #p$lfGWAS$gwas.for.display[,Z:=Z/sqrt(genomicInflationFactorLambdaGC)]
-   cat("\n",p$lfGWAS$gwas.for.display.info$code,", LDSC intercept (uv)=", p$lfGWAS$gwas.for.display.info$lambda_ldsc)
+  cat("\n",p$lfGWAS$gwas.for.display.info$code,", LDSC intercept (uv)=", p$lfGWAS$gwas.for.display.info$lambda_ldsc)
    #if(p$lfGWAS$gwas.for.display.info$lambda_ldsc>1) {
-     p$lfGWAS$gwas.for.display[,Z:=Z/sqrt(p$lfGWAS$gwas.for.display.info$lambda_ldsc)]
-
-    # medianChisq<-median(p$lfGWAS$gwas.for.display$Z^2)
-    # genomicInflationFactorLambdaGC<-medianChisq/qchisq(0.5,1)
-    # cat("\n",p$lfGWAS$gwas.for.display.info$code,", New genomic inflation factor=", genomicInflationFactorLambdaGC)
+     #p$lfGWAS$gwas.for.display[,Z:=Z/sqrt(p$lfGWAS$gwas.for.display.info$lambda_ldsc)]
     
    
-    p$lfGWAS$gwas.for.display[,EFFECT:=SE*Z]
-    p$lfGWAS$gwas.for.display[,P:=2*pnorm(q = abs(Z),mean = 0, sd = 1, lower.tail = F)]
+    # p$lfGWAS$gwas.for.display[,EFFECT:=SE*Z]
+    # p$lfGWAS$gwas.for.display[,P:=2*pnorm(q = abs(Z),mean = 0, sd = 1, lower.tail = F)]
  #  }
    
   #p$lfGWAS$gwas.for.display <- p$lfGWAS$gwas.for.display[Z^2>1e-1]
   #p$lfGWAS$gwas.for.display <- p$lfGWAS$gwas.for.display[FRQ>=0.01] ##ONLY COMMON VARIANTS
   
  
-  #export ALL
-  fwrite(x = p$lfGWAS$gwas.for.display, file = file.path(p$folderpath.data.sumstats.export,paste0(p$lfGWAS$gwas.for.display.info$code,".gz")), append = F, quote = F, sep = "\t", nThread=5)  
-    
-  #export SNPLOC
-  fwrite(x = p$lfGWAS$gwas.for.display[,c("SNP","CHR","BP")], file = file.path(p$folderpath.data.sumstats.export,paste0(p$lfGWAS$gwas.for.display.info$code,".SNPLOC")), append = F, quote = F, sep = "\t", nThread=5)
-  
-  #export PVAL_FILE
-  fwrite(x = p$lfGWAS$gwas.for.display[,c("SNP","P","N")], file = file.path(p$folderpath.data.sumstats.export,paste0(p$lfGWAS$gwas.for.display.info$code,".PVAL")), append = F, quote = F, sep = "\t", nThread=5)
+  # #export ALL
+  # fwrite(x = p$lfGWAS$gwas.for.display, file = file.path(p$folderpath.data.sumstats.export,paste0(p$lfGWAS$gwas.for.display.info$code,".gz")), append = F, quote = F, sep = "\t", nThread=5)  
+  #   
+  # #export SNPLOC
+  # fwrite(x = p$lfGWAS$gwas.for.display[,c("SNP","CHR","BP")], file = file.path(p$folderpath.data.sumstats.export,paste0(p$lfGWAS$gwas.for.display.info$code,".SNPLOC")), append = F, quote = F, sep = "\t", nThread=5)
+  # 
+  # #export PVAL_FILE
+  # fwrite(x = p$lfGWAS$gwas.for.display[,c("SNP","P","N")], file = file.path(p$folderpath.data.sumstats.export,paste0(p$lfGWAS$gwas.for.display.info$code,".PVAL")), append = F, quote = F, sep = "\t", nThread=5)
   
   #head(p$lfGWAS$gwas.for.display)
   
