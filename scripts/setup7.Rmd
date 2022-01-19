@@ -789,11 +789,12 @@ p$filepath.lfgwas.sumstats_full<-file.path(p$folderpath.workingDirectory,paste0(
 p$filepath.munge.meta<-file.path(p$folderpath.workingDirectory,paste0("munge.meta.",p$setup.code,".Rds"))
 p$munge<-c()
 
+#source("../scripts/supermunge.R") #TEST OF NEW VERSION!
+
 if(p$clOptions$task=="munge" & !all(file.exists(p$sumstats.sel$mungedpath))){
   
-
   #test
-  #p$clOptions$task_argument<-"ANXI03"
+  #p$clOptions$task_argument<-"INSO02"
   if(!is.na(p$clOptions$task_argument)){
     #task argument sets the specific dataset to munge
     
@@ -816,6 +817,17 @@ if(p$clOptions$task=="munge" & !all(file.exists(p$sumstats.sel$mungedpath))){
     p$munge$se.logitToUse<-p$sumstats.sel$se.logit
     p$munge$propToUse<-(p$sumstats.sel$n_case/p$sumstats.sel$n_total)
   }
+  
+  # cat("\nMunging with:\n")
+  # print(p$munge$filesToUse)
+  # print(p$filepath.SNPReference.1kg)
+  # print(p$folderpath.data.mvLDSC.ld.1kg)
+  # print(p$munge$traitNamesToUse)
+  # print(p$munge$NToUse)
+  # print(p$munge$OLSToUse)
+  # print(p$munge$se.logitToUse)
+  # print(p$munge$propToUse)
+  # print(p$folderpath.data.sumstats.munged)
   
   #mask<-c(F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,T,T,T,T,T)
   #munging with no filters applied
@@ -904,12 +916,12 @@ if(file.exists(p$filepath.lfgwas.sumstats)) {
   # head(p$lfGWAS$sumstats)
   
 } else if(p$clOptions$task=="munge"){
-  p$munge$results<-supermunge.results<-shru::supermunge(
-    filePaths = p$sumstats.sel$cleanedpath,
+  p$munge$results<-supermunge(
+    filePaths = p$sumstats.sel$mungedpath,
     refFilePath = p$filepath.SNPReference.1kg,
     traitNames = p$sumstats.sel$code,
     produceCompositeTable = T,
-    process = T, #as the N's are wrong as of now
+    process = F,
     standardiseEffectsToExposure = T,
     writeOutput = F,
     N = p$sumstats.sel$n_total,
@@ -917,8 +929,8 @@ if(file.exists(p$filepath.lfgwas.sumstats)) {
     linprob=p$sumstats.sel$dependent_variable.linprob,
     se.logit = p$sumstats.sel$se.logit,
     prop=(p$sumstats.sel$n_case/p$sumstats.sel$n_total),
-    info.filter = 0.55,
-    frq.filter = 0.001
+    info.filter = 0.55
+#    frq.filter = 0.001
     
     ) #remove rare variants only
     
@@ -1619,8 +1631,7 @@ print("***CFA select***")
 #View(p$CFA$models[which(p$CFA$models$AIC<10000 & p$CFA$models$correlation=="ORT"),c("code","nModel","identified", "loading_pattern","loading_pattern_pca","loading_pattern_fa.ORT","loading_pattern_fa.OBL","loading_pattern_kmeans",p$CFA$resultColumnNames)])
 
 
-p$CFA$models.selected<-p$CFA$models[c("M20_6_198.COR.ML","M20_6_23.ORT.ML"),] #this is a manual setting after choosing the best fitting models from the previous results
-#p$CFA$models.selected<-p$CFA$models[c("M20_6_348.COR.ML","M20_6_112.ORT.ML"),]
+p$CFA$models.selected<-p$CFA$models[c("M20_6_172.COR.ML","M20_6_30.ORT.ML"),] #this is a manual setting after choosing the best fitting models from the previous results
 #View(p$CFA$models.selected)
 
 
@@ -2222,10 +2233,12 @@ print("***Genomic SEM latent factor GWAS***")
 # .Internal(setMaxNumMathThreads(p$numCores-1)) 
 # .Internal(setNumMathThreads(p$numCores-1))
 
-#test 
+#test
+#p$clOptions$task<-"lfgwas"
+#p$clOptions$task_argument<-"M20_6_172.COR.ML:1"
 #p$clOptions$task_argument<-"M20_6_198.COR.ML:1"
 #p$clOptions$task_argument<-"M20_6_198.COR.ML:22:1"
-#p$clOptions$task<-"lfgwas"
+
 
  #load intermediate results
 #!p$clOptions$task=="lfgwas" &
@@ -2287,103 +2300,77 @@ if(p$clOptions$task=="lfgwas" & !file.exists(file.path(p$folderpath.workingDirec
   #chromosomes<- sort(as.integer(unique(p$lfGWAS$sumstats$CHR)))
   colBeta<-c()
   colSE<-c()
+  colFRQ<-c()
+  colINFO.LIMP<-c()
+  colK<-c()
   for(iTrait in 1:nrow(p$sumstats.sel)){
     #iTrait<-1
     colBeta<-c(colBeta,colnames(p$lfGWAS$sumstats)[grep(paste0("^BETA\\.",p$sumstats.sel[iTrait,c("code")],"$"), ignore.case = TRUE,colnames(p$lfGWAS$sumstats))])
     colSE<-c(colSE,colnames(p$lfGWAS$sumstats)[grep(paste0("^SE\\.",p$sumstats.sel[iTrait,c("code")],"$"), ignore.case = TRUE,colnames(p$lfGWAS$sumstats))])
+    colFRQ<-c(colFRQ,colnames(p$lfGWAS$sumstats)[grep(paste0("^FRQ\\.",p$sumstats.sel[iTrait,c("code")],"$"), ignore.case = TRUE,colnames(p$lfGWAS$sumstats))])
+    colINFO.LIMP<-c(colINFO.LIMP,colnames(p$lfGWAS$sumstats)[grep(paste0("^INFO.LIMP\\.",p$sumstats.sel[iTrait,c("code")],"$"), ignore.case = TRUE,colnames(p$lfGWAS$sumstats))])
+    colK<-c(colK,colnames(p$lfGWAS$sumstats)[grep(paste0("^K\\.",p$sumstats.sel[iTrait,c("code")],"$"), ignore.case = TRUE,colnames(p$lfGWAS$sumstats))])
     # colBeta<-colnames(p$lfGWAS$sumstats)[grep("^BETA\\.", ignore.case = TRUE,colnames(p$lfGWAS$sumstats))]
     # colSE<-colnames(p$lfGWAS$sumstats)[grep("^SE\\.", ignore.case = TRUE,colnames(p$lfGWAS$sumstats))]
   }
-  colAll<-c("SNP","CHR","BP","MAF","A1","A2",colBeta,colSE)
+  
+  colAll<-c("SNP","CHR","BP","MAF","A1","A2",colBeta,colSE,colFRQ,colINFO.LIMP,colK)
+  
   
   #full
-  nrow(p$lfGWAS$sumstats)
-  nrow(na.omit(p$lfGWAS$sumstats))
+  #nrow(p$lfGWAS$sumstats)
+  #nrow(na.omit(p$lfGWAS$sumstats))
   
   #selected subset
   p$lfGWAS$sumstats<-p$lfGWAS$sumstats[,..colAll]
-  nrow(p$lfGWAS$sumstats)
-  nrow(na.omit(p$lfGWAS$sumstats))
-  
-  #omit NA rows - remove if doing any imputation or replacement instead
-  #p$lfGWAS$sumstats<-na.omit(p$lfGWAS$sumstats)
+  #nrow(p$lfGWAS$sumstats)
+  #nrow(na.omit(p$lfGWAS$sumstats))
   
   print("Processing summary statistics for latent factor GWAS - NA values")
   #fill NA values - should be replaced with proper imputation
   
-  #read LD scores
-  ldscores<-c()
-  for(iChr in 1:22){
-    #iChr<-1
-    ldscores[[iChr]]<-suppressMessages(read_delim(
-        file.path(p$folderpath.data.mvLDSC.ld.1kg, paste0(iChr, ".l2.ldscore.gz")),
-        delim = "\t", escape_double = FALSE, trim_ws = TRUE, progress = FALSE))
-    ldscM<-suppressMessages(read_csv(file.path(p$folderpath.data.mvLDSC.ld.1kg, paste0(iChr, ".l2.M_5_50")), col_names = FALSE))
-    ldscores[[iChr]]$M<-ldscM[[1]]
+  setDT(p$lfGWAS$sumstats)
+  setkeyv(x = p$lfGWAS$sumstats, cols = "SNP")
+  colIsRaw<-c()
+  for(iTrait in 1:nrow(p$sumstats.sel)){
+    cColBeta<-colBeta[iTrait]
+    cColK<-colK[iTrait]
+    cColIsRaw<-paste0("is.raw.",p$sumstats.sel[iTrait,c("code")])
+    p$lfGWAS$sumstats[,(cColIsRaw):=!is.na(get(cColBeta)) & is.na(get(cColK))]
+    colIsRaw<-c(colIsRaw,cColIsRaw)
   }
-  ldscores<-rbindlist(ldscores)
-  p$lfGWAS$sumstats[ldscores, on='SNP', c('L2','M') := list(i.L2,i.M)]
+  p$lfGWAS$sumstats[,K:=apply(.SD,MARGIN = 1,FUN = function(x){sum(x)}), .SDcols=colIsRaw]
+  p$lfGWAS$sumstats[,K.IMP:=apply(.SD,MARGIN = 1,FUN = function(x){sum(!is.na(x))}), .SDcols=colBeta]
+  p$lfGWAS$sumstats[,sumK:=rowSums(.SD,na.rm = T), .SDcols=colK]
+  p$lfGWAS$sumstats[,sumINFO.LIMP:=rowSums(.SD,na.rm = T), .SDcols=colINFO.LIMP]
+  p$lfGWAS$sumstats[,sumBETA:=rowSums(.SD,na.rm = T), .SDcols=colBeta]
+  p$lfGWAS$sumstats[,sumSE:=rowSums(.SD,na.rm = T), .SDcols=colSE]
+  p$lfGWAS$sumstats[,meanBETA:=sumBETA/K.IMP][,meanSE:=sumSE/K.IMP]
   
-  
-  
-  #impute betas using LD
-  cBeta<-"BETA.EDUC03"
-  cSE<-"SE.EDUC03"
-  cImp<-"IMP"
-  cImpSE<-"IMPSE"
-  cImpK<-"IMPK"
-  #frameLen<-1000000
-  frameLen<-10000
-  frameLenHalf<-frameLen/2
-  cCHR<-1
-  cSS<-p$lfGWAS$sumstats[CHR==eval(cCHR),.(SNP,MAF,CHR,BP,L2,BETA=get(cBeta),SE=get(cSE),VAR=get(cSE)^2,Z=get(cBeta)/get(cSE))]
-  setkeyv(cSS, cols = c("SNP","BP")) #chromosome is fixed per chromosome loop
-  #1 cM equates to ~1M bp
-  for(i in 1L:1000){
-  #for(i in 1L:nrow(cSS)){
-    #i<-1L
-    cBP<-cSS[i,BP]
-    #frame<-cSS[BP!=cBP & BP< cBP+frameLenHalf & BP > cBP-frameLenHalf, .(BETA,SE,VAR,L2,W=L2/(abs(cBP-BP)*VAR))][,.(BETA,SE,VAR,L2,W,WBETA=W*BETA,WSE=W*SE)]
-    frame<-cSS[BP!=cBP & BP< cBP+frameLenHalf & BP > cBP-frameLenHalf, .(BETA,SE,VAR,L2,W=L2/VAR)][,.(BETA,SE,VAR,L2,W,WBETA=W*BETA,WSE=W*SE)]
-    #frame<-cSS[BP!=cBP & BP< cBP+frameLenHalf & BP > cBP-frameLenHalf, .(BETA,SE,VAR,L2,W=L2)][,.(BETA,SE,VAR,L2,W,WBETA=W*BETA,WSE=W*SE)]
-    k<-nrow(frame[!is.na(BETA),])
-    W.sum<-sum(frame$W,na.rm = T)
-    frame[,IMP.TERM:=WBETA/W.sum][,IMPSE.TERM:=WSE/W.sum]
-    if(k>0){
-      set(x = cSS,i = i,j = cImp,
-          value = sum(frame$IMP.TERM,na.rm = T)
-            )
-       set(x = cSS,i = i,j = cImpSE,
-          value = sum(frame$IMPSE.TERM,na.rm = T)
-            )
-      set(x = cSS,i = i,j = cImpK,
-          value = k
-            )
-    }
+  #process still missing values
+  for(iTrait in 1:nrow(p$sumstats.sel)){
+    #iTrait<-19
+    cColBeta<-colBeta[iTrait]
+    cColSE<-colSE[iTrait]
+    #nrow(p$lfGWAS$sumstats[is.na(get(cColBeta)),])
+    #p$lfGWAS$sumstats[is.na(get(cColBeta)) & K.IMP>0.5*length(colBeta) & K>0.2*length(colBeta),] 
+    p$lfGWAS$sumstats[is.na(get(cColBeta)) & K.IMP>0.5*length(colBeta) & K>0.2*length(colBeta), (cColBeta):=meanBETA] 
+    p$lfGWAS$sumstats[is.na(get(cColSE)) & K.IMP>0.5*length(colBeta) & K>0.2*length(colBeta), (cColSE):=meanSE] 
+    #nrow(p$lfGWAS$sumstats[is.na(get(cColBeta)),])
+    #nrow(p$lfGWAS$sumstats[is.na(get(cColSE)),])
+    #p$lfGWAS$sumstats[is.na(get(cColBeta)), (cColBeta):=(1e-20)]
+    #p$lfGWAS$sumstats[is.na(get(cColSE)), (cColSE):=1]
   }
   
-  #cSS[,ZIMP:=IMP/IMPSE][,DIFF:=abs(IMP)-abs(BETA)][,DIFFSE:=IMPSE-SE][,ZDIFF:=abs(ZIMP)-abs(Z)][,DIFF2:=DIFF^2][,ZDIFF2:=ZDIFF^2]
-  cSS[,ZIMP:=IMP/IMPSE][,DIFF:=IMP-BETA][,DIFFSE:=IMPSE-SE][,ZDIFF:=ZIMP-Z][,DIFF2:=DIFF^2][,ZDIFF2:=ZDIFF^2]
-  sqrt(mean(cSS[which(MAF>0.05),]$ZDIFF2,na.rm=T))
-  sqrt(mean(cSS[which(MAF<0.05),]$ZDIFF2,na.rm=T))
+  cat("\nA total of ",nrow(p$lfGWAS$sumstats), " variants before QC.\n")
   
-  rmse2 <- sqrt(mean(cSS$ZDIFF2,na.rm=T))
-  rmse2
-  #rmse<-rmse2 #10000
+  #nrow(na.omit(p$lfGWAS$sumstats[,..colBeta]))
+  #filter columns to those required for lfGWAS
+  colLfGWAS<-c("SNP","CHR","BP","MAF","A1","A2",colBeta,colSE)
+  #QC - remove variants with NA effects or SE
+  p$lfGWAS$sumstats<-na.omit(p$lfGWAS$sumstats[,..colLfGWAS])
   
-  View(head(cSS, n=1000))
-  
-  for (i in colBeta)
-    p$lfGWAS$sumstats[is.na(get(i)), (i):=(1e-20)]
-
-  for (i in colSE)
-    p$lfGWAS$sumstats[is.na(get(i)), (i):=1]
-
-  rsum<-rowSums(abs(p$lfGWAS$sumstats[,..colBeta]),na.rm = T)
-  rem<-rsum<(length(colBeta)*1e-19)
-  p$lfGWAS$sumstats<-p$lfGWAS$sumstats[!rem,]
-  rm("rsum")
-  cat("\nRemoved ",sum(rem), " variants as part of QC before lfGWAS.\n")
+  cat("\nA total of ",nrow(p$lfGWAS$sumstats), " variants after QC.\n")
 
   
   #to data frame to conform with userGWAS below
@@ -2436,7 +2423,7 @@ if(p$clOptions$task=="lfgwas" & !file.exists(file.path(p$folderpath.workingDirec
   #p$lfGWAS$sumstats<-head(p$lfGWAS$sumstats, n = 100)
   
   print("Head of processed sumstats table selection")
-  head(p$lfGWAS$sumstats)
+  print(head(p$lfGWAS$sumstats))
     
   p$lfGWAS$gwas<-userGWAS.mod(
     covstruc = p$mvLD$covstruct.mvLDSC,

@@ -121,7 +121,29 @@ sbatch --time 3-00:00:00 --partition brc,shared --job-name="nmeta" --ntasks 1 --
 sbatch --time 3-00:00:00 --partition brc,shared --job-name="nmeta" --ntasks 1 --cpus-per-task 4 --mem 16G --wrap="Rscript setup6.R -t nmeta -a M25_10_244.ORT.ML:1 -l cluster" --output "setup6.nmeta.M25_10_244.ORT.ML:1.$(date +%Y%m%d).out.txt"
 
 #setup7
-sbatch --time 8:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 32G --wrap="Rscript setup7.R -t munge -l cluster" --output "setup7.munge.$(date +%Y%m%d).out.txt"
+#munging with the new basic ld-imputation procedure. slow, running datasets in parallell.
+sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup7.R -t munge -a ADHD05 -l cluster" --output "setup7.munge.ADHD05.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup7.R -t munge -a ALCD03 -l cluster" --output "setup7.munge.ALCD03.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup7.R -t munge -a ANOR02 -l cluster" --output "setup7.munge.ANOR02.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup7.R -t munge -a ANXI03 -l cluster" --output "setup7.munge.ANXI03.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup7.R -t munge -a ANXI04 -l cluster" --output "setup7.munge.ANXI04.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup7.R -t munge -a AUTI07 -l cluster" --output "setup7.munge.AUTI07.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup7.R -t munge -a BIPO02 -l cluster" --output "setup7.munge.BIPO02.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup7.R -t munge -a DEPR05 -l cluster" --output "setup7.munge.DEPR05.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup7.R -t munge -a DEPR08 -l cluster" --output "setup7.munge.DEPR08.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup7.R -t munge -a EDUC03 -l cluster" --output "setup7.munge.EDUC03.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup7.R -t munge -a HEAL01 -l cluster" --output "setup7.munge.HEAL01.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup7.R -t munge -a INCO03 -l cluster" --output "setup7.munge.INCO03.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup7.R -t munge -a INSO02 -l cluster" --output "setup7.munge.INSO02.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup7.R -t munge -a NEUR02 -l cluster" --output "setup7.munge.NEUR02.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup7.R -t munge -a PTSD04 -l cluster" --output "setup7.munge.PTSD04.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup7.R -t munge -a RISK02 -l cluster" --output "setup7.munge.RISK02.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup7.R -t munge -a RISK03 -l cluster" --output "setup7.munge.RISK03.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup7.R -t munge -a SCHI04 -l cluster" --output "setup7.munge.SCHI04.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup7.R -t munge -a SUBJ01 -l cluster" --output "setup7.munge.SUBJ01.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup7.R -t munge -a TIRE01 -l cluster" --output "setup7.munge.TIRE01.$(date +%Y%m%d).out.txt"
+#produce summary table when all the above have been munged and imputed
+sbatch --time 9:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 48G --wrap="Rscript setup7.R -t munge -l cluster" --output "setup7.munge.$(date +%Y%m%d).out.txt"
 sbatch --time 10:00:00 --partition brc,shared --job-name="pre" --ntasks 1 --cpus-per-task 4 --mem 32G --wrap="Rscript setup7.R -t pre -l cluster" --output "setup7.pre.$(date +%Y%m%d).out.txt"
 for chr in 22; do sbatch --time 6-00:00:00 --partition brc,shared --job-name="lga_$chr" --ntasks 1 --cpus-per-task 10 --mem 32G --wrap="Rscript setup7.R -t pre -a MPRE_2_1.COR.ML:$chr -l cluster" --output "setup7.lfgwas.MPRE_2_1.COR.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
 for chr in 21; do sbatch --time 6-00:00:00 --partition brc,shared --job-name="lga_$chr" --ntasks 1 --cpus-per-task 10 --mem 32G --wrap="Rscript setup7.R -t pre -a MPRE_2_1.COR.ML:$chr -l cluster" --output "setup7.lfgwas.MPRE_2_1.COR.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
@@ -137,15 +159,17 @@ sbatch --time 1-12:00:00 --partition brc,shared --job-name="gsem" --ntasks 1 --c
 #test
 #for chr in 22; do sbatch --time 1:00:00 --partition brc,shared --job-name="lga_$chr" --ntasks 1 --cpus-per-task 10 --mem 32G --wrap="Rscript setup7.R -t lfgwas -a M20_6_198.COR.ML:$chr -l cluster" --output "setup7.lfgwas.M20_6_198.COR.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
 
-for chr in 22; do sbatch --time 6-00:00:00 --partition brc,shared --job-name="lga_$chr" --ntasks 1 --cpus-per-task 10 --mem 32G --wrap="Rscript setup7.R -t lfgwas -a M20_6_198.COR.ML:$chr -l cluster" --output "setup7.lfgwas.M20_6_198.COR.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
-for chr in 21; do sbatch --time 6-00:00:00 --partition brc,shared --job-name="lga_$chr" --ntasks 1 --cpus-per-task 10 --mem 32G --wrap="Rscript setup7.R -t lfgwas -a M20_6_198.COR.ML:$chr -l cluster" --output "setup7.lfgwas.M20_6_198.COR.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
-for chr in 20; do sbatch --time 6-00:00:00 --partition brc,shared --job-name="lga_$chr" --ntasks 1 --cpus-per-task 10 --mem 32G --wrap="Rscript setup7.R -t lfgwas -a M20_6_198.COR.ML:$chr -l cluster" --output "setup7.lfgwas.M20_6_198.COR.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
-for chr in 15 16 17 18 19; do sbatch --time 6-00:00:00 --partition brc,shared --job-name="lga_$chr" --ntasks 1 --cpus-per-task 10 --mem 32G --wrap="Rscript setup7.R -t lfgwas -a M20_6_198.COR.ML:$chr -l cluster" --output "setup7.lfgwas.M20_6_198.COR.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
-for chr in 3 4 5 6 7 8 9 10 11 12 13 14; do sbatch --time 6-00:00:00 --partition brc,shared --job-name="lga_$chr" --ntasks 1 --cpus-per-task 10 --mem 32G --wrap="Rscript setup7.R -t lfgwas -a M20_6_198.COR.ML:$chr -l cluster" --output "setup7.lfgwas.M20_6_198.COR.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
-for chr in 1 2; do sbatch --time 6-00:00:00 --partition brc,shared --job-name="lga_$chr" --ntasks 1 --cpus-per-task 10 --mem 32G --wrap="Rscript setup7.R -t lfgwas -a M20_6_198.COR.ML:$chr -l cluster" --output "setup7.lfgwas.M20_6_198.COR.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
+for chr in 22; do sbatch --time 6-00:00:00 --partition brc,shared --job-name="lga_$chr" --ntasks 1 --cpus-per-task 10 --mem 32G --wrap="Rscript setup7.R -t lfgwas -a M20_6_172.COR.ML:$chr -l cluster" --output "setup7.lfgwas.M20_6_172.COR.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
+for chr in 21; do sbatch --time 6-00:00:00 --partition brc,shared --job-name="lga_$chr" --ntasks 1 --cpus-per-task 10 --mem 32G --wrap="Rscript setup7.R -t lfgwas -a M20_6_172.COR.ML:$chr -l cluster" --output "setup7.lfgwas.M20_6_172.COR.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
+for chr in 20; do sbatch --time 6-00:00:00 --partition brc,shared --job-name="lga_$chr" --ntasks 1 --cpus-per-task 10 --mem 32G --wrap="Rscript setup7.R -t lfgwas -a M20_6_172.COR.ML:$chr -l cluster" --output "setup7.lfgwas.M20_6_172.COR.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
+for chr in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19; do sbatch --time 6-00:00:00 --partition brc,shared --job-name="lga_$chr" --ntasks 1 --cpus-per-task 10 --mem 32G --wrap="Rscript setup7.R -t lfgwas -a M20_6_172.COR.ML:$chr -l cluster" --output "setup7.lfgwas.M20_6_172.COR.ML.FALL.chr$chr.$(date +%Y%m%d).out.txt"; done
 sbatch --time 2-00:00:00 --partition brc,shared --job-name="nmeta" --ntasks 1 --cpus-per-task 4 --mem 16G --wrap="Rscript setup7.R -t nmeta -a M20_6_198.COR.ML:1 -l cluster" --output "setup7.nmeta.M20_6_198.COR.ML:1.$(date +%Y%m%d).out.txt"
 sbatch --time 2-00:00:00 --partition brc,shared --job-name="nmeta" --ntasks 1 --cpus-per-task 4 --mem 16G --wrap="Rscript setup7.R -t nmeta -a M20_6_198.COR.ML:3 -l cluster" --output "setup7.nmeta.M20_6_198.COR.ML:3.$(date +%Y%m%d).out.txt"
 sbatch --time 24:00:00 --partition brc,shared --job-name="mvLD2" --ntasks 1 --cpus-per-task 4 --mem 64G --wrap="Rscript setup7.R -t mvLD2 -l cluster" --output "setup7.mvLD2.$(date +%Y%m%d).out.txt"
 
 magma --annotate window=4,1 --snp-loc ../data/gwas_sumstats/export/M20_6_198.COR.ML.F1.SNPLOC --gene-loc ../data/gene_mapping/NCBI37.3.gene.loc --out setup7.annotate.F1
 magma --bfile ../data/reference_panel/1KG_eur.plink/g1000_eur --gene-annot setup7.annotate.F1.genes.annot --pval ../data/gwas_sumstats/export/M20_6_198.COR.ML.F1.PVAL ncol=N
+
+
+#misc
+rsync -avzhpt --progress /mnt/lustre/groups/ukbiobank/sumstats/ /scratch/groups/gwas_sumstats/
