@@ -167,14 +167,15 @@ if(p$host=="local") {
 p$filepath.SNPReference.hm3<-normalizePath(file.path(p$folderpath.data,"w_hm3.noMHC.snplist")) #HapMap3 SNPs
 ## Used in the preparation step for performing latent factor GWAS as reference for calculating SNP variance across traits.
 #p$filepath.SNPReference<-normalizePath(paste0(p$folderpath.data,"/","reference.1000G.maf.0.005.txt")) #1000 genomes phase 3
-p$filepath.SNPReference.1kg<-normalizePath(file.path(p$folderpath.data,"combined.hm3_1kg.snplist.vanilla.jz2020.txt")) #custom hm3 + 1kg SNPs
+p$filepath.SNPReference.1kg<-normalizePath(file.path(p$folderpath.data,"combined.hm3_1kg.snplist.vanilla.jz2020.txt")) #custom hm3 + 1kg SNPs, based on individual level data in /users/k1204688/brc_scratch/Public/1KG_Phase3
+#N.B GRCh38/hg38 assembly used
 
 p$filename.suffix.data.sumstats.munged<-".gz"
 #p$filename.suffix.data.sumstats.munged<-"_noMHC.sumstats.gz"
 
 ##Reference panel folder containing individual level data reference panel. Used for GWAS sumstat imputation tasks.
 #roject$folderpath.data.sumstatImp.genomeReference<-"/users/k1204688/brc_scratch/Public/1KG_Phase3/All"
-p$folderpath.data.sumstatImp.genomeReference<-"/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/data/reference.panel.1KG_Phase3.CLEANED.EUR.cM"
+p$folderpath.data.sumstatImp.genomeReference<-"/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/data/reference.panel.1KG_Phase3.CLEANED.EUR.cM" #source /users/k1204688/brc_scratch/Public/1KG_Phase3
 
 ##LD scores datasets folders (these strings need to have a trailing slash for the GSEM LDSC to work)
 p$folderpath.data.mvLDSC.ld.1kg <- file.path(p$folderpath.data,"eur_w_ld_chr.1KG_Phase3")
@@ -191,6 +192,9 @@ if(p$host=="local") {
 } else if (p$host=="cluster") {
   p$folderpath.data.HDL.ld<-paste0(p$folderpath.data,"/UKB_imputed_hm3_SVD_eigen99_extraction/")
 }
+
+##Gene mapping
+p$filepath.geneMapping<-file.path(p$folderpath.data,"gene_mapping","NCBI37.3.gene.loc")
   
 ##full script file paths
 p$filepath.rmd<-normalizePath(file.path(p$folderpath.scripts,p$filename.rmd))
@@ -480,7 +484,7 @@ p$sumstats$age.sd<-NA_real_
 
 #add missing datasets and data
 p$sumstats[nrow(p$sumstats)+1,c("code","n_case","n_control","n_total","phenotype_id","reference_id","reference_doi")]=list(
-  code=c("DEPR05"),
+  code="DEPR05",
   n_case=16823,
   n_control=25632,
   n_total=42455,
@@ -491,7 +495,7 @@ p$sumstats[nrow(p$sumstats)+1,c("code","n_case","n_control","n_total","phenotype
 
 #add missing datasets and data
 p$sumstats[nrow(p$sumstats)+1,c("code","n_case","n_control","n_total","phenotype_id","reference_id","reference_doi")]=list(
-  code=c("ANXI04"),
+  code="ANXI04",
   n_case=19012,
   n_control=58113,
   n_total=77125,
@@ -506,19 +510,20 @@ p$sumstats[nrow(p$sumstats)+1,c("code","name", "n_case","n_control","n_total","p
   n_control=NA_integer_,
   n_total=449484,
   phenotype_id=176,
+  reference_id=NA_integer_,
   reference_doi=c("https://doi.org/10.1038/s41588-018-0151-7")
   )
 
 #add missing datasets and data
 p$sumstats[nrow(p$sumstats)+1,c("code","name","n_total","phenotype_id")]=list(
-  code=c("NOIS01"),
+  code="NOIS01",
   name="Noise 1",
   n_total=766345,
   phenotype_id=197
   )
 
 p$sumstats[nrow(p$sumstats)+1,c("code","name","n_total","phenotype_id")]=list(
-  code=c("NOIS02"),
+  code="NOIS02",
   name="Noise 2",
   n_total=766345,
   phenotype_id=197
@@ -1118,7 +1123,7 @@ p$sumstats.sel$h2.se.liability_mvLDSC.hm3<-diag(p$mvLD$covstruct.mvLDSC.hm3$S.SE
   
 ```
 
-## Overview of rG between selected traits
+# Overview of rG between selected traits
 ```{r overview pairwise rG, fig.width=9, fig.height=6, out.width="1600px", out.height="1000px", eval=FALSE, purl=FALSE}
 
 p$mvLD$covstruct.mvLDSC.1kg$S_Stand.forPlot<-p$mvLD$covstruct.mvLDSC.1kg$S_Stand[p$sumstats.sel$code,p$sumstats.sel$code]
@@ -1218,7 +1223,7 @@ min(p$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE_diff.forPlot)
 ```
 
 
-## Improved annotation of chosen datasets
+# Improved annotation of chosen datasets
 
 ```{r improved annotation of chosen datasets, fig.width=10, fig.height=6, out.width="1600px", out.height="1000px", eval=FALSE, purl=FALSE}
 #View(p$sumstats.sel)
@@ -1624,7 +1629,7 @@ if(p$clOptions$task=="cfa"){quit(save = "no")}
 
 ```
 
-## Investigate and select CFA results
+## Select CFA results
 
 ```{r CFA select}
 print("***CFA select***")
@@ -2022,7 +2027,7 @@ for(iSelected in 1:nrow(p$CFA$models.selected)){
 ```{r naive variant effect meta-analysis }
 #test
 #p$clOptions$task<-"nmeta"
-#p$clOptions$task_argument<-"M20_6_198.COR.ML:1"
+#p$clOptions$task_argument<-"M20_6_172.COR.ML:1"
 
 cat("\n***Naive variant effect meta-analysis***\n")
 
@@ -2091,23 +2096,22 @@ if(p$clOptions$task=="nmeta"){
       p$nmeta$cFactor<-NULL
     }
   
-  
   for(iModel in 1:nrow(p$CFA$models.selected)){
     #test
     #iModel<-1
     
     cModel<-p$CFA$models.selected[iModel,]
-    if(!is.null(p$nmeta$cModel) & p$nmeta$cModel!=cModel$code) next
+    if(!is.null(p$nmeta$cModel) & !is.na(p$nmeta$cModel) & p$nmeta$cModel!=cModel$code) next
     cat("\nModel:  ",cModel$code)
     
     for(iFactor in 1:cModel$nFactors){
       #test
-      #iFactor<-3
+      #iFactor<-1
       if(is.null(p$nmeta$cFactor)){} else if(p$nmeta$cFactor!=iFactor) next
       factorFilepath<-file.path(p$folderpath.workingDirectory,paste0("nmeta.",cModel$code,".F",iFactor,".",p$setup.code,".Rds"))
       if(file.exists(factorFilepath)){
         modelGWAS<-readRDS(factorFilepath)
-        iSNPStart<-nrow(modelGWAS[!is.na(BETA)])+1
+        iSNPStart<-nrow(modelGWAS[!is.na(BETA)])+1 #THIS DOES NOT DETECT THE RIGHT START POSITION!
         cat("\nContinuing nmeta from variant with index ",iSNPStart,"\n")
       } else {
         modelGWAS<-p$lfGWAS$sumstats[,c("SNP","CHR","BP","MAF","A1","A2")]
@@ -2199,11 +2203,15 @@ if(p$clOptions$task=="nmeta"){
       if(any(colnames(modelGWAS)=="MAF") && !any(colnames(modelGWAS)=="FRQ")) colnames(modelGWAS)[colnames(modelGWAS)=="MAF"]<-"FRQ"
       saveRDS(object = modelGWAS,file = factorFilepath) #compress = "bzip2"
       factorCode<-paste0("nmeta.",cModel$code,".F",iFactor,".",p$setup.code)
+      
+     
       #fwrite(x = modelGWAS, file = factorFilepath, append = F, quote = F, sep = "\t", nThread=5)
       supermunge.result<-supermunge(list_df = list(modelGWAS),traitNames = factorCode, pathDirOutput = p$folderpath.data.sumstats.munged)
       print("Naive metaanalysis of this model factor is done and the result has been exported to a file.")
     }
   } #for iModel
+  
+  rm("p$lfGWAS$sumstats") #to avoid oom problems 
   
 }
 
@@ -2241,8 +2249,8 @@ print("***Genomic SEM latent factor GWAS***")
 
 
  #load intermediate results
-#!p$clOptions$task=="lfgwas" &
-if(!file.exists(file.path(p$folderpath.workingDirectory,paste0("lfGWAS.gwas.",p$setup.code,".Rds")))){
+# do not remove !p$clOptions$task=="lfgwas" as this will cause any lfgwas job to generate the composite results
+if(!p$clOptions$task=="lfgwas" & !file.exists(file.path(p$folderpath.workingDirectory,paste0("lfGWAS.gwas.",p$setup.code,".Rds")))){
   print("Reading in latent factor gwas intermediate results.")
   p$lfGWAS$gwas<-list()
   
@@ -2548,33 +2556,55 @@ p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,
 
 #GSEM latent factor GWAS
 factorCode<-"GSEM.F1"
-p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_198.COR.ML.F1","Anxiety F",28196)
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_172.COR.ML.F1","fNeuroticism",364979)
 factorCode<-"GSEM.F2"
-p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_198.COR.ML.F2","PTSD F",17826)
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_172.COR.ML.F2","fPsychoticism",159862)
 factorCode<-"GSEM.F3"
-p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_198.COR.ML.F3","Depression F",12867)
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_172.COR.ML.F3","fDepression",448644)
 factorCode<-"GSEM.F4"
-p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_198.COR.ML.F4","Educational attainment F",386339)
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_172.COR.ML.F4","fRisktaking",46293)
 factorCode<-"GSEM.F5"
-p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_198.COR.ML.F5","Externalising F",347490)
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_172.COR.ML.F5","fDeprivation",271911)
 factorCode<-"GSEM.F6"
-p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_198.COR.ML.F6","Autism F",12225)
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_172.COR.ML.F6","fNeuropsyche",91409)
 
 #nmeta latent factor GWAS
-factorCode<-"nmeta.F1"
-p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"nmeta.M20_6_198.COR.ML.F1.setup7","Anxiety F",48757)
-factorCode<-"nmeta.F3"
-p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"nmeta.M20_6_198.COR.ML.F3.setup7","Depression F",183691)
+factorCode<-"nmeta.CF1"
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"nmeta.M20_6_172.COR.ML.F1.setup7","Anxiety CF",237392)
+factorCode<-"nmeta.CF2"
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"nmeta.M20_6_172.COR.ML.F2.setup7","Thought CF",1406685)
+factorCode<-"nmeta.CF3"
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"nmeta.M20_6_172.COR.ML.F3.setup7","Depression CF",1051408)
+factorCode<-"nmeta.CF4"
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"nmeta.M20_6_172.COR.ML.F4.setup7","Externalising CF",1131595)
+factorCode<-"nmeta.CF5"
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"nmeta.M20_6_172.COR.ML.F5.setup7","SE deprivation CF",865415)
+factorCode<-"nmeta.CF6"
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"nmeta.M20_6_172.COR.ML.F6.setup7","Neuropsychiatric CF",2091884)
 
-p$sumstats.sel.code<-c("PRE.F1","PRE.F2","GSEM.F1","GSEM.F2","GSEM.F3","GSEM.F4","GSEM.F5","GSEM.F6","nmeta.F1","nmeta.F3")
+factorCode<-"nmeta.OF1"
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"nmeta.M20_6_30.ORT.ML.F1.setup7","Externalising(inv) OF",2379693)
+factorCode<-"nmeta.OF2"
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"nmeta.M20_6_30.ORT.ML.F2.setup7","Neuropsychiatric OF",1957237)
+factorCode<-"nmeta.OF3"
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"nmeta.M20_6_30.ORT.ML.F3.setup7","Fear OF",282511)
+factorCode<-"nmeta.OF4"
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"nmeta.M20_6_30.ORT.ML.F4.setup7","Depression OF",360436)
+factorCode<-"nmeta.OF5"
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"nmeta.M20_6_30.ORT.ML.F5.setup7","Distress(inv) OF",572446)
+factorCode<-"nmeta.OF6"
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"nmeta.M20_6_30.ORT.ML.F6.setup7","Thought OF",1096993)
+
+
+p$sumstats.sel.code<-c("PRE.F1","PRE.F2","GSEM.F1","GSEM.F2","GSEM.F3","GSEM.F4","GSEM.F5","GSEM.F6","nmeta.CF1","nmeta.CF2","nmeta.CF3","nmeta.CF4","nmeta.CF5","nmeta.CF6","nmeta.OF1","nmeta.OF2","nmeta.OF3","nmeta.OF4","nmeta.OF5","nmeta.OF6")
 
 # set nice name for selected traits
 p$sumstats[p$sumstats.sel.code,]$name.nice<-p$sumstats[p$sumstats.sel.code,]$name
 
 ##Add sumstat cleaned and munged file paths
-p$sumstats[p$sumstats.sel.code,c("cleanedpath")]<-file.path(p$folderpath.data.sumstats.cleaned,paste0(p$sumstats$code.file,p$filename.suffix.data.sumstats.munged))[which(p$sumstats$code %in% p$sumstats.sel.code)]
+p$sumstats[p$sumstats.sel.code,c("cleanedpath")]<-file.path(p$folderpath.data.sumstats.cleaned,paste0(p$sumstats[p$sumstats.sel.code,c("code.file")],p$filename.suffix.data.sumstats.munged))
 
-p$sumstats[p$sumstats.sel.code,c("mungedpath")]<-file.path(p$folderpath.data.sumstats.munged,paste0(p$sumstats$code.file,p$filename.suffix.data.sumstats.munged))[which(p$sumstats$code %in% p$sumstats.sel.code)]
+p$sumstats[p$sumstats.sel.code,c("mungedpath")]<-file.path(p$folderpath.data.sumstats.munged,paste0(p$sumstats[p$sumstats.sel.code,c("code.file")],p$filename.suffix.data.sumstats.munged))
 
 ##Add a combined nice name plus code label
 p$sumstats$name.nice.and_code<-paste0(p$sumstats$name.nice," (",p$sumstats$code,")")
@@ -2584,8 +2614,8 @@ p$sumstats<-p$sumstats[order(p$sumstats$name.nice),]
 
 #re-calculate effective N from file information - perform manually as needed
 if(F){
-        factorCode<-"nmeta.F3"
-        gwasForEffectiveN<-fread(file = p$sumstats[factorCode,]$mungedpath, na.strings =c(".",NA,"NA",""), encoding = "UTF-8",check.names = T, fill = T, blank.lines.skip = T, key = c("SNP","CHR","BP"), data.table = T,showProgress = F, nThread=5)
+        factorCode<-"nmeta.OF6"
+        gwasForEffectiveN<-fread(file = file.path(p$folderpath.data.sumstats.munged,paste0( p$sumstats[factorCode,]$code.file,".gz")), na.strings =c(".",NA,"NA",""), encoding = "UTF-8",check.names = T, fill = T, blank.lines.skip = T, key = c("SNP","CHR","BP"), data.table = T,showProgress = F, nThread=6)
   ##Calculate Effective Sample Size for Factor 1 - from the Genomic SEM Wiki
         #citation: https://www.biorxiv.org/content/10.1101/603134v3
         #restrict to MAF of 40% and 10%
@@ -2594,9 +2624,9 @@ if(F){
         gwasForEffectiveN[,MAF:=ifelse(FRQ>0.5,1-FRQ,FRQ)][,VSNP:=2*FRQ*(1-FRQ)]
         gwasForEffectiveN<-gwasForEffectiveN[MAF>=.1 & MAF<=.4,]
         setDT(gwasForEffectiveN)
-        gwasForEffectiveN[,NEF:=round(((Z/EFFECT)^2)/VSNP,digits = 0)]
+        #gwasForEffectiveN[,NEF:=round(((Z/EFFECT)^2)/VSNP,digits = 0)]
         effectiveN<-mean(gwasForEffectiveN$NEF,na.rm=T)
-        effectiveN
+        round(effectiveN,digits = 0)
         
 }
 ```
@@ -2610,21 +2640,31 @@ if(F){
 #p$sumstats.sel.code<-c("ADHD05","ANXI04")
 #p$sumstats.sel.code<-c("RISK02","RISK03","SCHI04","SUBJ01","TIRE01")
 #p$sumstats.sel.code<-c("TIRE01")
-p$sumstats.sel.uv.code<-c("EDUC03","NEUR02","RISK02","RISK03","SCHI04")
-#p$sumstats.sel.uv.code<-c("ADHD05","ALCD03","ANOR02","ANXI03","ANXI04","AUTI07","BIPO02", "DEPR05","DEPR08","EDUC03","HEAL01","INCO03","INSO02","NEUR02", "PTSD04","RISK02","RISK03","SCHI04","SUBJ01","TIRE01")
-p$sumstats.sel.lfgwas.code<-c("PRE.F1","PRE.F2")
-#p$sumstats.sel.lfgwas.code<-c("GSEM.F1","GSEM.F2","GSEM.F3","GSEM.F4","GSEM.F5","GSEM.F6")
-#p$sumstats.sel.nmeta.code<-c("nmeta.F1","nmeta.F3")
-p$sumstats.sel.code<-c(p$sumstats.sel.uv.code,p$sumstats.sel.lfgwas.code)
+#p$sumstats.sel.uv.code<-c("EDUC03","NEUR02","RISK02","RISK03","SCHI04")
+p$sumstats.sel.uv.code<-c("ADHD05","ALCD03","ANOR02","ANXI03","ANXI04","AUTI07","BIPO02", "DEPR05","DEPR08","EDUC03","HEAL01","INCO03","INSO02","NEUR02", "PTSD04","RISK02","RISK03","SCHI04","SUBJ01","TIRE01")
+#p$sumstats.sel.lfgwas.code<-c("PRE.F1","PRE.F2")
+p$sumstats.sel.set1_spec.code<-c("GSEM.F1","GSEM.F2","GSEM.F3","GSEM.F4","GSEM.F5","GSEM.F6")
+p$sumstats.sel.set2_spec.code<-c("nmeta.CF1","nmeta.CF2","nmeta.CF3","nmeta.CF4","nmeta.CF5","nmeta.CF6")
+p$sumstats.sel.set3_spec.code<-c("nmeta.OF1","nmeta.OF2","nmeta.OF3","nmeta.OF4","nmeta.OF5","nmeta.OF6")
+p$sumstats.sel.set1.code<-c(p$sumstats.sel.uv.code,p$sumstats.sel.set1_spec.code)
+p$sumstats.sel.set2.code<-c(p$sumstats.sel.uv.code,p$sumstats.sel.set2_spec.code)
+p$sumstats.sel.set3.code<-c(p$sumstats.sel.uv.code,p$sumstats.sel.set3_spec.code)
+p$sumstats.sel.code<-c(p$sumstats.sel.uv.code,p$sumstats.sel.set1_spec.code,p$sumstats.sel.set2_spec.code,p$sumstats.sel.set3_spec.code)
 p$sumstats.sel<-p$sumstats[which(p$sumstats$code %in% p$sumstats.sel.code),]
 
 p$sumstats.sel[,c("code","name","name.nice","name.nice.and_code", "year","n_case","n_control","n_total","n_effective", "pmid","reference_doi","samplePrevalence","populationPrevalence","dependent_variable.OLS","dependent_variable.linprob","se.logit","mungedpath")]
 p$k.sel<-nrow(p$sumstats.sel)
 #View(p$sumstats.sel[,c("code","n_total","pmid","reference_doi","samplePrevalence","populationPrevalence","mungedpath")])
 #set order of datasets to sorted by code
+p$sumstats.sel[is.na(p$sumstats.sel$name.nice),c("name.nice")]<-p$sumstats.sel[is.na(p$sumstats.sel$name.nice),c("name")]
 p$sumstats.sel<-p$sumstats.sel[order(p$sumstats.sel$name.nice),]
 
 write.table(p$sumstats.sel[,c("code", "name.nice","year", "n_case","n_control","n_total","n_effective","samplePrevalence","populationPrevalence", "reference_doi")], file = file.path(p$folderpath.workingDirectory,paste0(p$setup.code,".sumstatinfo.tsv")), quote = TRUE, sep = "\t", row.names = FALSE, col.names = TRUE)
+
+#this should not be needed as the SNP's already have their NEF
+#set n-total for new latent traits from efective n
+# cond<-is.na(p$sumstats.sel$n_total)&!is.na(p$sumstats.sel$n_effective)
+# p$sumstats.sel[cond,c("n_total")]<-p$sumstats.sel[cond,c("n_effective")]
 
 #View(p$sumstats.sel)
 
@@ -2635,102 +2675,190 @@ write.table(p$sumstats.sel[,c("code", "name.nice","year", "n_case","n_control","
 
 ```{r mvLD 2, including latent factors}
 print("***Multivariate LD 2***")
-p$filepath.mvLD2<-file.path(p$folderpath.workingDirectory,paste0("mvLD2.",p$setup.code,".Rds"))
+p$filepath.mvLD2.set1<-file.path(p$folderpath.workingDirectory,paste0("mvLD2.set1.",p$setup.code,".Rds"))
+p$filepath.mvLD2.set2<-file.path(p$folderpath.workingDirectory,paste0("mvLD2.set2.",p$setup.code,".Rds"))
+p$filepath.mvLD2.set3<-file.path(p$folderpath.workingDirectory,paste0("mvLD2.set3.",p$setup.code,".Rds"))
 
-
-if (file.exists(p$filepath.mvLD2)) {
+#set1 - GSEM
+if (file.exists(p$filepath.mvLD2.set1)) {
   print("Using existing covariance structures from previous LD computations.")
-  p$mvLD2<-readRDS(file=p$filepath.mvLD2)
+  p$mvLD2.set1<-readRDS(file=p$filepath.mvLD2.set1)
 } else {
   
   print("Running multivariate LD regression with different methods. This might take a while. If the procedure runs for too long you may want to abort the process.")
   
   cat("The current task is specified as:",p$clOptions$task)
-  p$mvLD2<-c()
+  p$mvLD2.set1<-c()
   
-  if(p$clOptions$task=="mvLD2" || !file.exists(p$filepath.mvLD2)){
+  if(p$clOptions$task=="mvLD2"){
     #run mvLDSC
 
-    p$mvLD2$covstruct.mvLDSC.1kg<-ldsc.mod(
-      traits = p$sumstats.sel$mungedpath,
-      sample.prev =  p$sumstats.sel$samplePrevalence,
-      population.prev = p$sumstats.sel$populationPrevalence,
-      trait.names = p$sumstats.sel$code,
+    p$mvLD2.set1$covstruct.mvLDSC.1kg<-ldsc.mod(
+      traits = p$sumstats.sel[p$sumstats.sel.set1.code,]$mungedpath,
+      sample.prev =  p$sumstats.sel[p$sumstats.sel.set1.code,]$samplePrevalence,
+      population.prev = p$sumstats.sel[p$sumstats.sel.set1.code,]$populationPrevalence,
+      trait.names = p$sumstats.sel[p$sumstats.sel.set1.code,]$code,
       ld = p$folderpath.data.mvLDSC.ld.1kg,
       wld = p$folderpath.data.mvLDSC.ld.1kg,
       n.blocks = 600, #a bit more here if it can support the larger reference panel used
       info.filter = 0.6,
       frq.filter = 0.01,
       mhc.filter = 37,
-      chisq.min = 1e-3,
-      N = p$sumstats.sel$n_total,
+      #chisq.min = 1e-3,
+      N = p$sumstats.sel[p$sumstats.sel.set1.code,]$n_total,
       #forceN = T, # Consider this when some of the original N's may be untrustworthy (ANXI04!) - TODO - fix in supermunge
       ldsc.log = p$setup.code.date
       )
 
     
-    saveRDS(object = p$mvLD2,file = p$filepath.mvLD2)
+    saveRDS(object = p$mvLD2.set1,file = p$filepath.mvLD2.set1)
     print("Multivariate LD correction is done now and the resulting covariance structure should have been saved to a file.")
   
   } 
 }
 
+#set2 - nmeta, best correlated factor model
+if (file.exists(p$filepath.mvLD2.set2)) {
+  print("Using existing covariance structures from previous LD computations.")
+  p$mvLD2.set2<-readRDS(file=p$filepath.mvLD2.set2)
+} else if (F){
+  
+  print("Running multivariate LD regression with different methods. This might take a while. If the procedure runs for too long you may want to abort the process.")
+  
+  cat("The current task is specified as:",p$clOptions$task)
+  p$mvLD2.set2<-c()
+  
+  if(p$clOptions$task=="mvLD2"){
+    #run mvLDSC
+
+    p$mvLD2.set2$covstruct.mvLDSC.1kg<-ldsc.mod(
+      traits = p$sumstats.sel[p$sumstats.sel.set2.code,]$mungedpath,
+      sample.prev =  p$sumstats.sel[p$sumstats.sel.set2.code,]$samplePrevalence,
+      population.prev = p$sumstats.sel[p$sumstats.sel.set2.code,]$populationPrevalence,
+      trait.names = p$sumstats.sel[p$sumstats.sel.set2.code,]$code,
+      ld = p$folderpath.data.mvLDSC.ld.1kg,
+      wld = p$folderpath.data.mvLDSC.ld.1kg,
+      n.blocks = 600, #a bit more here if it can support the larger reference panel used
+      info.filter = 0.6,
+      frq.filter = 0.01,
+      mhc.filter = 37,
+      #chisq.min = 1e-3,
+      N = p$sumstats.sel[p$sumstats.sel.set2.code,]$n_total,
+      #forceN = T, # Consider this when some of the original N's may be untrustworthy (ANXI04!) - TODO - fix in supermunge
+      ldsc.log = p$setup.code.date
+      )
+
+    
+    saveRDS(object = p$mvLD2.set2,file = p$filepath.mvLD2.set2)
+    print("Multivariate LD correction is done now and the resulting covariance structure should have been saved to a file.")
+  
+  } 
+}
+
+#set3 - nmeta, best orthogonal factor model
+if (file.exists(p$filepath.mvLD2.set3)) {
+  print("Using existing covariance structures from previous LD computations.")
+  p$mvLD2.set3<-readRDS(file=p$filepath.mvLD2.set3)
+} else if(F){
+  
+  print("Running multivariate LD regression with different methods. This might take a while. If the procedure runs for too long you may want to abort the process.")
+  
+  cat("The current task is specified as:",p$clOptions$task)
+  p$mvLD2.set3<-c()
+  
+  if(p$clOptions$task=="mvLD2"){
+    #run mvLDSC
+
+    p$mvLD2.set3$covstruct.mvLDSC.1kg<-ldsc.mod(
+      traits = p$sumstats.sel[p$sumstats.sel.set3.code,]$mungedpath,
+      sample.prev =  p$sumstats.sel[p$sumstats.sel.set3.code,]$samplePrevalence,
+      population.prev = p$sumstats.sel[p$sumstats.sel.set3.code,]$populationPrevalence,
+      trait.names = p$sumstats.sel[p$sumstats.sel.set3.code,]$code,
+      ld = p$folderpath.data.mvLDSC.ld.1kg,
+      wld = p$folderpath.data.mvLDSC.ld.1kg,
+      n.blocks = 600, #a bit more here if it can support the larger reference panel used
+      info.filter = 0.6,
+      frq.filter = 0.01,
+      mhc.filter = 37,
+      #chisq.min = 1e-3,
+      N = p$sumstats.sel[p$sumstats.sel.set3.code,]$n_total,
+      #forceN = T, # Consider this when some of the original N's may be untrustworthy (ANXI04!) - TODO - fix in supermunge
+      ldsc.log = p$setup.code.date
+      )
+
+    
+    saveRDS(object = p$mvLD2.set3,file = p$filepath.mvLD2.set3)
+    print("Multivariate LD correction is done now and the resulting covariance structure should have been saved to a file.")
+  
+  } 
+}
+
+
 if(p$clOptions$task=="mvLD2"){
       quit(save = "no")
 }
 
-#set standard covstruct to use
-p$mvLD2$covstruct.mvLDSC<-p$sumstats.sel$h2.liability_mvLDSC.1kg
 
 #add newly computed heritabilities and LDSC intercepts to the selected summary statistics table
-p$sumstats.sel$h2.liability_mvLDSC<-diag(p$mvLD2$covstruct.mvLDSC$S[p$sumstats.sel$code,p$sumstats.sel$code])
-p$sumstats.sel$h2.se.liability_mvLDSC<-diag(p$mvLD2$covstruct.mvLDSC$S.SE[p$sumstats.sel$code,p$sumstats.sel$code])
+p$sumstats.sel[p$sumstats.sel.set1.code,c("h2.liability_mvLDSC")]<-diag(p$mvLD2.set1$covstruct.mvLDSC.1kg$S[p$sumstats.sel.set1.code,p$sumstats.sel.set1.code])
+p$sumstats.sel[p$sumstats.sel.set1.code,c("h2.se.liability_mvLDSC")]<-diag(p$mvLD2.set1$covstruct.mvLDSC.1kg$S.SE[p$sumstats.sel.set1.code,p$sumstats.sel.set1.code])
 
-colnames(p$mvLD2$covstruct.mvLDSC$I)<-colnames(p$mvLD2$covstruct.mvLDSC$S)
-rownames(p$mvLD2$covstruct.mvLDSC$I)<-rownames(p$mvLD2$covstruct.mvLDSC$S)
-p$sumstats.sel$lambda_ldsc<-diag(p$mvLD2$covstruct.mvLDSC$I[p$sumstats.sel$code,p$sumstats.sel$code])
+if(F){
+  p$sumstats.sel[p$sumstats.sel.set2_spec.code,c("h2.se.liability_mvLDSC")]<-diag(p$mvLD2.set2$covstruct.mvLDSC.1kg$S[p$sumstats.sel.set2_spec.code,p$sumstats.sel.set2_spec.code])
+  p$sumstats.sel[p$sumstats.sel.set2_spec.code,c("h2.se.liability_mvLDSC")]<-diag(p$mvLD2.set2$covstruct.mvLDSC.1kg$S.SE[p$sumstats.sel.set2_spec.code,p$sumstats.sel.set2_spec.code])
+  
+  p$sumstats.sel[p$sumstats.sel.set3_spec.code,c("h2.se.liability_mvLDSC")]<-diag(p$mvLD2.set3$covstruct.mvLDSC.1kg$S[p$sumstats.sel.set3_spec.code,p$sumstats.sel.set3_spec.code])
+  p$sumstats.sel[p$sumstats.sel.set3_spec.code,c("h2.se.liability_mvLDSC")]<-diag(p$mvLD2.set3$covstruct.mvLDSC.1kg$S.SE[p$sumstats.sel.set3_spec.code,p$sumstats.sel.set3_spec.code])
+}
+
+colnames(p$mvLD2.set1$covstruct.mvLDSC.1kg$I)<-colnames(p$mvLD2.set1$covstruct.mvLDSC.1kg$S)
+rownames(p$mvLD2.set1$covstruct.mvLDSC.1kg$I)<-rownames(p$mvLD2.set1$covstruct.mvLDSC.1kg$S)
+p$sumstats.sel[p$sumstats.sel.set1.code,c("lambda_ldsc")]<-diag(p$mvLD2.set1$covstruct.mvLDSC.1kg$I[p$sumstats.sel.set1.code,p$sumstats.sel.set1.code])
 
 
 ```
 
-## Overview of rG between selected traits, including latent factors
+# Overview of rG between selected traits, including latent factors
 ```{r overview pairwise rG 2, fig.width=9, fig.height=6, out.width="1600px", out.height="1000px", purl=FALSE}
 
+cMvLDset<-p$mvLD2.set1
+cMvLDset.names<-colnames(cMvLDset$covstruct.mvLDSC.1kg$S)
 #edit the selection of traits here for the plot
-p$mvLD2$covstruct.mvLDSC$S_Stand.forPlot<-p$mvLD2$covstruct.mvLDSC$S_Stand
+cMvLDset$covstruct.mvLDSC.1kg$S_Stand.forPlot<-cMvLDset$covstruct.mvLDSC.1kg$S_Stand
 
-rownames(p$mvLD2$covstruct.mvLDSC$S_Stand.forPlot)<-p$sumstats.sel$name.nice.and_code
-colnames(p$mvLD2$covstruct.mvLDSC$S_Stand.forPlot)<-p$sumstats.sel$code
+rownames(cMvLDset$covstruct.mvLDSC.1kg$S_Stand.forPlot)<-p$sumstats.sel[cMvLDset.names,]$name.nice.and_code
+colnames(cMvLDset$covstruct.mvLDSC.1kg$S_Stand.forPlot)<-cMvLDset.names
 
 p$printCorrSimplified(
-  corr = clipValues(p$mvLD2$covstruct.mvLDSC$S_Stand.forPlot,-1,1),
-  #SE = p$mvLD2$covstruct.mvLDSC$S_Stand.SE,
+  corr = clipValues(cMvLDset$covstruct.mvLDSC.1kg$S_Stand.forPlot,-1,1),
+  #SE = cMvLDset$covstruct.mvLDSC$S_Stand.SE,
   filename = file.path(p$folderpath.plots,"rg.full.simple.png"),
   is.corr = T
   )
 
 p$printCorrSimplified(
-  corr = clipValues(abs(p$mvLD2$covstruct.mvLDSC$S_Stand.forPlot),-1,1),
-  #SE = p$mvLD2$covstruct.mvLDSC$S_Stand.SE,
+  corr = clipValues(abs(cMvLDset$covstruct.mvLDSC.1kg$S_Stand.forPlot),-1,1),
+  #SE = cMvLDset$covstruct.mvLDSC$S_Stand.SE,
   filename = file.path(p$folderpath.plots,"absrg.full.simple.png"),
   is.corr = F,
   absScale=T
   )
 
 p$printCorr(
-  corr = clipValues(p$mvLD2$covstruct.mvLDSC$S_Stand.forPlot,-1,1),
-  SE = p$mvLD2$covstruct.mvLDSC$S_Stand.SE,
+  corr = clipValues(cMvLDset$covstruct.mvLDSC.1kg$S_Stand.forPlot,-1,1),
+  SE = cMvLDset$covstruct.mvLDSC.1kg$S_Stand.SE,
   filename = file.path(p$folderpath.plots,"rg.full.png"),
-  is.corr = T
+  is.corr = T,
+  addrect = NULL
   )
 
 
 print("Heritabilities")
 p$plots.heritabilities<-data.frame(
-  trait=colnames(p$mvLD2$covstruct.mvLDSC$S),
-  heritability=diag(p$mvLD2$covstruct.mvLDSC$S),
-  se=diag(p$mvLD2$covstruct.mvLDSC$S.SE),
-  heritability_se=paste0(format(diag(p$mvLD2$covstruct.mvLDSC$S),digits=1)," (",format(diag(p$mvLD2$covstruct.mvLDSC$S.SE),digits=1),")")
+  trait=colnames(cMvLDset$covstruct.mvLDSC.1kg$S),
+  heritability=diag(cMvLDset$covstruct.mvLDSC.1kg$S),
+  se=diag(cMvLDset$covstruct.mvLDSC.1kg$S.SE),
+  heritability_se=paste0(format(diag(cMvLDset$covstruct.mvLDSC.1kg$S),digits=1)," (",format(diag(cMvLDset$covstruct.mvLDSC.1kg$S.SE),digits=1),")")
   )
 
 p$plots.heritabilities
@@ -2738,103 +2866,148 @@ p$plots.heritabilities
 
 ```
 
-## Improved annotation of latent factor traits
-
-```{r improved annotation of latent factor traits, fig.width=10, fig.height=6, out.width="1600px", out.height="1000px", eval=FALSE, purl=FALSE}
-#View(p$sumstats.sel)
-
-p$sumstats.sel.table<-p$sumstats.sel[,c("name.nice","code","n_effective","h2.liability_mvLDSC","h2.se.liability_mvLDSC","lambda_ldsc")] #full trait list
-#p$sumstats.sel.table<-p$sumstats.sel[p$sumstats.sel.l.code,c("name.nice","code","n_effective","h2.liability_mvLDSC","h2.se.liability_mvLDSC","lambda_ldsc")]
-
-p$sumstats.sel.table$h2.liability_mvLDSC.table<-paste0(round( p$sumstats.sel.table$h2.liability_mvLDSC,digits = 3)," (",round(p$sumstats.sel.table$h2.se.liability_mvLDSC,digits = 4),")")
-
-p$sumstats.sel.table<-p$sumstats.sel.table[,c("name.nice","code","n_effective","h2.liability_mvLDSC.table","lambda_ldsc")]
-p$sumstats.sel.table$n_effective<-as.numeric(p$sumstats.sel.table$n_effective)
-#View(p$sumstats.sel.table)
-#p$sumstats.sel.table
-
-p$plots.factors.sel.table<-p$sumstats.sel.table %>% 
-  gt() %>% 
-  fmt_number(columns = c("n_effective"), decimals = 0) %>%
-  fmt_number(columns = c("lambda_ldsc"), decimals = 3) %>%
-  tab_header(
-    title = "Latent factor GWAS summary statistics datasets"
-  ) %>% cols_label(
-    name.nice  = "Trait",
-    code = "Code",
-    n_effective = "Effective N",
-    h2.liability_mvLDSC.table = html("h<sup>2</sup><sub>mvLDSC</sub> (S.E.)"),
-    lambda_ldsc = "LDSC intercept"
-  ) %>%
-  tab_style(
-    style = cell_text(size = px(12)),
-    locations = cells_column_labels(everything())       
-  ) %>%
-  tab_style(
-    style = cell_text(size = px(12),weight = "bold"),
-    locations = cells_body(everything())        
-  )
-
-p$plots.factors.sel.table
-
-gtsave(data = p$plots.factors.sel.table, filename = paste0(p$folderpath.plots,"/factors.sel.table.rtf"))
 
 
-```
 
+# Process, export, visualise corrected GWAS results
 
-# Visualise and export corrected GWAS results
-
-```{r latent factor GWAS visualisation, purl=FALSE, eval=FALSE}
+```{r process latent factor GWAS, purl=FALSE, eval=FALSE}
 
 #install.packages("qqman")
 
-for(iTrait in 1:length(p$sumstats.sel)){
+settingLIMPFilter<-T
+if(settingLIMPFilter){
+    #p$lfGWAS$sumstats<-copy(readRDS(file=p$filepath.lfgwas.sumstats))
+    cSumstatsAll<-readRDS(file=p$filepath.lfgwas.sumstats)
+    setDT(cSumstatsAll)
+    
+    colBeta<-c()
+    colSE<-c()
+    colFRQ<-c()
+    colINFO.LIMP<-c()
+    colK<-c()
+    for(iTrait in 1:nrow(p$sumstats.sel)){
+      #iTrait<-1
+      colBeta<-c(colBeta,colnames(cSumstatsAll)[grep(paste0("^BETA\\.",p$sumstats.sel[iTrait,c("code")],"$"), ignore.case = TRUE,colnames(cSumstatsAll))])
+    colSE<-c(colSE,colnames(cSumstatsAll)[grep(paste0("^SE\\.",p$sumstats.sel[iTrait,c("code")],"$"), ignore.case = TRUE,colnames(cSumstatsAll))])
+    colFRQ<-c(colFRQ,colnames(cSumstatsAll)[grep(paste0("^FRQ\\.",p$sumstats.sel[iTrait,c("code")],"$"), ignore.case = TRUE,colnames(cSumstatsAll))])
+      colINFO.LIMP<-c(colINFO.LIMP,colnames(cSumstatsAll)[grep(paste0("^INFO.LIMP\\.",p$sumstats.sel[iTrait,c("code")],"$"), ignore.case = TRUE,colnames(cSumstatsAll))])
+      colK<-c(colK,colnames(cSumstatsAll)[grep(paste0("^K\\.",p$sumstats.sel[iTrait,c("code")],"$"), ignore.case = TRUE,colnames(cSumstatsAll))])
+    }
+    
+    colIsRaw<-c()
+    for(iTrait in 1:length(colBeta)){
+      #iTrait<-1
+      cColBeta<-colBeta[iTrait]
+      cColK<-colK[iTrait]
+      cColIsRaw<-paste0("is.raw.",p$sumstats.sel[iTrait,c("code")])
+      cSumstatsAll[,(cColIsRaw):=!is.na(get(cColBeta)) & is.na(get(cColK))]
+      colIsRaw<-c(colIsRaw,cColIsRaw)
+    }
+    cSumstatsAll[,KRAW:=apply(.SD,MARGIN = 1,FUN = function(x){sum(x)}), .SDcols=colIsRaw]
+    cSumstatsAll[,KIMP:=apply(.SD,MARGIN = 1,FUN = function(x){sum(!is.na(x))}), .SDcols=colBeta]
+    cSumstatsAll[,sumK:=rowSums(.SD,na.rm = T), .SDcols=colK]
+    cSumstatsAll[,sumINFO.LIMP:=rowSums(.SD,na.rm = T), .SDcols=colINFO.LIMP]
+    cSumstatsAll[,sumBETA:=rowSums(.SD,na.rm = T), .SDcols=colBeta]
+    cSumstatsAll[,sumSE:=rowSums(.SD,na.rm = T), .SDcols=colSE]
+    cSumstatsAll[,meanBETA:=sumBETA/KIMP][,meanSE:=sumSE/KIMP]
+    cSumstatsAll[,KREL:=(1-(KIMP-KRAW)/KIMP)][,sumINFO.LIMP.REL:=ifelse(sumK>0,sumINFO.LIMP/(KIMP-KRAW),NA_real_)][,sumK.REL:=ifelse(sumK>0,sumK/(KIMP-KRAW),NA_real_)]
+    
+    cSumstatsAll<-cSumstatsAll[,c("SNP","CHR","BP","MAF","KRAW","KIMP","sumK","sumINFO.LIMP","sumBETA","sumSE","meanBETA","meanSE","sumINFO.LIMP.REL","sumK.REL","KREL")]
+    
+}
+
+#p$sumstats.sel.set1.code
+#p$sumstats.sel.set1_spec.code
+
+#Export trait codes for selected sets
+write.table(x = p$sumstats.sel[p$sumstats.sel.set1.code,c("code")],file = file.path(p$folderpath.workingDirectory, "sumstats.sel.set1.code.txt"),sep="\t", quote = FALSE, row.names = F, col.names = F, append = F)
+write.table(x = p$sumstats.sel[p$sumstats.sel.uv.code,c("code")],file = file.path(p$folderpath.workingDirectory, "sumstats.sel.uv.code.txt"),sep="\t", quote = FALSE, row.names = F, col.names = F, append = F)
+write.table(x = p$sumstats.sel[p$sumstats.sel.set1_spec.code,c("code")],file = file.path(p$folderpath.workingDirectory, "sumstats.sel.set1_spec.code.txt"),sep="\t", quote = FALSE, row.names = F, col.names = F, append = F)
+
+
+chosenSet<-p$sumstats.sel[p$sumstats.sel.set1.code,] #SET SELECTED SUMSTATS HERE
+
+
+for(iTrait in 1:nrow(chosenSet)){
   #test
-  #iTrait<-6
-  p$lfGWAS$gwas.for.display.info<-p$sumstats.sel[iTrait,]
+  #iTrait<-1
   
-  if(!file.exists(p$lfGWAS$gwas.for.display.info$mungedpath) | is.na(p$lfGWAS$gwas.for.display.info$n_effective) #only latent factors
+  p$lfGWAS$gwas.for.display.info<-chosenSet[iTrait,]
+  p$lfGWAS$gwas.for.display.info$code
+  
+  is.latent<-!is.na(p$lfGWAS$gwas.for.display.info$n_effective)
+  # cColname.INFO.LIMP <- colnames(cSumstatsAll)[grep(paste0("^INFO.LIMP\\.",p$lfGWAS$gwas.for.display.info$code,"$"), ignore.case = TRUE,colnames(cSumstatsAll))]
+  # cColname.K <- colnames(cSumstatsAll)[grep(paste0("^K\\.",p$lfGWAS$gwas.for.display.info$code,"$"), ignore.case = TRUE,colnames(cSumstatsAll))]
+  
+                                                                    
+  if(!file.exists(p$lfGWAS$gwas.for.display.info$mungedpath) #| #is.na(p$lfGWAS$gwas.for.display.info$n_effective) #only latent factors
      ) next 
   #p$lfGWAS$gwas.for.display <- read.table(p$lfGWAS$gwas.for.display.info$mungedpath,header=T, quote="\"",fill=T,na.string=c(".",NA,"NA",""))
-  p$lfGWAS$gwas.for.display<-fread(file = p$lfGWAS$gwas.for.display.info$mungedpath, na.strings =c(".",NA,"NA",""), encoding = "UTF-8",check.names = T, fill = T, blank.lines.skip = T, key = c("SNP","CHR","BP"), data.table = T,showProgress = F, nThread=5)
+  cSumstats<-fread(file = p$lfGWAS$gwas.for.display.info$mungedpath, na.strings =c(".",NA,"NA",""), encoding = "UTF-8",check.names = T, fill = T, blank.lines.skip = T, key = c("SNP","CHR","BP"), data.table = T,showProgress = F, nThread=5)
   
-  #setDT(p$lfGWAS$gwas.for.display)
-  if(any(colnames(p$lfGWAS$gwas.for.display)=="MAF") & !any(colnames(p$lfGWAS$gwas.for.display)=="FRQ")) p$lfGWAS$gwas.for.display[,FRQ:=MAF]
-  if(any(colnames(p$lfGWAS$gwas.for.display)=="NEF") & !any(colnames(p$lfGWAS$gwas.for.display)=="N")) p$lfGWAS$gwas.for.display[,N:=round(NEF,digits = 0)] #special - also fix NEF format to integer
-  if(!any(colnames(p$lfGWAS$gwas.for.display)=="Z")) p$lfGWAS$gwas.for.display <- p$lfGWAS$gwas.for.display[,Z:=EFFECT/SE]
-  if(!any(colnames(p$lfGWAS$gwas.for.display)=="SE")) p$lfGWAS$gwas.for.display[,c("SE")]<-1
+  #setDT(cSumstats) - not needed because of fread arg
+  if(any(colnames(cSumstats)=="MAF") & !any(colnames(cSumstats)=="FRQ")) cSumstats[,FRQ:=MAF]
+  if(any(colnames(cSumstats)=="NEF") & !any(colnames(cSumstats)=="N")) cSumstats[,N:=round(NEF,digits = 0)] #special - also fix NEF format to integer
+  if(!any(colnames(cSumstats)=="Z")) cSumstats <- cSumstats[,Z:=EFFECT/SE]
+  if(!any(colnames(cSumstats)=="SE")) cSumstats[,c("SE")]<-1
   
+  #imputation quality filter
+  if(settingLIMPFilter){
+    setkeyv(cSumstats,cols = "SNP")
+    setkeyv(cSumstatsAll,cols = "SNP")
+    cSumstats[cSumstatsAll,c("KRAW","KIMP","sumK","sumINFO.LIMP","sumBETA","sumSE","meanBETA","meanSE","sumINFO.LIMP.REL","sumK.REL","KREL") :=list(i.KRAW,i.KIMP,i.sumK,i.sumINFO.LIMP,i.sumBETA,i.sumSE,i.meanBETA,i.meanSE,i.sumINFO.LIMP.REL,i.sumK.REL,i.KREL)]
+  }
   
+  # update sumstat metadata with genomic inflation factors
+  medianChisq<-median(cSumstats$Z^2)
+  meanChisq<-mean(x = cSumstats$Z^2)
+  p$sumstats.sel[p$lfGWAS$gwas.for.display.info$code,c("lambdaGC_median")]<-medianChisq/qchisq(0.5,1)
+  p$sumstats.sel[p$lfGWAS$gwas.for.display.info$code,c("lambdaGC_mean")]<-meanChisq/qchisq(0.5,1)
+  #lambda 1000 is the inflation factor scaled relative to 1000 cases and 1000 controls
+  if(!is.na(p$lfGWAS$gwas.for.display.info$n_case) || !is.na(p$lfGWAS$gwas.for.display.info)){
+    p$sumstats.sel[p$lfGWAS$gwas.for.display.info$code,c("lambda1000")]<-1+(p$sumstats.sel[p$lfGWAS$gwas.for.display.info$code,c("lambdaGC_median")]-1)*(1/as.numeric( p$lfGWAS$gwas.for.display.info$n_case) + 1/as.numeric(p$lfGWAS$gwas.for.display.info$n_control))/(2/1000)
+  } else if (!is.na(p$lfGWAS$gwas.for.display.info$n_total)){
+     p$sumstats.sel[p$lfGWAS$gwas.for.display.info$code,c("lambda1000")]<-1+(p$sumstats.sel[p$lfGWAS$gwas.for.display.info$code,c("lambdaGC_median")]-1)*(1/as.numeric(p$lfGWAS$gwas.for.display.info$n_total))/(1/1000)
+  } else if (!is.na(p$lfGWAS$gwas.for.display.info$n_effective)){
+     p$sumstats.sel[p$lfGWAS$gwas.for.display.info$code,c("lambda1000")]<-1+(p$sumstats.sel[p$lfGWAS$gwas.for.display.info$code,c("lambdaGC_median")]-1)*(1/as.numeric(p$lfGWAS$gwas.for.display.info$n_effective))/(1/1000)
+  }
+  cat("\n",p$lfGWAS$gwas.for.display.info$code,", lambda(using median,mean)=", p$sumstats.sel[p$lfGWAS$gwas.for.display.info$code,c("lambdaGC_median")],p$sumstats.sel[p$lfGWAS$gwas.for.display.info$code,c("lambdaGC_mean")])
   
-  # show inflation
-  medianChisq<-median(p$lfGWAS$gwas.for.display$Z^2)
-  meanChisq<-mean(x = p$lfGWAS$gwas.for.display$Z^2)
-  genomicInflationFactorLambdaGC<-medianChisq/qchisq(0.5,1)
-  genomicInflationFactorLambdaGC2<-meanChisq/qchisq(0.5,1)
-  cat("\n",p$lfGWAS$gwas.for.display.info$code,", Genomic inflation factor(median,mean)=", genomicInflationFactorLambdaGC,genomicInflationFactorLambdaGC2)
+  cat("\n",p$lfGWAS$gwas.for.display.info$code,", lambda1000=", p$sumstats.sel[p$lfGWAS$gwas.for.display.info$code,c("lambda1000")])
   
   cat("\n",p$lfGWAS$gwas.for.display.info$code,", LDSC intercept (uv)=", p$lfGWAS$gwas.for.display.info$lambda_ldsc)
-   #if(p$lfGWAS$gwas.for.display.info$lambda_ldsc>1) {
-     #p$lfGWAS$gwas.for.display[,Z:=Z/sqrt(p$lfGWAS$gwas.for.display.info$lambda_ldsc)]
-    
-   
-    # p$lfGWAS$gwas.for.display[,EFFECT:=SE*Z]
-    # p$lfGWAS$gwas.for.display[,P:=2*pnorm(q = abs(Z),mean = 0, sd = 1, lower.tail = F)]
- #  }
-   
-  #p$lfGWAS$gwas.for.display <- p$lfGWAS$gwas.for.display[Z^2>1e-1]
-  #p$lfGWAS$gwas.for.display <- p$lfGWAS$gwas.for.display[FRQ>=0.01] ##ONLY COMMON VARIANTS
   
+  #FILTERS
+  cSumstats.n<-nrow(cSumstats)
+  cat("\nRows before filtering:",nrow(cSumstats),"\n")
+  #FRQ
+  if(any(colnames(cSumstats)=="FRQ")) cSumstats <- cSumstats[FRQ>=0.001 & 1-FRQ>=0.001,]
+  cat("\nRows filtered by FRQ:",cSumstats.n-nrow(cSumstats),"\n")
+  cSumstats.n<-nrow(cSumstats)
+  
+  if(any(colnames(cSumstats)=="INFO")) cSumstats <- cSumstats[INFO>=0.6,]
+  cat("\nRows filtered by INFO:",cSumstats.n-nrow(cSumstats),"\n")
+  cSumstats.n<-nrow(cSumstats)
+  
+  if(is.latent){
+    #use well informed latent factor variants, includes imputed information 
+    cSumstats <- cSumstats[KREL>0.75 | is.na(sumINFO.LIMP.REL) | (KREL>0.5 & sumINFO.LIMP.REL>0.5),]
+  } else {
+    #do not use imputed SNPs for trait GWAS
+    cSumstats <- cSumstats[is.na(INFO.LIMP),]
+  }
+  cat("\nRows filtered by LD-imputation quality:",cSumstats.n-nrow(cSumstats),"\n")
+  cat("\nRows after filtering:",nrow(cSumstats),"\n")
  
   # #export ALL
-  # fwrite(x = p$lfGWAS$gwas.for.display, file = file.path(p$folderpath.data.sumstats.export,paste0(p$lfGWAS$gwas.for.display.info$code,".gz")), append = F, quote = F, sep = "\t", nThread=5)  
-  #   
-  # #export SNPLOC
-  # fwrite(x = p$lfGWAS$gwas.for.display[,c("SNP","CHR","BP")], file = file.path(p$folderpath.data.sumstats.export,paste0(p$lfGWAS$gwas.for.display.info$code,".SNPLOC")), append = F, quote = F, sep = "\t", nThread=5)
-  # 
-  # #export PVAL_FILE
-  # fwrite(x = p$lfGWAS$gwas.for.display[,c("SNP","P","N")], file = file.path(p$folderpath.data.sumstats.export,paste0(p$lfGWAS$gwas.for.display.info$code,".PVAL")), append = F, quote = F, sep = "\t", nThread=5)
+  fwrite(x = cSumstats, file = file.path(p$folderpath.data.sumstats.export,paste0(p$lfGWAS$gwas.for.display.info$code,".gz")), append = F, quote = F, sep = "\t", nThread=5)
+
+  #export SNPLOC
+  fwrite(x = na.omit(cSumstats[,c("SNP","CHR","BP")]), file = file.path(p$folderpath.data.sumstats.export,paste0(p$lfGWAS$gwas.for.display.info$code,".SNPLOC")), append = F, quote = F, sep = "\t", nThread=5)
+
+  #export PVAL_FILE
+  fwrite(x = na.omit(cSumstats[,c("SNP","P","N")]), file = file.path(p$folderpath.data.sumstats.export,paste0(p$lfGWAS$gwas.for.display.info$code,".PVAL")), append = F, quote = F, sep = "\t", nThread=5)
   
   #head(p$lfGWAS$gwas.for.display)
   
@@ -2867,16 +3040,16 @@ for(iTrait in 1:length(p$sumstats.sel)){
   #top SNPs
   #View(p$lfGWAS$gwas.for.display[order(p$lfGWAS$gwas.for.display$P),c("SNP","CHR","MAF","P")])
   
-  cTable <- p$lfGWAS$gwas.for.display[order(p$lfGWAS$gwas.for.display$Z,decreasing = T),] %>% 
-    slice_head(n = 100) %>%
+  cTable <- cSumstats[P<5e-8,][order(-Z,decreasing = T),] %>% 
+    slice_head(n = 50) %>%
     mutate(i=row_number()) %>%
-    select(i,SNP,CHR,FRQ,EFFECT,SE,Z,P) %>%
+    select(i,SNP,CHR,FRQ,sumINFO.LIMP.REL,sumK.REL,KREL,Z,P) %>%
   gt() %>% 
   fmt_scientific(columns = vars(P), decimals = 4) %>%
-  fmt_number(columns = vars(FRQ,Z,SE), decimals = 4) %>%
-  #fmt_number(columns = vars(CHR), decimals = 0) %>%
+  fmt_number(columns = vars(FRQ,Z,sumINFO.LIMP.REL,sumK.REL,KREL), decimals = 4) %>%
+  #fmt_number(columns = vars(K,K.IMP,sumK), decimals = 0) %>%
   tab_header(
-    title = paste0("Highly associated COMMON variants for\n",p$lfGWAS$gwas.for.display.info$name.nice.and_code)
+    title = paste0("Top-50 highly associated COMMON variants for\n",p$lfGWAS$gwas.for.display.info$name.nice.and_code)
   ) %>%
   tab_style(
     style = cell_text(size = px(12)),
@@ -2898,8 +3071,8 @@ for(iTrait in 1:length(p$sumstats.sel)){
   #ggsave(filename=file.path(p$folderpath.plots,cModel$code,paste0("gwas.F",iGwas,".png")), plot = last_plot(), width = 500, height = 300, units = "mm")
   
   #qqman adaptations
-  qqmanGwas<-p$lfGWAS$gwas.for.display
-  qqmanGwas$P<- shru::clipValues(qqmanGwas$P,min = 10^(-20), max = NULL)
+  qqmanGwas<-cSumstats
+  qqmanGwas$P<- shru::clipValues(qqmanGwas$P,min = 10^(-16), max = NULL)
   qqmanGwas<-qqmanGwas[which(!is.na(qqmanGwas$P)),]
   qqmanGwas<-qqmanGwas[,c("SNP","BP","CHR","P")]
   qqmanGwas$CHR<-as.integer(qqmanGwas$CHR)
@@ -2920,7 +3093,216 @@ for(iTrait in 1:length(p$sumstats.sel)){
 
 ```
 
+# Genome-wide genetic association results
 
+## Read genome-wide genetic associations per dataset
+
+```{r read genetic associations}
+cat("\n***READ GENETIC ASSOCIATIONS***")
+
+p$filepath.results.gwa<-file.path(p$folderpath.workingDirectory,paste0("results.gwa.",p$setup.code,".Rds"))
+
+if (file.exists(p$filepath.results.gwa)) {
+  print("Using existing GWA results from previous run.")
+  p$results.gwa<-readRDS(file=p$filepath.results.gwa)
+} else {
+
+  chosenSet<-p$sumstats.sel[p$sumstats.sel.set1.code,] #configure selected trait set here!
+  
+  p$results.gwa<-c()
+  p$results.gwa$topHits<-c()
+  
+  for(iTrait in 1:nrow(chosenSet)){
+    #iTrait<-1
+    cSumstats<-fread(file = chosenSet[iTrait,]$mungedpath, na.strings =c(".",NA,"NA",""), encoding = "UTF-8",check.names = T, fill = T, blank.lines.skip = T, key = c("SNP","CHR","BP"), data.table = T,showProgress = F, nThread=5)
+    cSumstats<-cSumstats[P<5e-8,]
+    p$results.gwa$topHits[[chosenSet[iTrait,]$code]]<-cSumstats$SNP
+    
+  }
+  
+  saveRDS(object = p$results.gwa,file = p$filepath.results.gwa)
+}
+
+
+p$results.gwa$unique<-c()
+
+p$results.gwa$unique.uv<-unique(unlist(p$results.gwa$topHits[p$sumstats.sel.uv.code]))
+
+#GSEM.F1 - Factor Neuroticism
+# p$results.gwa$unique[["GSEM.F1"]]<-list(unlist(p$results.gwa$topHits["GSEM.F1"])[
+#   !(unlist(p$results.gwa$topHits["GSEM.F1"]) %in% unlist(p$results.gwa$topHits["ANXI03"])) &
+#   !(unlist(p$results.gwa$topHits["GSEM.F1"]) %in% unlist(p$results.gwa$topHits["ANXI04"])) &
+#   !(unlist(p$results.gwa$topHits["GSEM.F1"]) %in% unlist(p$results.gwa$topHits["DEPR05"])) &
+#   !(unlist(p$results.gwa$topHits["GSEM.F1"]) %in% unlist(p$results.gwa$topHits["DEPR08"])) &
+#   !(unlist(p$results.gwa$topHits["GSEM.F1"]) %in% unlist(p$results.gwa$topHits["NEUR02"])) &
+#   !(unlist(p$results.gwa$topHits["GSEM.F1"]) %in% unlist(p$results.gwa$topHits["HEAL01"])) &
+#   !(unlist(p$results.gwa$topHits["GSEM.F1"]) %in% unlist(p$results.gwa$topHits["TIRE01"]))])
+
+p$results.gwa$unique[["GSEM.F1"]]<-list(unlist(p$results.gwa$topHits["GSEM.F1"])[!(unlist(p$results.gwa$topHits["GSEM.F1"]) %in% p$results.gwa$unique.uv)])
+length(p$results.gwa$unique[["GSEM.F1"]][[1]])
+
+#GSEM.F2 - Factor Psychoticism
+p$results.gwa$unique[["GSEM.F2"]]<-list(unlist(p$results.gwa$topHits["GSEM.F2"])[!(unlist(p$results.gwa$topHits["GSEM.F2"]) %in% p$results.gwa$unique.uv)])
+length(p$results.gwa$unique[["GSEM.F2"]][[1]])
+
+#GSEM.F3 - Factor Depression
+p$results.gwa$unique[["GSEM.F3"]]<-list(unlist(p$results.gwa$topHits["GSEM.F3"])[!(unlist(p$results.gwa$topHits["GSEM.F3"]) %in% p$results.gwa$unique.uv)])
+length(p$results.gwa$unique[["GSEM.F3"]][[1]])
+
+#GSEM.F4 - Factor Risktaking
+p$results.gwa$unique[["GSEM.F4"]]<-list(unlist(p$results.gwa$topHits["GSEM.F4"])[!(unlist(p$results.gwa$topHits["GSEM.F4"]) %in% p$results.gwa$unique.uv)])
+length(p$results.gwa$unique[["GSEM.F4"]][[1]])
+
+#GSEM.F5 - Factor Deprivation
+p$results.gwa$unique[["GSEM.F5"]]<-list(unlist(p$results.gwa$topHits["GSEM.F5"])[!(unlist(p$results.gwa$topHits["GSEM.F5"]) %in% p$results.gwa$unique.uv)])
+length(p$results.gwa$unique[["GSEM.F5"]][[1]])
+
+#GSEM.F6 - Factor Neuropsyche
+p$results.gwa$unique[["GSEM.F6"]]<-list(unlist(p$results.gwa$topHits["GSEM.F6"])[!(unlist(p$results.gwa$topHits["GSEM.F6"]) %in% p$results.gwa$unique.uv)])
+length(p$results.gwa$unique[["GSEM.F6"]][[1]])
+
+
+```
+
+
+## Read gene associations per dataset, output top gene lists
+
+```{r read gene associations}
+cat("\n***READ GENE ASSOCIATIONS***")
+p$filepath.results.ga<-file.path(p$folderpath.workingDirectory,paste0("results.ga.",p$setup.code,".Rds"))
+
+if (file.exists(p$filepath.results.ga)) {
+  print("Using existing GA results from previous run.")
+  p$results.ga<-readRDS(file=p$filepath.results.ga)
+} else {
+
+  chosenSet<-p$sumstats.sel[p$sumstats.sel.set1.code,] #configure selected trait set here!
+  
+  p$results.ga<-c()
+  p$results.ga$geneAssociation<-c()
+  
+  p$geneMap<-fread(file = p$filepath.geneMapping, na.strings =c(".",NA,"NA",""), encoding = "UTF-8",check.names = T, fill = T, blank.lines.skip = T, data.table = T,showProgress = F, nThread=5)
+  
+  for(iTrait in 1:nrow(chosenSet)){
+    #iTrait<-1
+    cat("\nProcessing ",chosenSet[iTrait,]$code)
+    cGeneAssoc<-fread(file = file.path(p$folderpath.workingDirectory,paste0(p$setup.code,".geneanalysis.",chosenSet[iTrait,]$code,".genes.out")), na.strings =c(".",NA,"NA",""), encoding = "UTF-8",check.names = T, fill = T, blank.lines.skip = T, key = c("GENE","CHR","START","STOP"), data.table = T,showProgress = F, nThread=5)
+    cGeneAssoc[p$geneMap, on=c(GENE='V1'), c("CODE"):=list(i.V6)]
+    #cSigLevel<-(0.05/nrow(cGeneAssoc))
+    cGeneAssoc$P.FDR<-p.adjust(p = cGeneAssoc$P,method = "fdr")
+    #cat("Adj. sig. lev. ",chosenSet[iTrait,]$code,": ",cSigLevel)
+    p$results.ga$geneAssociation[[chosenSet[iTrait,]$code]]<-list(cGeneAssoc)
+    #topGenes <- cGeneAssoc[P<cSigLevel & P<0.01,]
+    topGenes <- cGeneAssoc[P.FDR<0.05,]
+    cat(", n sig. genes ",chosenSet[iTrait,]$code,":",nrow(topGenes))
+    write.table(x = topGenes[,c("CODE")],file = file.path(p$folderpath.workingDirectory, paste0(chosenSet[iTrait,]$code,".top.genes.txt")),sep="\t", quote = FALSE, row.names = F, col.names = F, append = F)
+    
+  }
+  
+  saveRDS(object = p$results.ga,file = p$filepath.results.ga)
+}
+
+
+p$results.ga$unique<-c()
+
+p$results.ga$unique.uv<-unique(unlist(lapply(p$results.ga$geneAssociation[p$sumstats.sel.uv.code], function(x){x[[1]] [P.FDR<0.05,c("CODE")]})))
+
+#GSEM.F1 - Factor Neuroticism
+# p$results.gwa$unique[["GSEM.F1"]]<-list(unlist(p$results.gwa$topHits["GSEM.F1"])[
+#   !(unlist(p$results.gwa$topHits["GSEM.F1"]) %in% unlist(p$results.gwa$topHits["ANXI03"])) &
+#   !(unlist(p$results.gwa$topHits["GSEM.F1"]) %in% unlist(p$results.gwa$topHits["ANXI04"])) &
+#   !(unlist(p$results.gwa$topHits["GSEM.F1"]) %in% unlist(p$results.gwa$topHits["DEPR05"])) &
+#   !(unlist(p$results.gwa$topHits["GSEM.F1"]) %in% unlist(p$results.gwa$topHits["DEPR08"])) &
+#   !(unlist(p$results.gwa$topHits["GSEM.F1"]) %in% unlist(p$results.gwa$topHits["NEUR02"])) &
+#   !(unlist(p$results.gwa$topHits["GSEM.F1"]) %in% unlist(p$results.gwa$topHits["HEAL01"])) &
+#   !(unlist(p$results.gwa$topHits["GSEM.F1"]) %in% unlist(p$results.gwa$topHits["TIRE01"]))])
+
+cGeneAssoc<-unlist(p$results.ga$geneAssociation["GSEM.F1"][[1]][[1]][P.FDR<0.05,c("CODE")],use.names = F)
+p$results.ga$unique[["GSEM.F1"]]<-list(cGeneAssoc[!(cGeneAssoc %in% p$results.ga$unique.uv)])
+length(p$results.ga$unique[["GSEM.F1"]][[1]])
+
+#GSEM.F2 - Factor Psychoticism
+cGeneAssoc<-unlist(p$results.ga$geneAssociation["GSEM.F2"][[1]][[1]][P.FDR<0.05,c("CODE")],use.names = F)
+p$results.ga$unique[["GSEM.F2"]]<-list(cGeneAssoc[!(cGeneAssoc %in% p$results.ga$unique.uv)])
+length(p$results.ga$unique[["GSEM.F2"]][[1]])
+
+#GSEM.F3 - Factor Depression
+cGeneAssoc<-unlist(p$results.ga$geneAssociation["GSEM.F3"][[1]][[1]][P.FDR<0.05,c("CODE")],use.names = F)
+p$results.ga$unique[["GSEM.F3"]]<-list(cGeneAssoc[!(cGeneAssoc %in% p$results.ga$unique.uv)])
+length(p$results.ga$unique[["GSEM.F3"]][[1]])
+
+#GSEM.F4 - Factor Risktaking
+cGeneAssoc<-unlist(p$results.ga$geneAssociation["GSEM.F4"][[1]][[1]][P.FDR<0.05,c("CODE")],use.names = F)
+p$results.ga$unique[["GSEM.F4"]]<-list(cGeneAssoc[!(cGeneAssoc %in% p$results.ga$unique.uv)])
+length(p$results.ga$unique[["GSEM.F4"]][[1]])
+
+#GSEM.F5 - Factor Deprivation
+cGeneAssoc<-unlist(p$results.ga$geneAssociation["GSEM.F5"][[1]][[1]][P.FDR<0.05,c("CODE")],use.names = F)
+p$results.ga$unique[["GSEM.F5"]]<-list(cGeneAssoc[!(cGeneAssoc %in% p$results.ga$unique.uv)])
+length(p$results.ga$unique[["GSEM.F5"]][[1]])
+
+#GSEM.F6 - Factor Neuropsyche
+cGeneAssoc<-unlist(p$results.ga$geneAssociation["GSEM.F6"][[1]][[1]][P.FDR<0.05,c("CODE")],use.names = F)
+p$results.ga$unique[["GSEM.F6"]]<-list(cGeneAssoc[!(cGeneAssoc %in% p$results.ga$unique.uv)])
+length(p$results.ga$unique[["GSEM.F6"]][[1]])
+
+```
+
+# Assess genetic association overlap
+
+```{r assess genetic association overlap, fig.width=10, fig.height=6, out.width="1600px", out.height="1000px", eval=FALSE, purl=FALSE}
+
+
+
+
+
+```
+
+
+# Improved annotation of all traits, including latent factor traits
+
+```{r improved annotation, fig.width=10, fig.height=6, out.width="1600px", out.height="1000px", eval=FALSE, purl=FALSE}
+#View(p$sumstats.sel)
+
+p$sumstats.sel.table<-p$sumstats.sel[,c("name.nice","code","n_effective","h2.liability_mvLDSC","h2.se.liability_mvLDSC","lambda_ldsc","lambda1000")] #full trait list
+#p$sumstats.sel.table<-p$sumstats.sel[p$sumstats.sel.l.code,c("name.nice","code","n_effective","h2.liability_mvLDSC","h2.se.liability_mvLDSC","lambda_ldsc")]
+
+p$sumstats.sel.table$h2.liability_mvLDSC.table<-paste0(round( p$sumstats.sel.table$h2.liability_mvLDSC,digits = 3)," (",round(p$sumstats.sel.table$h2.se.liability_mvLDSC,digits = 4),")")
+
+p$sumstats.sel.table<-p$sumstats.sel.table[,c("name.nice","code","n_effective","h2.liability_mvLDSC.table","lambda_ldsc")] #"lambda1000"
+p$sumstats.sel.table$n_effective<-as.numeric(p$sumstats.sel.table$n_effective)
+#View(p$sumstats.sel.table)
+#p$sumstats.sel.table
+
+p$plots.factors.sel.table<-p$sumstats.sel.table %>% 
+  gt() %>% 
+  fmt_number(columns = c("n_effective"), decimals = 0) %>%
+  fmt_number(columns = c("lambda_ldsc"), decimals = 3) %>%
+  tab_header(
+    title = "Latent factor GWAS summary statistics datasets"
+  ) %>% cols_label(
+    name.nice  = "Trait",
+    code = "Code",
+    n_effective = "Effective N",
+    h2.liability_mvLDSC.table = html("h<sup>2</sup><sub>mvLDSC</sub> (S.E.)"),
+    lambda_ldsc = "LDSC intercept"
+    #lambda1000 = "lambda1000"
+  ) %>%
+  tab_style(
+    style = cell_text(size = px(12)),
+    locations = cells_column_labels(everything())       
+  ) %>%
+  tab_style(
+    style = cell_text(size = px(12),weight = "bold"),
+    locations = cells_body(everything())        
+  )
+
+p$plots.factors.sel.table
+
+gtsave(data = p$plots.factors.sel.table, filename = paste0(p$folderpath.plots,"/factors.sel.table.rtf"))
+
+
+```
 
 
 
