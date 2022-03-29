@@ -1,0 +1,4 @@
+library(biomaRt)
+ensembl = useEnsembl(biomart="ensembl", dataset="hsapiens_gene_ensembl", GRCh=37)
+Genes<-getBM(attributes=c('ensembl_gene_id','external_gene_name','chromosome_name','start_position','end_position'), mart = ensembl)
+write.table(Genes, '~/genes_hg19.txt', col.names=T, row.names=F, quote=F)

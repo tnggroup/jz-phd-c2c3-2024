@@ -195,6 +195,12 @@ if(p$host=="local") {
 
 ##Gene mapping
 p$filepath.geneMapping<-file.path(p$folderpath.data,"gene_mapping","NCBI37.3.gene.loc")
+
+##Transcription target maps
+p$filepath.transcriptionTargetMap.mirdb <- file.path(p$folderpath.data,"gene_set","miRDB_v6.0_prediction_result.txt.gz")
+
+##Gene sets folder
+p$folderpath.geneSet<-file.path(p$folderpath.data,"gene_set")
   
 ##full script file paths
 p$filepath.rmd<-normalizePath(file.path(p$folderpath.scripts,p$filename.rmd))
@@ -202,7 +208,6 @@ p$filepath.r<-normalizePath(file.path(p$folderpath.scripts,p$filename.r))
 
 ##CFA settings
 p$CFA<-c()
-#p$CFA$estimator=c("ML")
 p$CFA$correlation<-c("COR","ORT") #ORT, OBL, and COR
 p$CFA$estimator=c("ML")
 p$CFA$nFactors=c(6)
@@ -235,6 +240,7 @@ p$printCorr <- function(corr, SE=NULL, filename, addrect = 4, is.corr = T, numbe
   #   palette<-colorRampPalette(c("#FFFFFF",theme.color$contrastLight3))
   # } else {
     palette<-colorRampPalette(c(theme.color$contrastDark3,"#FFFFFF",theme.color$contrastLight3))
+  
  # }
   
   
@@ -281,9 +287,9 @@ dev.off()
 p$printCorrSimplified <- function(corr, SE=NULL, filename, is.corr = T, number.cex = 1.5, number.digits=2, absScale=F){
   
   if(absScale){
-    palette<-colorRampPalette(c("#FFFFFF",theme.color$contrastLight3))
+    palette<-colorRampPalette(c("#000000",theme.color$contrastLight3))
   } else {
-    palette<-colorRampPalette(c(theme.color$contrastDark3,"#FFFFFF",theme.color$contrastLight3))
+    palette<-colorRampPalette(c(theme.color$contrastDark3,"#000000",theme.color$contrastLight3))
   }
   
   if(is.null(SE)){
@@ -653,6 +659,29 @@ p$sumstats$name.nice[which(p$sumstats$code=="TIRE01")]="Self-reported tiredness"
 ##Add a combined nice name plus code label
 p$sumstats$name.nice.and_code<-paste0(p$sumstats$name.nice," (",p$sumstats$code,")")
 
+##Add nice dataset citation
+p$sumstats$reference.nice<-NA_character_
+p$sumstats["ADHD05",]$reference.nice <- "Demontis et al"
+p$sumstats["ALCD03",]$reference.nice <- "Walters et al"
+p$sumstats["ANOR02",]$reference.nice <- "Watson et al"
+p$sumstats["ANXI03",]$reference.nice <- "Purves et al"
+p$sumstats["ANXI04",]$reference.nice <- "Purves et al"
+p$sumstats["AUTI07",]$reference.nice <- "Grove et al"
+p$sumstats["BIPO02",]$reference.nice <- "Stahl et al"
+p$sumstats["DEPR05",]$reference.nice <- "Wray et al"
+p$sumstats["DEPR08",]$reference.nice <- "Wray et al"
+p$sumstats["EDUC03",]$reference.nice <- "Lee et al"
+p$sumstats["HEAL01",]$reference.nice <- "Harris et al"
+p$sumstats["INCO03",]$reference.nice <- "Hill et al"
+p$sumstats["INSO02",]$reference.nice <- "Jansen et al"
+p$sumstats["NEUR02",]$reference.nice <- "Nagel et al"
+p$sumstats["PTSD04",]$reference.nice <- "Nievergelt et al"
+p$sumstats["RISK02",]$reference.nice <- "Karlsson Linnér et al"
+p$sumstats["RISK03",]$reference.nice <- "Karlsson Linnér et al"
+p$sumstats["SCHI04",]$reference.nice <- "Pardiñas et al"
+p$sumstats["SUBJ01",]$reference.nice <- "Okbay et al"
+p$sumstats["TIRE01",]$reference.nice <- "Deary et al"
+
 #test
 # tSumstats <- read.table(p$sumstats["NEUR01",]$cleanedpath,header=T, quote="\"",fill=T,na.string=c(".",NA,"NA",""))
 # tSumstats$ptest<- 2*pnorm(abs(log(tSumstats$OR))/tSumstats$SE, lower.tail = F)
@@ -757,6 +786,26 @@ p$sumstats<-p$sumstats[order(p$sumstats$code),]
 
 ```
 
+## Setup gene sets
+```{r Setup gene sets}
+p$genesets<-data.frame(matrix(data=NA,nrow = 0,ncol = 0))
+
+p$genesets["gtex8_rnaseq_median",c("name","filepath.raw")]<-c("GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct",file.path(p$folderpath.geneSet,"GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz"))
+
+p$genesets["brainspan_rnaseq_mean",c("name","filepath.raw")]<-c("BRAINSPAN_RNA-Seq_Gencode_v10_summarized_to_genes_genes_matrix_csv",file.path(p$folderpath.geneSet,"BRAINSPAN_RNA-Seq_Gencode_v10_summarized_to_genes_genes_matrix_csv","expression_matrix.csv"))
+
+
+#p$genesets["msigdb.v7.5.1",c("name","filepath.raw")]<-c("All MSigDB",file.path(p$folderpath.geneSet,"msigdb.v7.5.1.symbols.gmt"))
+p$genesets["msigdb.h.all.v7.5.1",c("name","filepath.raw")]<-c("MSigDB Hallmark",file.path(p$folderpath.geneSet,"msigdb.h.all.v7.5.1.symbols.gmt"))
+p$genesets["msigdb.c2.cp.biocarta.v7.5.1",c("name","filepath.raw")]<-c("MSigDB Canonical pathways Biocarta",file.path(p$folderpath.geneSet,"msigdb.c2.cp.biocarta.v7.5.1.symbols.gmt"))
+p$genesets["msigdb.c2.cp.kegg.v7.5.1",c("name","filepath.raw")]<-c("MSigDB Canonical pathways KEGG",file.path(p$folderpath.geneSet,"msigdb.c2.cp.kegg.v7.5.1.symbols.gmt"))
+p$genesets["msigdb.c3.mir.mirdb.v7.5.1",c("name","filepath.raw")]<-c("MSigDB Regulatory target miRDB",file.path(p$folderpath.geneSet,"msigdb.c3.mir.mirdb.v7.5.1.symbols.gmt"))
+p$genesets["msigdb.c3.tft.gtrd.v7.5.1",c("name","filepath.raw")]<-c("MSigDB Regulatory target GTRD",file.path(p$folderpath.geneSet,"msigdb.c3.tft.gtrd.v7.5.1.symbols.gmt"))
+p$genesets["msigdb.c5.all.v7.5.1",c("name","filepath.raw")]<-c("MSigDB Ontology",file.path(p$folderpath.geneSet,"msigdb.c5.all.v7.5.1.symbols.gmt"))
+p$genesets["msigdb.c7.all.v7.5.1",c("name","filepath.raw")]<-c("MSigDB Immunologic signature",file.path(p$folderpath.geneSet,"msigdb.c7.all.v7.5.1.symbols.gmt"))
+p$genesets["msigdb.c8.all.v7.5.1",c("name","filepath.raw")]<-c("MSigDB Cell type",file.path(p$folderpath.geneSet,"msigdb.c8.all.v7.5.1.symbols.gmt"))
+
+```
 
 # Variable selection and project configuration
 ```{r GWAS sumstat dataset variable selection}
@@ -949,6 +998,88 @@ if(p$clOptions$task=="munge") quit(save = "no")
 
 ```
 
+
+## Harmonise gene sets to gene map and MAGMA format
+```{r Harmonise gene sets to gene map and MAGMA format}
+if(p$clOptions$task=="genesets"){
+  
+  p$geneMap<-fread(file = p$filepath.geneMapping, na.strings =c(".",NA,"NA",""), encoding = "UTF-8",check.names = T, fill = T, blank.lines.skip = T, data.table = T,showProgress = F, nThread=5)
+  setkeyv(p$geneMap,cols = c("V6"))
+  rownames(p$geneMap)<-p$geneMap$V6
+  geneCodesByName<-p$geneMap$V1
+  names(geneCodesByName)<-p$geneMap$V6
+  
+  #gtex
+  cCode<-"gtex8_rnaseq_median"
+  cGeneSet<-read.table(p$genesets[cCode,]$filepath.raw, header=T, quote="\"",fill=T,na.string=c(".",NA,"NA",""), sep="\t", skip = 2)
+  setDT(cGeneSet,key = "Description")
+  cGeneSet[p$geneMap, on=c(Description='V6'), c("KEY"):=list(i.V1)]
+  ncolnames<-c("KEY",colnames(cGeneSet)[3:(length(colnames(cGeneSet))-1)]) #columns from after description
+  cGeneSet <- cGeneSet[,..ncolnames][!is.na(KEY),]
+  cGeneSet <- aggregate(x = cGeneSet, by = list(cGeneSet$KEY), FUN = head, 1) #DO I NEED THIS?
+  cGeneSet <- cGeneSet[,2:length(colnames(cGeneSet))]
+  fwrite(x = cGeneSet, file = file.path(p$folderpath.workingDirectory,paste0("geneset.",cCode,".magma")), append = F, quote = F, sep = "\t",na = "NA", col.names = T,nThread=5)
+  
+  #brainspan
+  cCode<-"brainspan_rnaseq_mean"
+  cGeneSet<-read.table(p$genesets[cCode,]$filepath.raw, header=F, quote="\"",fill=T,na.string=c(".",NA,"NA",""), sep=",")
+  cGenes<-read.table(file.path(p$folderpath.geneSet,"BRAINSPAN_RNA-Seq_Gencode_v10_summarized_to_genes_genes_matrix_csv","rows_metadata.csv"), header=T, quote="\"",fill=T,na.string=c(".",NA,"NA",""), sep=",")
+  cSets<-read.table(file.path(p$folderpath.geneSet,"BRAINSPAN_RNA-Seq_Gencode_v10_summarized_to_genes_genes_matrix_csv","columns_metadata.csv"), header=T, quote="\"",fill=T,na.string=c(".",NA,"NA",""), sep=",")
+  
+  cGeneSet<-cGeneSet[,2:ncol(cGeneSet)]
+  colnames(cGeneSet)<-cSets$structure_name
+  cGeneSet$gene_symbol<-cGenes$gene_symbol
+  
+  ncolnames<-c("gene_symbol",colnames(cGeneSet)[1:(ncol(cGeneSet)-1)])
+  cGeneSet<-cGeneSet[,ncolnames]
+  
+  setDT(cGeneSet,key = "gene_symbol") 
+  
+  cGeneSet[p$geneMap, on=c(gene_symbol='V6'), c("KEY"):=list(i.V1)]
+  ncolnames<-c("KEY",colnames(cGeneSet)[2:(length(colnames(cGeneSet))-1)]) #columns after rearrangement
+  cGeneSet <- cGeneSet[,..ncolnames][!is.na(KEY),]
+  cGeneSet <- aggregate(x = cGeneSet, by = list(cGeneSet$KEY), FUN = head, 1) #DO I NEED THIS?
+  cGeneSet <- cGeneSet[,2:ncol(cGeneSet)]
+  colnames(cGeneSet)<-gsub(pattern = " ", replacement = "_", x = colnames(cGeneSet))
+  fwrite(x = cGeneSet, file = file.path(p$folderpath.workingDirectory,paste0("geneset.",cCode,".magma")), append = F, quote = F, sep = "\t",na = "NA", col.names = T,nThread=5)
+  
+  #MSigDB
+  chosenSet<-c("msigdb.h.all.v7.5.1","msigdb.c2.cp.biocarta.v7.5.1","msigdb.c2.cp.kegg.v7.5.1", "msigdb.c3.mir.mirdb.v7.5.1","msigdb.c3.tft.gtrd.v7.5.1", "msigdb.c5.all.v7.5.1","msigdb.c7.all.v7.5.1","msigdb.c8.all.v7.5.1")
+  for(cCode in chosenSet){
+    #cCode<-"msigdb.c2.cp.biocarta.v7.5.1"
+    cGeneSet<-read.table(p$genesets[cCode,]$filepath.raw, header=F, quote="\"",fill=T,na.string=c(".",NA,"NA",""), sep="\t")
+    incols<-c(1,3:ncol(cGeneSet))
+    cGeneSet<-cGeneSet[,incols]
+    setDT(cGeneSet,key = "V1")
+    for(iCol in 2:ncol(cGeneSet)){
+      #iCol<-2
+      col<-colnames(cGeneSet)[iCol]
+      cGeneSet[, (col):=geneCodesByName[get(col)]]
+    }
+    rcount <- aggregate(V3 ~ V1,cGeneSet,length)
+    rcount <- rcount[rcount$V3>1,]
+    cGeneSet2 <- aggregate(x = cGeneSet, by = list(cGeneSet$V1), FUN = head, 1) #remove duplicate sets
+    cGeneSet2 <- cGeneSet2[,2:ncol(cGeneSet2)]
+    rownames(cGeneSet2)<-cGeneSet2$V1
+    
+    if(nrow(rcount)>0){
+      cGeneSet2[,(ncol(cGeneSet2)+1):(2*(ncol(cGeneSet2)+1))]<-NA #add more columns to make room for new data
+      
+      #collect genes from duplicate set rows
+      for(i in 1:nrow(rcount)){
+        #i<-2
+        cGeneSet2[rcount$V1[i],2:ncol(cGeneSet2)] <- padList(unique(unlist(cGeneSet[V1==rcount$V1[i],2:ncol(cGeneSet)])),NA,ncol(cGeneSet2))
+      }
+    }
+    
+    fwrite(x = cGeneSet2, file = file.path(p$folderpath.workingDirectory,paste0("geneset.",cCode,".magma")), append = F, quote = F, sep = "\t",na = "NA", col.names = F,nThread=5)
+  }
+  quit(save = "no")
+}
+
+```
+
+
 ## Generate noise variables - if needed
 ```{r GWAS sumstat generate noise}
 if(p$clOptions$task=="noise"){
@@ -977,31 +1108,6 @@ if(p$clOptions$task=="noise"){
 }
 ```
 
-
-## GWAS summary statistics imputation - if needed - NOT WORKING
-```{r GWAS sumstat imputation}
-if(p$clOptions$task=="impute"){
-#Using RAISS
-#https://gitlab.pasteur.fr/statistical-genetics/raiss
-#https://statistical-genetics.pages.pasteur.fr/raiss/
-
-
-#Using ImpG
-#https://bogdan.dgsom.ucla.edu/pages/impg/
-#https://github.com/huwenboshi/ImpG
-  
-#reticulate::import("raiss")
-#py$raiss$
-
-# system2(command = "awk",
-#         args = c("BEGIN{mkdir -p ../data/gwas_sumstats/imputed/$1;} for( chr=1; chr<24; chr++){raiss --chrom $chr --gwas '$1' --ref-folder '../data/reference.panel.1KG_Phase3.CLEANED.EUR.cM' --ld-folder '../data/reference.panel.1KG_Phase3.CLEANED.EUR.cM' --zscore-folder '../data/gwas_sumstats/munged/$1.chr' --output-folder '../data/gwas_sumstats/imputed/$1' --l2-regularization 0.01 --eigen-threshold 0.05 --R2-threshold 0.3;}
-# ",
-# "project.setup2.sumstatinfo.tsv"))
-  
-  quit(save = "no")
-}
-
-```
 
 
 # Multivariate LD
@@ -1123,8 +1229,8 @@ p$sumstats.sel$h2.se.liability_mvLDSC.hm3<-diag(p$mvLD$covstruct.mvLDSC.hm3$S.SE
   
 ```
 
-# Overview of rG between selected traits
-```{r overview pairwise rG, fig.width=9, fig.height=6, out.width="1600px", out.height="1000px", eval=FALSE, purl=FALSE}
+# Overview of rg between selected traits
+```{r overview pairwise rg, fig.width=9, fig.height=6, out.width="1600px", out.height="1000px", eval=FALSE, purl=FALSE}
 
 p$mvLD$covstruct.mvLDSC.1kg$S_Stand.forPlot<-p$mvLD$covstruct.mvLDSC.1kg$S_Stand[p$sumstats.sel$code,p$sumstats.sel$code]
 rownames(p$mvLD$covstruct.mvLDSC.1kg$S_Stand.forPlot)<-p$sumstats.sel$name.nice.and_code
@@ -1949,6 +2055,41 @@ for(iSelected in 1:nrow(p$CFA$models.selected)){
   
   ggsave(filename=file.path(p$folderpath.plots,cModel$code, paste0("ipc.png")), plot = last_plot(), width = 800, height = 400, units = "mm")
   
+  if(!all(is.na(cModel$parsedGsemResults[[1]][[1]]$covariances.SE.matrix))){
+    #p$printCorr(corr = as.numeric(cModel$parsedGsemResults[[1]][[1]]$covariancesSTDGenotype.matrix),SE = as.numeric(cModel$parsedGsemResults[[1]][[1]]$covariances.SE.matrix),filename = file.path(p$folderpath.plots,cModel$code, paste0("factorCorrelations.png")),is.corr = F,addrect = NULL)
+    
+    
+    png(filename = file.path(p$folderpath.plots,cModel$code, paste0("factorCorrelations.png")), width = 1200, height = 1000)
+    palette<-colorRampPalette(c(theme.color$contrastDark3,"#FFFFFF",theme.color$contrastLight3))
+    corrplot(
+      corr = cModel$parsedGsemResults[[1]][[1]]$covariancesSTDGenotype.matrix,
+      #uppCI.mat = corr.uppCI,
+      #lowCI.mat = corr.lowCI,
+      #plotCI = ifelse(is.null(SE),c("n"),"circle"),
+      order = "hclust",
+      hclust.method = "ward.D",
+      method = "square",
+      type="full",
+      addCoef.col = theme.color$contrastDark1,
+      addgrid.col = theme.color$contrastDark1,
+      is.corr = T,
+      outline = T,
+      col = palette(200),
+      rect.col = theme.color$contrastLight1,
+      rect.lwd = 6,
+      tl.cex = 1.7,
+      tl.col = theme.color$contrastDark2,
+      tl.srt = 75,
+      cl.cex = 2,
+      cl.ratio = 0.2,
+      cl.pos = "n",
+      number.cex = 1,
+      number.digits = 2
+      )
+    dev.off()
+    
+  }
+  
   #cModelResults$modelfit
   #nFactor<-1
   for(nFactor in 1:ncol(cModel$parsedGsemResults[[1]][[1]]$patternCoefficientsSTDGenotype.matrix)){
@@ -2657,6 +2798,12 @@ p$k.sel<-nrow(p$sumstats.sel)
 #View(p$sumstats.sel[,c("code","n_total","pmid","reference_doi","samplePrevalence","populationPrevalence","mungedpath")])
 #set order of datasets to sorted by code
 p$sumstats.sel[is.na(p$sumstats.sel$name.nice),c("name.nice")]<-p$sumstats.sel[is.na(p$sumstats.sel$name.nice),c("name")]
+p$sumstats.sel[,c("n_consensus")] <- as.numeric(
+                                        ifelse(is.na(p$sumstats.sel$n_total),
+                                               p$sumstats.sel$n_effective,
+                                               p$sumstats.sel$n_total)
+                                              )
+
 p$sumstats.sel<-p$sumstats.sel[order(p$sumstats.sel$name.nice),]
 
 write.table(p$sumstats.sel[,c("code", "name.nice","year", "n_case","n_control","n_total","n_effective","samplePrevalence","populationPrevalence", "reference_doi")], file = file.path(p$folderpath.workingDirectory,paste0(p$setup.code,".sumstatinfo.tsv")), quote = TRUE, sep = "\t", row.names = FALSE, col.names = TRUE)
@@ -2816,10 +2963,14 @@ rownames(p$mvLD2.set1$covstruct.mvLDSC.1kg$I)<-rownames(p$mvLD2.set1$covstruct.m
 p$sumstats.sel[p$sumstats.sel.set1.code,c("lambda_ldsc")]<-diag(p$mvLD2.set1$covstruct.mvLDSC.1kg$I[p$sumstats.sel.set1.code,p$sumstats.sel.set1.code])
 
 
+#compute scaling factor relative to sample size and overall trait heritability
+p$sumstats.sel[,c("power_scale_factor")]<-p$sumstats.sel$h2.liability_mvLDSC*p$sumstats.sel$n_consensus
+
+
 ```
 
-# Overview of rG between selected traits, including latent factors
-```{r overview pairwise rG 2, fig.width=9, fig.height=6, out.width="1600px", out.height="1000px", purl=FALSE}
+# Overview of rg between selected traits, including latent factors
+```{r overview pairwise rg 2, fig.width=9, fig.height=6, out.width="1600px", out.height="1000px", purl=FALSE}
 
 cMvLDset<-p$mvLD2.set1
 cMvLDset.names<-colnames(cMvLDset$covstruct.mvLDSC.1kg$S)
@@ -2850,6 +3001,30 @@ p$printCorr(
   filename = file.path(p$folderpath.plots,"rg.full.png"),
   is.corr = T,
   addrect = NULL
+  )
+
+library(heatmaply)
+#ggheatmap() #static version
+#heatmaply()
+heatmaply(
+    clipValues(cMvLDset$covstruct.mvLDSC.1kg$S_Stand.forPlot,-1,1),
+    cellnote = round(clipValues(cMvLDset$covstruct.mvLDSC.1kg$S_Stand.forPlot,-1,1),digits = 2),
+    cellnote_size = 9,
+    cellnote_textposition = "middle center",
+    show_dendrogram = c(T,F),
+    xlab = "Trait GWAS",
+    ylab = "Trait GWAS",
+    main = "r<sub>g</sub>",
+    scale_fill_gradient_fun = ggplot2::scale_fill_gradient2(
+        low = theme.color$contrastDark3, 
+        mid = "black",
+        high = theme.color$contrastLight3,
+        breaks = c(-1,0,1)
+      ),
+    file=file.path(p$folderpath.plots,paste0("rg.full2.png")),
+    width = 1200, height = 1200,
+    hclust_method = "ward.D2"
+    #scale = "row"
   )
 
 
@@ -3000,8 +3175,8 @@ for(iTrait in 1:nrow(chosenSet)){
   cat("\nRows filtered by LD-imputation quality:",cSumstats.n-nrow(cSumstats),"\n")
   cat("\nRows after filtering:",nrow(cSumstats),"\n")
  
-  # #export ALL
-  fwrite(x = cSumstats, file = file.path(p$folderpath.data.sumstats.export,paste0(p$lfGWAS$gwas.for.display.info$code,".gz")), append = F, quote = F, sep = "\t", nThread=5)
+  #export ALL
+  fwrite(x = na.omit(cSumstats[,c("SNP","CHR","A1","A2","BP","P","N")]), file = file.path(p$folderpath.data.sumstats.export,paste0(p$lfGWAS$gwas.for.display.info$code,".gz")), append = F, quote = F, sep = "\t", nThread=5)
 
   #export SNPLOC
   fwrite(x = na.omit(cSumstats[,c("SNP","CHR","BP")]), file = file.path(p$folderpath.data.sumstats.export,paste0(p$lfGWAS$gwas.for.display.info$code,".SNPLOC")), append = F, quote = F, sep = "\t", nThread=5)
@@ -3166,10 +3341,12 @@ length(p$results.gwa$unique[["GSEM.F6"]][[1]])
 
 
 ## Read gene associations per dataset, output top gene lists
+Added gene and gene level analysis results read
 
 ```{r read gene associations}
-cat("\n***READ GENE ASSOCIATIONS***")
-p$filepath.results.ga<-file.path(p$folderpath.workingDirectory,paste0("results.ga.",p$setup.code,".Rds"))
+cat("\n***READ GENE, GENE LEVEL ASSOCIATIONS***")
+p$filepath.results.ga<-file.path(p$folderpath.workingDirectory,paste0("results.ga.",p$setup.code,".Rds")) #gene analysis
+p$filepath.results.gs<-file.path(p$folderpath.workingDirectory,paste0("results.gs.",p$setup.code,".Rds")) #gene level analysis
 
 if (file.exists(p$filepath.results.ga)) {
   print("Using existing GA results from previous run.")
@@ -3182,6 +3359,9 @@ if (file.exists(p$filepath.results.ga)) {
   p$results.ga$geneAssociation<-c()
   
   p$geneMap<-fread(file = p$filepath.geneMapping, na.strings =c(".",NA,"NA",""), encoding = "UTF-8",check.names = T, fill = T, blank.lines.skip = T, data.table = T,showProgress = F, nThread=5)
+  
+  #TODO - Get map for transcript codes to gene codes!
+  #p$transcriptionTargetMap.mirdb<-fread(file = p$filepath.transcriptionTargetMap.mirdb, na.strings =c(".",NA,"NA",""), encoding = "UTF-8",check.names = T, fill = T, blank.lines.skip = T, data.table = T,showProgress = F, nThread=5)
   
   for(iTrait in 1:nrow(chosenSet)){
     #iTrait<-1
@@ -3201,6 +3381,38 @@ if (file.exists(p$filepath.results.ga)) {
   
   saveRDS(object = p$results.ga,file = p$filepath.results.ga)
 }
+
+
+if (file.exists(p$filepath.results.gs)) {
+  print("Using existing GS results from previous run.")
+  p$results.gs<-readRDS(file=p$filepath.results.gs)
+} else {
+
+  chosenSet<-p$sumstats.sel[p$sumstats.sel.set1.code,] #configure selected trait set here!
+  
+  p$results.gs<-c()
+  
+  for(cCode in chosenSet$code){
+    #cCode<-"ADHD05"
+    p$results.gs[[cCode]]<-c()
+    
+    #gene sets, standard, and or gene property sets
+    toprocess<-c("gtex8_rnaseq_median","brainspan_rnaseq_mean","msigdb.h.all.v7.5.1","msigdb.c2.cp.biocarta.v7.5.1","msigdb.c2.cp.kegg.v7.5.1", "msigdb.c3.mir.mirdb.v7.5.1","msigdb.c3.tft.gtrd.v7.5.1", "msigdb.c5.all.v7.5.1","msigdb.c7.all.v7.5.1","msigdb.c8.all.v7.5.1") #sets to process
+    for(igeneset in 1:length(toprocess)){
+      #igeneset<-1
+      cat("\nProcessing ",cCode, " and ",toprocess[igeneset])
+      cGeneSet.filepath <- file.path(p$folderpath.workingDirectory,paste0(p$setup.code, ".geneset.",toprocess[igeneset],".",cCode,".gsa.out"))
+      cGeneSet<-read.table(cGeneSet.filepath, header=T, quote="\"",fill=T,na.string=c(".",NA,"NA",""), comment.char = "#")
+      #cGeneSet$P.FDR<-p.adjust(p = cGeneSet$P,method = "fdr") #moved until later to calculate per subset rather than the full set (i.e. for msigdb c5)
+      p$results.gs[[cCode]][[toprocess[igeneset]]]<-cGeneSet
+    }
+  }
+ 
+  
+  
+  saveRDS(object = p$results.gs,file = p$filepath.results.gs)
+}
+
 
 
 p$results.ga$unique<-c()
@@ -3248,42 +3460,116 @@ length(p$results.ga$unique[["GSEM.F6"]][[1]])
 
 ```
 
-# Assess genetic association overlap
+## Process gene-set analysis results
+```{r Process gene-set analysis results}
+cat("\n***Process gene-set analysis results***")
 
-```{r assess genetic association overlap, fig.width=10, fig.height=6, out.width="1600px", out.height="1000px", eval=FALSE, purl=FALSE}
+chosenSet<-p$sumstats.sel[p$sumstats.sel.set1.code,] #configure selected trait set here!
+toprocess<-c("gtex8_rnaseq_median","brainspan_rnaseq_mean","msigdb.h.all.v7.5.1","msigdb.c2.cp.biocarta.v7.5.1","msigdb.c2.cp.kegg.v7.5.1","msigdb.c3.mir.mirdb.v7.5.1","msigdb.c3.tft.gtrd.v7.5.1","msigdb.c5.gobp.v7.5.1","msigdb.c5.gocc.v7.5.1","msigdb.c5.gomf.v7.5.1","msigdb.c5.hpo.v7.5.1","msigdb.c5.other.v7.5.1","msigdb.c7.all.v7.5.1","msigdb.c8.all.v7.5.1") #sets to process
+#toprocess<-c("gtex8_rnaseq_median","brainspan_rnaseq_mean","msigdb.h.all.v7.5.1","msigdb.c3.all.v7.5.1","msigdb.c5.all.v7.5.1","msigdb.c7.all.v7.5.1","msigdb.c8.all.v7.5.1") #sets to process
 
+p$mGeneLevelBeta <-c()
+p$mGeneLevelSE <-c()
+p$mGeneLevelBetaSTD <-c()
+p$mGeneLevelP <-c()
+p$mGeneLevelP.FDR <-c()
+p$geneSetVariables <-c()
 
-
+for(igeneset in 1:length(toprocess)){
+  #igeneset<-3
+  cCodes <- c()
+  cNames <- c()
+  
+  cGeneSetDataCode <- toprocess[igeneset]
+  if(toprocess[igeneset] %in% c("msigdb.c5.gobp.v7.5.1","msigdb.c5.gocc.v7.5.1","msigdb.c5.gomf.v7.5.1","msigdb.c5.hpo.v7.5.1","msigdb.c5.other.v7.5.1")) cGeneSetDataCode <- "msigdb.c5.all.v7.5.1" #these share the same dataset
+  #if(toprocess[igeneset] %in% c("msigdb.c3.mir.v7.5.1","msigdb.c3.tft.v7.5.1")) cGeneSetDataCode <- "msigdb.c3.all.v7.5.1" #these share the same dataset
+  
+  
+  #assess the full set of set variables across GWAS datasets
+  for(cCode in chosenSet$code){
+    cCodes <- c(cCodes, p$results.gs[[cCode]][[cGeneSetDataCode]]$VARIABLE)
+    cNames <- c(cNames, p$results.gs[[cCode]][[cGeneSetDataCode]]$FULL_NAME)
+  }
+  
+  cGeneSetVariables <- data.frame(code=cCodes, name=cNames)
+  cGeneSetVariables <- unique(cGeneSetVariables)
+  #rownames(cGeneSetVariables)<-cGeneSetVariables$code #fails at duplicates
+  
+  #special treatment of some sets, subsets etc
+  if(toprocess[igeneset]=="brainspan_rnaseq_mean"){
+    cGeneSetVariables <- cGeneSetVariables[cGeneSetVariables$code %in% c("amygdaloid_complex","anterior_(rostral)_cingulate...1","caudal_ganglionic_eminence","	
+cerebellar_cortex","cerebellum","dorsal_thalamus","dorsolateral_prefrontal_cort...1","hippocampus_(hippocampal_for...1","inferolateral_temporal_corte...1","lateral_ganglionic_eminence","medial_ganglionic_eminence","occipital_neocortex","orbital_frontal_cortex","parietal_neocortex","posterior_(caudal)_superior_...1","posteroventral_(inferior)_pa...1","primary_auditory_cortex_(cor...1","primary_motor_cortex_(area_M...1","	
+primary_motor-sensory_cortex...1","primary_somatosensory_cortex...1","primary_visual_cortex_(stria...1","striatum","temporal_neocortex","upper_(rostral)_rhombic_lip","ventrolateral_prefrontal_cor...1"),]
+  } else if(toprocess[igeneset] == "msigdb.c5.gobp.v7.5.1"){
+    cGeneSetVariables <- cGeneSetVariables[cGeneSetVariables$code %in% grep("^gobp\\_", ignore.case = T, cGeneSetVariables$code, value = T),]
+  } else if(toprocess[igeneset] == "msigdb.c5.gocc.v7.5.1"){
+    cGeneSetVariables <- cGeneSetVariables[cGeneSetVariables$code %in% grep("^gocc\\_", ignore.case = T, cGeneSetVariables$code, value = T),]
+  } else if(toprocess[igeneset] == "msigdb.c5.gomf.v7.5.1"){
+    cGeneSetVariables <- cGeneSetVariables[cGeneSetVariables$code %in% grep("^gomf\\_", ignore.case = T, cGeneSetVariables$code, value = T),]
+  } else if(toprocess[igeneset] == "msigdb.c5.hpo.v7.5.1"){
+    cGeneSetVariables <- cGeneSetVariables[cGeneSetVariables$code %in% grep("^hp\\_", ignore.case = T, cGeneSetVariables$code, value = T),]
+  } else if(toprocess[igeneset] == "msigdb.c5.other.v7.5.1"){
+    cGeneSetVariables <- cGeneSetVariables[cGeneSetVariables$code %in% grep("^[^gobp\\_|gocc\\_|gomf\\_|hpo\\_]", ignore.case = T, cGeneSetVariables$code, value = T),]
+  }
+    
+  
+  p$mGeneLevelBeta[toprocess[igeneset]] <- list(matrix(NA,ncol = nrow(chosenSet), nrow = nrow(cGeneSetVariables)))
+  colnames(p$mGeneLevelBeta[toprocess[igeneset]][[1]]) <- chosenSet$code
+  rownames(p$mGeneLevelBeta[toprocess[igeneset]][[1]]) <- cGeneSetVariables$name
+  p$mGeneLevelBetaSTD[toprocess[igeneset]] <- p$mGeneLevelBeta[toprocess[igeneset]]
+  p$mGeneLevelSE[toprocess[igeneset]] <- p$mGeneLevelBeta[toprocess[igeneset]]
+  p$mGeneLevelP[toprocess[igeneset]] <- p$mGeneLevelBeta[toprocess[igeneset]]
+  p$mGeneLevelP.FDR[toprocess[igeneset]] <- p$mGeneLevelBeta[toprocess[igeneset]]
+  p$geneSetVariables[toprocess[igeneset]] <-list(cGeneSetVariables)
+  
+  for(cCode in chosenSet$code){
+    #cCode<-"ALCD03"
+    cGeneSetResult <- p$results.gs[[cCode]][[cGeneSetDataCode]]
+    rownames(cGeneSetResult)<-cGeneSetResult$FULL_NAME #changed to full name
+    
+    p$mGeneLevelP[toprocess[igeneset]][[1]][,cCode] <- cGeneSetResult[cGeneSetVariables$name,]$P
+    p$mGeneLevelP.FDR[toprocess[igeneset]][[1]][,cCode] <- p.adjust(p =  cGeneSetResult[cGeneSetVariables$name,]$P, method = "fdr") #FDR adjustment
+    p$mGeneLevelBeta[toprocess[igeneset]][[1]][,cCode] <- cGeneSetResult[cGeneSetVariables$name,]$BETA
+    p$mGeneLevelBetaSTD[toprocess[igeneset]][[1]][,cCode] <- cGeneSetResult[cGeneSetVariables$name,]$BETA_STD
+    p$mGeneLevelSE[toprocess[igeneset]][[1]][,cCode] <- cGeneSetResult[cGeneSetVariables$name,]$SE
+    # #effects are scaled to trait dataset power (heritability x sample size)
+    # p$mGeneLevelBeta[toprocess[igeneset]][[1]][,cCode] <- cGeneSetResult[cGeneSetVariables$code,]$BETA/p$sumstats.sel[cCode,]$power_scale_factor
+    # p$mGeneLevelBetaSTD[toprocess[igeneset]][[1]][,cCode] <- cGeneSetResult[cGeneSetVariables$code,]$BETA_STD/p$sumstats.sel[cCode,]$power_scale_factor
+   
+  }
+} 
 
 
 ```
 
+# Plots, tables, and diagrams
 
-# Improved annotation of all traits, including latent factor traits
+## Improved annotation of all traits, including latent factor traits
 
 ```{r improved annotation, fig.width=10, fig.height=6, out.width="1600px", out.height="1000px", eval=FALSE, purl=FALSE}
 #View(p$sumstats.sel)
 
-p$sumstats.sel.table<-p$sumstats.sel[,c("name.nice","code","n_effective","h2.liability_mvLDSC","h2.se.liability_mvLDSC","lambda_ldsc","lambda1000")] #full trait list
+p$sumstats.sel.table<-p$sumstats.sel[p$sumstats.sel.set1.code,c("name.nice","code","reference.nice","year","n_consensus","h2.liability_mvLDSC","h2.se.liability_mvLDSC","lambda_ldsc")] #full trait list
 #p$sumstats.sel.table<-p$sumstats.sel[p$sumstats.sel.l.code,c("name.nice","code","n_effective","h2.liability_mvLDSC","h2.se.liability_mvLDSC","lambda_ldsc")]
 
-p$sumstats.sel.table$h2.liability_mvLDSC.table<-paste0(round( p$sumstats.sel.table$h2.liability_mvLDSC,digits = 3)," (",round(p$sumstats.sel.table$h2.se.liability_mvLDSC,digits = 4),")")
+p$sumstats.sel.table$h2.liability_mvLDSC.table<-paste0(round( p$sumstats.sel.table$h2.liability_mvLDSC,digits = 3)," (",round(p$sumstats.sel.table$h2.se.liability_mvLDSC,digits = 3),")")
 
-p$sumstats.sel.table<-p$sumstats.sel.table[,c("name.nice","code","n_effective","h2.liability_mvLDSC.table","lambda_ldsc")] #"lambda1000"
-p$sumstats.sel.table$n_effective<-as.numeric(p$sumstats.sel.table$n_effective)
+p$sumstats.sel.table<-p$sumstats.sel.table[,c("name.nice","code","year","reference.nice","n_consensus","h2.liability_mvLDSC.table","lambda_ldsc")] #"lambda1000"
 #View(p$sumstats.sel.table)
 #p$sumstats.sel.table
 
 p$plots.factors.sel.table<-p$sumstats.sel.table %>% 
   gt() %>% 
-  fmt_number(columns = c("n_effective"), decimals = 0) %>%
-  fmt_number(columns = c("lambda_ldsc"), decimals = 3) %>%
+  fmt_number(columns = c("n_consensus"), decimals = 0) %>%
+  fmt_number(columns = c("lambda_ldsc"), decimals = 2) %>%
   tab_header(
-    title = "Latent factor GWAS summary statistics datasets"
+    title = "Selected GWAS summary statistics datasets, including latent factors"
   ) %>% cols_label(
     name.nice  = "Trait",
     code = "Code",
-    n_effective = "Effective N",
+    reference.nice = "Study",
+    year = "Year",
+    n_consensus = "N",
     h2.liability_mvLDSC.table = html("h<sup>2</sup><sub>mvLDSC</sub> (S.E.)"),
     lambda_ldsc = "LDSC intercept"
     #lambda1000 = "lambda1000"
@@ -3303,6 +3589,325 @@ gtsave(data = p$plots.factors.sel.table, filename = paste0(p$folderpath.plots,"/
 
 
 ```
+
+## Gene association analyses, multivariate
+```{r Plots gene association analyses - multivariate, fig.width=10, fig.height=6, out.width="1600px", out.height="1000px", eval=FALSE, purl=FALSE}
+library(UpSetR)
+#https://upset.app/
+#Don't forget to cite!
+chosenSet<-p$sumstats.sel[p$sumstats.sel.set1.code,] #configure selected trait set here!
+
+codesAllSets <- list()
+
+for(iTrait in 1:nrow(chosenSet)){
+  #iTrait<-3
+  cCode <- chosenSet$code[iTrait]
+  cAssociation <- p$results.ga$geneAssociation[cCode][[1]][[1]]
+  cAssociation <- cAssociation[cAssociation$P.FDR<0.05,]
+  codesAllSets[[cCode]] <- c(cAssociation$CODE)
+}
+
+#png(filename = file.path(p$folderpath.plots,paste0("ga.png")), width = 800, height = 600, units = "px")
+pdf(file = file.path(p$folderpath.plots,paste0("ga.pdf")))
+upset(
+  fromList(codesAllSets),
+  nsets = 12,
+  nintersects = 50,
+  order.by = "freq",
+  matrix.color = theme.color$contrastDark1,
+  main.bar.color = theme.color$contrastLight3,
+  sets.bar.color = theme.color$contrastLight3,
+  text.scale = c(1, 0.7, 1, 1, 1, 0.6) #c(intersection size title, intersection size tick labels, set size title, set size tick labels, set names, numbers above bars)
+  )
+#upset(fromList(codesAllSets),order.by = "freq", nintersects=20)
+#upset(fromList(codesAllSets), group.by = "sets", order.by = "freq")
+dev.off()
+
+```
+
+## Gene level analyses, multivariate
+
+```{r Plots gene level analyses - multivariate, fig.width=10, fig.height=6, out.width="1600px", out.height="1000px", eval=FALSE, purl=FALSE}
+#install.packages("heatmaply")
+library(heatmaply)
+
+toprocess<-c("gtex8_rnaseq_median","brainspan_rnaseq_mean","msigdb.h.all.v7.5.1") #sets to process
+
+
+for(igeneset in 1:length(toprocess)){
+  #igeneset<-2
+  cGeneSetVariables <-  p$geneSetVariables[[toprocess[igeneset]]]
+  if(nrow(cGeneSetVariables)>100) next #safety not to run large sets
+  cGeneLevelBeta <- p$mGeneLevelBeta[toprocess[igeneset]][[1]]
+  cGeneLevelBetaSTD <- p$mGeneLevelBetaSTD[toprocess[igeneset]][[1]]
+  cGeneLevelSE <- p$mGeneLevelSE[toprocess[igeneset]][[1]]
+  cGeneLevelP <- p$mGeneLevelP[toprocess[igeneset]][[1]]
+  cGeneLevelP.FDR <- p$mGeneLevelP.FDR[toprocess[igeneset]][[1]]
+  
+  rownames(cGeneLevelBeta) <- cGeneSetVariables$name
+  rownames(cGeneLevelBetaSTD) <- cGeneSetVariables$name
+  
+  cGeneLevelNlog10P<-(-log10(cGeneLevelP.FDR))
+  cGeneLevelNlog10P[is.na(cGeneLevelNlog10P)]<-0 #replace na with 0
+  
+  heatmaply(
+    cGeneLevelNlog10P,
+    #cGeneLevelBetaSTD,
+            xlab = "Traits",
+            ylab = "Feature",
+            main = paste("-log10(p), p-value of t(set/property regression coefficient), ",toprocess[igeneset]),
+             #main = paste("Gene level effect sizes (raw beta), ",toprocess[igeneset]),
+            #main = paste("Gene level effect sizes (semi-standardised), ",toprocess[igeneset]),
+            scale_fill_gradient_fun = ggplot2::scale_fill_gradient2(
+                low = theme.color$contrastDark3, 
+                mid = "black",
+                high = theme.color$contrastLight3
+              ),
+            file=file.path(p$folderpath.plots,paste0("genelevel.heatcluster.", toprocess[igeneset],".png")),
+            width = 1200, height = 1600,
+            hclust_method = "ward.D2"
+            #scale = "row"
+            )
+  
+}
+
+
+
+```
+
+## Gene level analyses, single datasets
+
+```{r Plots - gene level analyses - single datasets, fig.width=10, fig.height=6, out.width="1600px", out.height="1000px", eval=FALSE, purl=FALSE}
+#p$sumstats.sel.set1.code
+chosenSet<-p$sumstats.sel[c("EDUC03","SCHI04","NEUR02","RISK03","GSEM.F1","RISK02","GSEM.F5","BIPO02","GSEM.F3","GSEM.F2","INSO02","ANOR02"),] #configure selected trait set here!
+toprocess<-c("gtex8_rnaseq_median","brainspan_rnaseq_mean","msigdb.h.all.v7.5.1","msigdb.c2.cp.biocarta.v7.5.1","msigdb.c2.cp.kegg.v7.5.1","msigdb.c3.mir.mirdb.v7.5.1","msigdb.c3.tft.gtrd.v7.5.1","msigdb.c5.gobp.v7.5.1","msigdb.c5.gocc.v7.5.1","msigdb.c5.gomf.v7.5.1","msigdb.c5.hpo.v7.5.1","msigdb.c5.other.v7.5.1","msigdb.c7.all.v7.5.1","msigdb.c8.all.v7.5.1") #sets to process
+
+for(igeneset in 1:length(toprocess)){
+  #igeneset<-13
+  cGeneSetVariables <-  p$geneSetVariables[[toprocess[igeneset]]]
+  cGeneLevelBeta <- p$mGeneLevelBeta[toprocess[igeneset]][[1]]
+  cGeneLevelBetaSTD <- p$mGeneLevelBetaSTD[toprocess[igeneset]][[1]]
+  cGeneLevelSE <- p$mGeneLevelSE[toprocess[igeneset]][[1]]
+  cGeneLevelP <- p$mGeneLevelP[toprocess[igeneset]][[1]]
+  cGeneLevelP.FDR <- p$mGeneLevelP.FDR[toprocess[igeneset]][[1]]
+  
+  cGeneLevelNlog10P<-(-log10(cGeneLevelP.FDR))
+  
+  cGeneLevelZ<-cGeneLevelBeta/cGeneLevelSE
+  
+  for(iTrait in 1:nrow(chosenSet)){
+    #iTrait<-1
+    cTraitVal.df <- data.frame(val=cGeneLevelZ[,chosenSet$code[iTrait]],feature=cGeneSetVariables$name, p=cGeneLevelP.FDR[,chosenSet$code[iTrait]])
+    #cTraitVal.df <- data.frame(val=cGeneLevelBetaSTD[,chosenSet$code[iTrait]],feature=cGeneSetVariables$name, p=cGeneLevelP[,chosenSet$code[iTrait]])
+    #cTraitVal.df <- cTraitVal.df[cTraitVal.df$p<0.1,]
+    cTraitVal.df <- head(cTraitVal.df[order(cTraitVal.df$val,decreasing = T),],60)
+    cTraitVal.df$sig<-ifelse(cTraitVal.df$p<0.05,"s","n")
+    if(nrow(cTraitVal.df)>1){
+      cplot<-ggplot(cTraitVal.df, aes(x = reorder(feature,val), y = val, fill=sig)) + 
+      scale_fill_manual(name = "stat. significance",
+                     values = c("s" = theme.color$contrastLight3,
+                                "n" = theme.color$contrastDark1),
+                     labels = c("*", "")) +
+      # scale_fill_gradient2(name = "p-value",
+      #                      mid = theme.color$contrastLight3,
+      #                      low = theme.color$contrastDark3,
+      #                      midpoint=0,
+      #                      limits=c(0,1)) +
+      geom_bar(position="dodge", stat="identity") +
+      theme_bw(base_size=22) +
+      theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) + 
+      coord_flip()
+     # theme_bw(base_size=22) #use a black-and white theme with set font size
+      #dir.create(path = file.path(p$folderpath.plots,chosenSet$code[iTrait]))
+      ggsave(filename=file.path(p$folderpath.plots, paste0("genelevel.",toprocess[igeneset],".",chosenSet$code[iTrait],".png")), plot = cplot, width = 700, height = 500, units = "mm")
+    }
+  }
+}
+
+
+
+```
+
+
+## Gene level analyses, selected differences
+
+```{r Plots - gene level analyses - selected differences, fig.width=10, fig.height=6, out.width="1600px", out.height="1000px", eval=FALSE, purl=FALSE}
+library(cowplot)
+
+chosenSet <- p$sumstats.sel[c("GSEM.F1"),] #configure selected trait set here!
+#comparisonSet <- p$sumstats.sel["EDUC03","NEUR02","INSO02","RISK02","RISK03","SUBJ01","TIRE01","ANXI03","DEPR05",GSEM.F1","GSEM.F2","GSEM.F3","GSEM.F5"] #comparison traits, apart from general mean
+#comparisonSet <- p$sumstats.sel[p$sumstats.sel.set1.code,] #comparison traits, apart from general mean
+comparisonSet <- p$sumstats.sel[c("NEUR02"),] #comparison traits, apart from general mean
+toprocess <- c("gtex8_rnaseq_median","brainspan_rnaseq_mean","msigdb.h.all.v7.5.1","msigdb.c2.cp.biocarta.v7.5.1","msigdb.c2.cp.kegg.v7.5.1","msigdb.c3.mir.mirdb.v7.5.1","msigdb.c3.tft.gtrd.v7.5.1","msigdb.c5.gobp.v7.5.1","msigdb.c5.gocc.v7.5.1","msigdb.c5.gomf.v7.5.1","msigdb.c5.hpo.v7.5.1","msigdb.c5.other.v7.5.1","msigdb.c7.all.v7.5.1","msigdb.c8.all.v7.5.1") #sets to process
+
+
+df.traits<-list()
+
+
+for(igeneset in 1:length(toprocess)){
+  #igeneset<-2
+  cGeneSetVariables <-  p$geneSetVariables[[toprocess[igeneset]]]
+  cGeneLevelBeta <- p$mGeneLevelBeta[toprocess[igeneset]][[1]]
+  cGeneLevelBetaSTD <- p$mGeneLevelBetaSTD[toprocess[igeneset]][[1]]
+  cGeneLevelSE <- p$mGeneLevelSE[toprocess[igeneset]][[1]]
+  cGeneLevelP <- p$mGeneLevelP[toprocess[igeneset]][[1]]
+  cGeneLevelP.FDR <- p$mGeneLevelP.FDR[toprocess[igeneset]][[1]]
+  
+  cGeneLevelNlog10P<-(-log10(cGeneLevelP.FDR))
+  
+  cGeneLevelZ<-cGeneLevelBeta/cGeneLevelSE
+  
+  cGeneLevelBetaSTD.scaled<-scale(cGeneLevelBetaSTD)
+  #cGeneLevelBetaSTD.scaled<-ifelse(cGeneLevelP<0.05,cGeneLevelBetaSTD.scaled,NA_real_)
+  cGeneLevelBetaSTD.scaled.rmean<-rowMeans(cGeneLevelBetaSTD.scaled,na.rm = T)
+  cGeneLevelBetaSTD.rmean<-rowMeans(cGeneLevelBetaSTD,na.rm = T)
+  
+  for(iTrait in 1:nrow(chosenSet)){
+    #iTrait<-1
+    if(length(glplotsgrid)<1 | length(glplotsgrid[iTrait]) <1) glplotsgrid[iTrait]<-list()
+    
+    dir.create(path = file.path(p$folderpath.plots,chosenSet$code[iTrait]))
+    
+    #run comparison traits per main trait
+    for(iComparison in 1:nrow(comparisonSet)){
+      #iComparison<-1
+      
+      cTraitVal.df <- data.frame(val=cGeneLevelZ[,chosenSet$code[iTrait]]-cGeneLevelZ[,comparisonSet$code[iComparison]],feature=cGeneSetVariables$name, p=cGeneLevelP.FDR[,chosenSet$code[iTrait]])
+      #cTraitVal.df <- cTraitVal.df[cTraitVal.df$p<0.1,]
+      cTraitVal.df <- head(cTraitVal.df[order(cTraitVal.df$val,decreasing = T),],60)
+      cTraitVal.df$sig<-ifelse(cTraitVal.df$p<0.05,"s","n")
+      if(nrow(cTraitVal.df)>1 & chosenSet$code[iTrait]!=comparisonSet$code[iComparison]){
+        cplot<-ggplot(cTraitVal.df, aes(x = reorder(feature,val), y = val, fill=sig)) + 
+        scale_fill_manual(name = "stat. significance",
+                       values = c("s" = theme.color$contrastLight3,
+                                  "n" = theme.color$contrastDark1),
+                       labels = c("*", "")) +
+        # scale_fill_gradient2(name = "p-value",
+        #                      mid = theme.color$contrastLight3,
+        #                      low = theme.color$contrastDark3,
+        #                      midpoint=0,
+        #                      limits=c(0,1)) +
+        geom_bar(position="dodge", stat="identity") +
+        theme_bw(base_size=22) +
+        theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+        coord_flip()
+       # theme_bw(base_size=22) #use a black-and white theme with set font size
+        ggsave(filename=file.path(p$folderpath.plots,chosenSet$code[iTrait], paste0("genelevel.diff.",toprocess[igeneset],".",chosenSet$code[iTrait],"-",comparisonSet$code[iComparison],".png")), plot = cplot, width = 700, height = 500, units = "mm")
+      }
+      
+      
+      #multi-plot, main trait
+      cTraitVal.df1 <- data.frame(
+        trait=chosenSet$code[iTrait],
+        var=cGeneSetVariables$name,
+        val0=cGeneLevelBeta[,chosenSet$code[iTrait]],
+        se0=cGeneLevelSE[,chosenSet$code[iTrait]],
+        #high=cGeneLevelBeta[,chosenSet$code[iTrait]]+qnorm(0.05,lower.tail = F)*cGeneLevelSE[,chosenSet$code[iTrait]],
+        #low=cGeneLevelBeta[,chosenSet$code[iTrait]]-qnorm(0.05,lower.tail = F)*cGeneLevelSE[,chosenSet$code[iTrait]],
+        p=abs(cGeneLevelP.FDR[,chosenSet$code[iTrait]])
+        )
+      cTraitVal.df1$zCorrected <- qnorm(cTraitVal.df1$p/2,lower.tail = F)
+      cTraitVal.df1$val <- cTraitVal.df1$val0
+      cTraitVal.df1$se <- abs(cTraitVal.df1$val/cTraitVal.df1$zCorrected)
+      
+      #pair-plot, comparison trait
+      cTraitVal.df2 <- data.frame(
+        trait=comparisonSet$code[iComparison],
+        var=cGeneSetVariables$name,
+        val0=cGeneLevelBeta[,comparisonSet$code[iComparison]],
+        se0=cGeneLevelSE[,comparisonSet$code[iComparison]],
+        #high=cGeneLevelBeta[,comparisonSet$code[iComparison]]+qnorm(0.05,lower.tail = F)*cGeneLevelSE[,comparisonSet$code[iComparison]],
+        #low=cGeneLevelBeta[,comparisonSet$code[iComparison]]-qnorm(0.05,lower.tail = F)*cGeneLevelSE[,comparisonSet$code[iComparison]],
+        p=abs(cGeneLevelP.FDR[,comparisonSet$code[iComparison]])
+        )
+      cTraitVal.df2$zCorrected <- qnorm(cTraitVal.df2$p/2,lower.tail = F)
+      cTraitVal.df2$val <- cTraitVal.df2$val0
+      cTraitVal.df2$se <- abs(cTraitVal.df2$val/cTraitVal.df2$zCorrected)
+      
+      cTraitVal.df1$p2<-cTraitVal.df2$p
+      cTraitVal.df2$p2<-cTraitVal.df1$p
+      cTraitVal.df1 <- cTraitVal.df1[(cTraitVal.df1$p<0.05|cTraitVal.df1$p2<0.05) & !is.nan(cTraitVal.df1$se) & cTraitVal.df1$val>0,]
+      cTraitVal.df2 <- cTraitVal.df2[cTraitVal.df2$var %in% cTraitVal.df1$var & cTraitVal.df2$val>0,]
+      
+      df <- rbind(cTraitVal.df1,cTraitVal.df2)
+      
+      cTraitVal.df1$z <- cTraitVal.df1$val/cTraitVal.df1$se
+      dfOrder <- head(na.omit(cTraitVal.df1[order(-cTraitVal.df1$z,na.last = T),]),20)
+      
+      varOrder<-rev(unique(dfOrder$var))
+      
+      #df <- df[df$p<0.05,]
+      df <- na.omit(df)
+      df <- df[df$var %in% varOrder,]
+      
+      
+      df$trait <- factor(df$trait)
+      df$var <- factor(df$var,levels = varOrder)
+      df$val <- as.numeric(df$val)
+      df$high <- df$val + qnorm(0.05,lower.tail = F)*df$se
+      df$low <- df$val - qnorm(0.05,lower.tail = F)*df$se
+      
+      if(nrow(df)>1) {
+        df$set <- toprocess[igeneset]
+        df.traits[iTrait] <- list(rbindlist(l = list(df.traits[iTrait][[1]],df),use.names = T,fill = T,idcol = F))
+      }
+      # if(nrow(df)>1){
+      #    cplot  <- ggplot(df, aes(x=var, y=val, ymin=low, ymax=high,col=trait,fill=trait)) +
+      #       #geom_errorbar(aes(xmin = low, xmax = high)) +
+      #       geom_linerange(size=2,position=position_dodge(width = 0.5)) +
+      #       geom_hline(yintercept=0, lty=2) +
+      #       geom_point(size=3, shape=21, colour="white", stroke = 0.5,position=position_dodge(width = 0.5)) +
+      #       scale_fill_manual(values=c(theme.color$contrastDark1,theme.color$contrastDark1)) +
+      #       scale_color_manual(values=c(theme.color$contrastLight3,theme.color$contrastDark3)) +
+      #       scale_x_discrete(name="Set") +
+      #       scale_y_continuous(name="Regression beta", limits = c(min(df$low)-0.1*max(abs(df$val)), max(df$high)+0.1*max(abs(df$val)))) +
+      #       coord_flip() +
+      #       theme_bw() +
+      #       ggtitle(label = paste0("Gene-level MAGMA regression betas and standard errors: ",toprocess[igeneset]))
+      #    
+      #    glplotsgrid[iTrait] <- append(glplotsgrid[iTrait],list(cplot))
+      #     
+      #     #ggsave(filename=file.path(p$folderpath.plots,chosenSet$code[iTrait], paste0("genelevel.pair.",toprocess[igeneset],".",chosenSet$code[iTrait],"-",comparisonSet$code[iComparison],".png")), plot = cplot, width = 700, height = 500, units = "mm")
+      # }
+  
+    }
+  }
+}
+
+#plot all subplots in grid for selected trait
+#https://stackoverflow.com/questions/58657802/forest-plot-with-subgroups-in-ggplot2
+for(iTrait in 1:nrow(chosenSet)){
+  #iTrait<-1
+  df <- df.traits[iTrait][[1]]
+  df <- df[which(df$set!="gtex8_rnaseq_median"),]
+  df$set <- as.factor(df$set)
+  
+  #df.l <- pivot_longer(data = df,cols = set)
+  
+  
+  if(nrow(df)>0){
+       cplot  <- ggplot(df, aes(x=var, y=val, ymin=low, ymax=high,col=trait,fill=trait)) +
+          geom_linerange(size=1,position=position_dodge(width = 0.4)) +
+          geom_hline(yintercept=0, lty=2) +
+          geom_point(size=1.5, shape=21, colour="white", stroke = 0.5,position=position_dodge(width = 0.5)) +
+          scale_fill_manual(values=c(theme.color$contrastLight3,theme.color$contrastDark3)) +
+          scale_color_manual(values=c(theme.color$contrastLight3,theme.color$contrastDark3)) +
+          scale_x_discrete(name="Set") +
+          scale_y_continuous(name="Regression beta") +
+          #scale_y_continuous(name="Regression beta", limits = c(min(df$low)-0.1*max(abs(df$val)), max(df$high)+0.1*max(abs(df$val)))) +
+          coord_flip() +
+          facet_wrap(~ set, ncol = 1, shrink = T, drop = T, scales = "free") +
+          theme_bw() +
+          ggtitle(label = paste0("Gene-level MAGMA regression betas and standard errors"))
+
+        ggsave(filename=file.path(p$folderpath.plots,chosenSet$code[iTrait], paste0("genelevel.pair.",chosenSet$code[iTrait],".png")), plot = cplot, width = 600, height = 800, units = "mm")
+  }
+  
+}
+
+
+```
+
 
 
 

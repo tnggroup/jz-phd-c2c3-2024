@@ -167,24 +167,63 @@ for fac in 1 2 3 4 5 6; do sbatch --time 2-00:00:00 --partition brc,shared --job
 
 sbatch --time 2-00:00:00 --partition brc,shared --job-name="mvLD2" --ntasks 1 --cpus-per-task 4 --mem 64G --wrap="Rscript setup7.R -t mvLD2 -l cluster" --output "setup7.mvLD2.$(date +%Y%m%d).out.txt"
 
+#MAGMA workshop:
+#https://ibg.colorado.edu/cdrom2021/Day10-posthuma/magma_session/instructions.txt
+
 while read code; do
-  magma --annotate window=4,1 --snp-loc ../data/gwas_sumstats/export/"$code".SNPLOC --gene-loc ../data/gene_mapping/NCBI37.3.gene.loc --out setup7.annotate."$code";
+  magma --annotate window=35,10 --snp-loc ../data/gwas_sumstats/export/"$code".SNPLOC --gene-loc ../data/gene_mapping/NCBI37.3.gene.loc --out setup7.annotate."$code";
   magma --bfile ../data/reference_panel/1KG_eur.plink/g1000_eur --gene-annot setup7.annotate."$code".genes.annot --pval ../data/gwas_sumstats/export/"$code".PVAL ncol=N --out setup7.geneanalysis."$code";
 done < sumstats.sel.set1.code.txt
 
 for code in SCHI04 SUBJ01 TIRE01; do
-  magma --annotate window=4,1 --snp-loc ../data/gwas_sumstats/export/"$code".SNPLOC --gene-loc ../data/gene_mapping/NCBI37.3.gene.loc --out setup7.annotate."$code";
+  magma --annotate window=35,10 --snp-loc ../data/gwas_sumstats/export/"$code".SNPLOC --gene-loc ../data/gene_mapping/NCBI37.3.gene.loc --out setup7.annotate."$code";
   magma --bfile ../data/reference_panel/1KG_eur.plink/g1000_eur --gene-annot setup7.annotate."$code".genes.annot --pval ../data/gwas_sumstats/export/"$code".PVAL ncol=N --out setup7.geneanalysis."$code";
 done
 
 for code in GSEM.F4 GSEM.F5 GSEM.F6; do
-  magma --annotate window=4,1 --snp-loc ../data/gwas_sumstats/export/"$code".SNPLOC --gene-loc ../data/gene_mapping/NCBI37.3.gene.loc --out setup7.annotate."$code";
+  magma --annotate window=35,10 --snp-loc ../data/gwas_sumstats/export/"$code".SNPLOC --gene-loc ../data/gene_mapping/NCBI37.3.gene.loc --out setup7.annotate."$code";
   magma --bfile ../data/reference_panel/1KG_eur.plink/g1000_eur --gene-annot setup7.annotate."$code".genes.annot --pval ../data/gwas_sumstats/export/"$code".PVAL ncol=N --out setup7.geneanalysis."$code";
 done
+
+for code in HEAL01 INCO03 INSO02 NEUR02 PTSD04 RISK02 RISK03 SCHI04 SUBJ01 TIRE01 GSEM.F1 GSEM.F2 GSEM.F3 GSEM.F4 GSEM.F5 GSEM.F6; do
+  magma --annotate window=35,10 --snp-loc ../data/gwas_sumstats/export/"$code".SNPLOC --gene-loc ../data/gene_mapping/NCBI37.3.gene.loc --out setup7.annotate."$code";
+  magma --bfile ../data/reference_panel/1KG_eur.plink/g1000_eur --gene-annot setup7.annotate."$code".genes.annot --pval ../data/gwas_sumstats/export/"$code".PVAL ncol=N --out setup7.geneanalysis."$code";
+done
+
+while read code; do
+  sbatch --time 20:00 --partition brc,shared --job-name="m$code" --ntasks 1 --cpus-per-task 2 --mem 4G --wrap="magma --gene-results setup7.geneanalysis.$code.genes.raw --gene-covar geneset.gtex8_rnaseq_median.magma --out setup7.geneset.gtex8_rnaseq_median.$code";
+  sbatch --time 20:00 --partition brc,shared --job-name="m$code" --ntasks 1 --cpus-per-task 2 --mem 4G --wrap="magma --gene-results setup7.geneanalysis.$code.genes.raw --gene-covar geneset.brainspan_rnaseq_mean.magma --out setup7.geneset.brainspan_rnaseq_mean.$code";
+  #sbatch --time 20:00 --partition brc,shared --job-name="m$code" --ntasks 1 --cpus-per-task 2 --mem 4G --wrap="magma --gene-results setup7.geneanalysis.$code.genes.raw --set-annot geneset.msigdb.v7.5.1.magma --out setup7.geneset.msigdb.v7.5.1.$code";
+done < sumstats.sel.set1.code.txt
+
+while read code; do
+  sbatch --time 20:00 --partition brc,shared --job-name="m$code" --ntasks 1 --cpus-per-task 2 --mem 4G --wrap="magma --gene-results setup7.geneanalysis.$code.genes.raw --set-annot geneset.msigdb.h.all.v7.5.1.magma --out setup7.geneset.msigdb.h.all.v7.5.1.$code";
+  sbatch --time 20:00 --partition brc,shared --job-name="m$code" --ntasks 1 --cpus-per-task 2 --mem 4G --wrap="magma --gene-results setup7.geneanalysis.$code.genes.raw --set-annot geneset.msigdb.c3.all.v7.5.1.magma --out setup7.geneset.msigdb.c3.all.v7.5.1.$code";
+  sbatch --time 20:00 --partition brc,shared --job-name="m$code" --ntasks 1 --cpus-per-task 2 --mem 4G --wrap="magma --gene-results setup7.geneanalysis.$code.genes.raw --set-annot geneset.msigdb.c5.all.v7.5.1.magma --out setup7.geneset.msigdb.c5.all.v7.5.1.$code";
+  sbatch --time 20:00 --partition brc,shared --job-name="m$code" --ntasks 1 --cpus-per-task 2 --mem 4G --wrap="magma --gene-results setup7.geneanalysis.$code.genes.raw --set-annot geneset.msigdb.c7.all.v7.5.1.magma --out setup7.geneset.msigdb.c7.all.v7.5.1.$code";
+  sbatch --time 20:00 --partition brc,shared --job-name="m$code" --ntasks 1 --cpus-per-task 2 --mem 4G --wrap="magma --gene-results setup7.geneanalysis.$code.genes.raw --set-annot geneset.msigdb.c8.all.v7.5.1.magma --out setup7.geneset.msigdb.c8.all.v7.5.1.$code";
+done < sumstats.sel.set1.code.txt
+
+while read code; do
+  sbatch --time 20:00 --partition brc,shared --job-name="m$code" --ntasks 1 --cpus-per-task 2 --mem 4G --wrap="magma --gene-results setup7.geneanalysis.$code.genes.raw --set-annot geneset.msigdb.c2.cp.biocarta.v7.5.1.magma --out setup7.geneset.msigdb.c2.cp.biocarta.v7.5.1.$code";
+  sbatch --time 20:00 --partition brc,shared --job-name="m$code" --ntasks 1 --cpus-per-task 2 --mem 4G --wrap="magma --gene-results setup7.geneanalysis.$code.genes.raw --set-annot geneset.msigdb.c2.cp.kegg.v7.5.1.magma --out setup7.geneset.msigdb.c2.cp.kegg.v7.5.1.$code";
+  sbatch --time 20:00 --partition brc,shared --job-name="m$code" --ntasks 1 --cpus-per-task 2 --mem 4G --wrap="magma --gene-results setup7.geneanalysis.$code.genes.raw --set-annot geneset.msigdb.c3.mir.mirdb.v7.5.1.magma --out setup7.geneset.msigdb.c3.mir.mirdb.v7.5.1.$code";
+  sbatch --time 20:00 --partition brc,shared --job-name="m$code" --ntasks 1 --cpus-per-task 2 --mem 4G --wrap="magma --gene-results setup7.geneanalysis.$code.genes.raw --set-annot geneset.msigdb.c3.tft.gtrd.v7.5.1.magma --out setup7.geneset.msigdb.c3.tft.gtrd.v7.5.1.$code";
+done < sumstats.sel.set1.code.txt
 
 #awk 'echo $0;' < sumstats.sel.set1.code.txt
 
 #misc
+#merge plink datasets
+plink --merge-list ~/project/JZ_GED_PHD_C1/working_directory/plink.merge.txt --make-bed --out ~/project/JZ_GED_PHD_C1/working_directory/ref4validation
+
+for lev in "05" "1" "15" "2" "25" "3"; do sbatch --time 2-00:00:00 --partition brc,shared --job-name="impt_$lev" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript LIMP_evaluation.R -t ADHD05 -a $lev" --output "LIMP_evaluation.ADHD05_$lev.$(date +%Y%m%d).out.txt"; done
+for lev in "05" "1" "15" "2" "25" "3"; do sbatch --time 2-00:00:00 --partition brc,shared --job-name="impt_$lev" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript LIMP_evaluation.R -t ANXI02 -a $lev" --output "LIMP_evaluation.ANXI02_$lev.$(date +%Y%m%d).out.txt"; done
+for lev in "05" "1" "15" "2" "25" "3"; do sbatch --time 2-00:00:00 --partition brc,shared --job-name="impt_$lev" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript LIMP_evaluation.R -t COAD01 -a $lev" --output "LIMP_evaluation.COAD01_$lev.$(date +%Y%m%d).out.txt"; done
+for lev in "05" "1" "15" "2" "25" "3"; do sbatch --time 2-00:00:00 --partition brc,shared --job-name="impt_$lev" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript LIMP_evaluation.R -t OBES01 -a $lev" --output "LIMP_evaluation.OBES01_$lev.$(date +%Y%m%d).out.txt"; done
+for lev in "05" "1" "15" "2" "25" "3"; do sbatch --time 2-00:00:00 --partition brc,shared --job-name="impt_$lev" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript LIMP_evaluation.R -t SMOK04 -a $lev" --output "LIMP_evaluation.SMOK04_$lev.$(date +%Y%m%d).out.txt"; done
+
+
 rsync -avzhpt --progress /mnt/lustre/groups/ukbiobank/sumstats/ /scratch/groups/gwas_sumstats/
 #sbatch --time 2-00:00:00 --partition brc,shared --job-name="rsync" --ntasks 1 --cpus-per-task 2 --mem 16G --wrap="rsync -avzhpt /mnt/lustre/groups/ukbiobank/sumstats/ /scratch/groups/gwas_sumstats/" --output "rsync.$(date +%Y%m%d).out.txt"
 ls /mnt/lustre/groups/ukbiobank/sumstats | xargs -n 1 -P 4 -I % rsync -avzhpt /mnt/lustre/groups/ukbiobank/sumstats/% /scratch/groups/gwas_sumstats/%
