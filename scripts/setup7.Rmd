@@ -71,7 +71,7 @@ library(psych)
 library(Matrix)
 library(stats)
 library(tidyverse)
-library(HDL)
+#library(HDL)
 #library(MungeSumstats)
 library(shru)
 library(GenomicSEM)
@@ -178,8 +178,8 @@ p$filename.suffix.data.sumstats.munged<-".gz"
 p$folderpath.data.sumstatImp.genomeReference<-"/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/data/reference.panel.1KG_Phase3.CLEANED.EUR.cM" #source /users/k1204688/brc_scratch/Public/1KG_Phase3
 
 ##LD scores datasets folders (these strings need to have a trailing slash for the GSEM LDSC to work)
-p$folderpath.data.mvLDSC.ld.1kg <- file.path(p$folderpath.data,"eur_w_ld_chr.1KG_Phase3")
-p$folderpath.data.mvLDSC.ld.hm3 <- file.path(p$folderpath.data,"eur_w_ld_chr")
+p$folderpath.data.mvLDSC.ld.1kg <- file.path(p$folderpath.data,"ld_scores","eur_w_ld_chr.1KG_Phase3")
+p$folderpath.data.mvLDSC.ld.hm3 <- file.path(p$folderpath.data,"ld_scores","eur_w_ld_chr")
 #Weights, if different from LD-scores
 #Set weights to the same folder as ldscores
 p$folderpath.data.mvLDSC.wld.1kg <- p$folderpath.data.mvLDSC.ld.1kg
@@ -3623,6 +3623,9 @@ upset(
 #upset(fromList(codesAllSets), group.by = "sets", order.by = "freq")
 dev.off()
 
+#Get gene publications - also needs a gene - id map
+#publishedGenes.df<-read_tsv("ftp://ftp.ncbi.nlm.nih.gov/gene/DATA/gene2pubmed.gz",col_names=T)
+
 ```
 
 ## Gene level analyses, multivariate
@@ -3697,11 +3700,11 @@ for(igeneset in 1:length(toprocess)){
   
   for(iTrait in 1:nrow(chosenSet)){
     #iTrait<-1
-    cTraitVal.df <- data.frame(val=cGeneLevelZ[,chosenSet$code[iTrait]],feature=cGeneSetVariables$name, p=cGeneLevelP.FDR[,chosenSet$code[iTrait]])
+    cTraitVal.df <- data.frame(val=cGeneLevelBetaSTD[,chosenSet$code[iTrait]],feature=cGeneSetVariables$name, p=cGeneLevelP.FDR[,chosenSet$code[iTrait]])
     #cTraitVal.df <- data.frame(val=cGeneLevelBetaSTD[,chosenSet$code[iTrait]],feature=cGeneSetVariables$name, p=cGeneLevelP[,chosenSet$code[iTrait]])
     #cTraitVal.df <- cTraitVal.df[cTraitVal.df$p<0.1,]
     cTraitVal.df <- head(cTraitVal.df[order(cTraitVal.df$val,decreasing = T),],60)
-    cTraitVal.df$sig<-ifelse(cTraitVal.df$p<0.05,"s","n")
+    cTraitVal.df$sig<-ifelse(cTraitVal.df$p<0.05 & cTraitVal.df$val>0,"s","n")
     if(nrow(cTraitVal.df)>1){
       cplot<-ggplot(cTraitVal.df, aes(x = reorder(feature,val), y = val, fill=sig)) + 
       scale_fill_manual(name = "stat. significance",
@@ -3737,15 +3740,30 @@ library(cowplot)
 chosenSet <- p$sumstats.sel[c("GSEM.F1"),] #configure selected trait set here!
 #comparisonSet <- p$sumstats.sel["EDUC03","NEUR02","INSO02","RISK02","RISK03","SUBJ01","TIRE01","ANXI03","DEPR05",GSEM.F1","GSEM.F2","GSEM.F3","GSEM.F5"] #comparison traits, apart from general mean
 #comparisonSet <- p$sumstats.sel[p$sumstats.sel.set1.code,] #comparison traits, apart from general mean
-comparisonSet <- p$sumstats.sel[c("NEUR02"),] #comparison traits, apart from general mean
-toprocess <- c("gtex8_rnaseq_median","brainspan_rnaseq_mean","msigdb.h.all.v7.5.1","msigdb.c2.cp.biocarta.v7.5.1","msigdb.c2.cp.kegg.v7.5.1","msigdb.c3.mir.mirdb.v7.5.1","msigdb.c3.tft.gtrd.v7.5.1","msigdb.c5.gobp.v7.5.1","msigdb.c5.gocc.v7.5.1","msigdb.c5.gomf.v7.5.1","msigdb.c5.hpo.v7.5.1","msigdb.c5.other.v7.5.1","msigdb.c7.all.v7.5.1","msigdb.c8.all.v7.5.1") #sets to process
-
+comparisonSet <- p$sumstats.sel[c("EDUC03","NEUR02","GSEM.F1"),] #comparison traits, place main trait towards end if to include in combination plot
+#comparisonSet <- p$sumstats.sel[c("SCHI04","BIPO02","GSEM.F1","GSEM.F3"),] #comparison traits, place main trait towards end if to include in combination plot
+toprocess <- c(
+  #"gtex8_rnaseq_median",
+  "brainspan_rnaseq_mean",
+  "msigdb.h.all.v7.5.1",
+  #"msigdb.c2.cp.biocarta.v7.5.1",
+  #"msigdb.c2.cp.kegg.v7.5.1",
+  #"msigdb.c3.mir.mirdb.v7.5.1",
+  #"msigdb.c3.tft.gtrd.v7.5.1",
+  "msigdb.c5.gobp.v7.5.1",
+  "msigdb.c5.gocc.v7.5.1",
+  "msigdb.c5.gomf.v7.5.1",
+  #"msigdb.c5.hpo.v7.5.1",
+  #"msigdb.c5.other.v7.5.1",
+  "msigdb.c7.all.v7.5.1",
+  "msigdb.c8.all.v7.5.1"
+  ) #sets to process
 
 df.traits<-list()
 
 
 for(igeneset in 1:length(toprocess)){
-  #igeneset<-2
+  #igeneset<-3
   cGeneSetVariables <-  p$geneSetVariables[[toprocess[igeneset]]]
   cGeneLevelBeta <- p$mGeneLevelBeta[toprocess[igeneset]][[1]]
   cGeneLevelBetaSTD <- p$mGeneLevelBetaSTD[toprocess[igeneset]][[1]]
@@ -3764,7 +3782,6 @@ for(igeneset in 1:length(toprocess)){
   
   for(iTrait in 1:nrow(chosenSet)){
     #iTrait<-1
-    if(length(glplotsgrid)<1 | length(glplotsgrid[iTrait]) <1) glplotsgrid[iTrait]<-list()
     
     dir.create(path = file.path(p$folderpath.plots,chosenSet$code[iTrait]))
     
@@ -3772,11 +3789,13 @@ for(igeneset in 1:length(toprocess)){
     for(iComparison in 1:nrow(comparisonSet)){
       #iComparison<-1
       
-      cTraitVal.df <- data.frame(val=cGeneLevelZ[,chosenSet$code[iTrait]]-cGeneLevelZ[,comparisonSet$code[iComparison]],feature=cGeneSetVariables$name, p=cGeneLevelP.FDR[,chosenSet$code[iTrait]])
+      #comparison plot, main trait vs comparison trait
+      cTraitVal.df <- data.frame(val=cGeneLevelBetaSTD[,chosenSet$code[iTrait]]-cGeneLevelBetaSTD[,comparisonSet$code[iComparison]],feature=cGeneSetVariables$name, p=cGeneLevelP.FDR[,chosenSet$code[iTrait]])
       #cTraitVal.df <- cTraitVal.df[cTraitVal.df$p<0.1,]
-      cTraitVal.df <- head(cTraitVal.df[order(cTraitVal.df$val,decreasing = T),],60)
+      cTraitVal.df<-cTraitVal.df[which(cTraitVal.df$p<0.05),] #only select differences from main significant associations.
+      cTraitVal.df <- head(cTraitVal.df[order(cTraitVal.df$val,decreasing = T),],30)
       cTraitVal.df$sig<-ifelse(cTraitVal.df$p<0.05,"s","n")
-      if(nrow(cTraitVal.df)>1 & chosenSet$code[iTrait]!=comparisonSet$code[iComparison]){
+      if(nrow(cTraitVal.df)>1 & chosenSet$code[iTrait]!=comparisonSet$code[iComparison]){ #inactivated with F!!!
         cplot<-ggplot(cTraitVal.df, aes(x = reorder(feature,val), y = val, fill=sig)) + 
         scale_fill_manual(name = "stat. significance",
                        values = c("s" = theme.color$contrastLight3,
@@ -3800,7 +3819,7 @@ for(igeneset in 1:length(toprocess)){
       cTraitVal.df1 <- data.frame(
         trait=chosenSet$code[iTrait],
         var=cGeneSetVariables$name,
-        val0=cGeneLevelBeta[,chosenSet$code[iTrait]],
+        val0=cGeneLevelBetaSTD[,chosenSet$code[iTrait]],
         se0=cGeneLevelSE[,chosenSet$code[iTrait]],
         #high=cGeneLevelBeta[,chosenSet$code[iTrait]]+qnorm(0.05,lower.tail = F)*cGeneLevelSE[,chosenSet$code[iTrait]],
         #low=cGeneLevelBeta[,chosenSet$code[iTrait]]-qnorm(0.05,lower.tail = F)*cGeneLevelSE[,chosenSet$code[iTrait]],
@@ -3814,7 +3833,7 @@ for(igeneset in 1:length(toprocess)){
       cTraitVal.df2 <- data.frame(
         trait=comparisonSet$code[iComparison],
         var=cGeneSetVariables$name,
-        val0=cGeneLevelBeta[,comparisonSet$code[iComparison]],
+        val0=cGeneLevelBetaSTD[,comparisonSet$code[iComparison]],
         se0=cGeneLevelSE[,comparisonSet$code[iComparison]],
         #high=cGeneLevelBeta[,comparisonSet$code[iComparison]]+qnorm(0.05,lower.tail = F)*cGeneLevelSE[,comparisonSet$code[iComparison]],
         #low=cGeneLevelBeta[,comparisonSet$code[iComparison]]-qnorm(0.05,lower.tail = F)*cGeneLevelSE[,comparisonSet$code[iComparison]],
@@ -3826,14 +3845,23 @@ for(igeneset in 1:length(toprocess)){
       
       cTraitVal.df1$p2<-cTraitVal.df2$p
       cTraitVal.df2$p2<-cTraitVal.df1$p
-      cTraitVal.df1 <- cTraitVal.df1[(cTraitVal.df1$p<0.05|cTraitVal.df1$p2<0.05) & !is.nan(cTraitVal.df1$se) & cTraitVal.df1$val>0,]
-      cTraitVal.df2 <- cTraitVal.df2[cTraitVal.df2$var %in% cTraitVal.df1$var & cTraitVal.df2$val>0,]
-      
-      df <- rbind(cTraitVal.df1,cTraitVal.df2)
+      cTraitVal.df1 <- cTraitVal.df1[(cTraitVal.df1$p<0.05) & !is.nan(cTraitVal.df1$se) & cTraitVal.df1$val>0,] #|cTraitVal.df1$p2<0.05 #only select results significant in main trait
+      if(chosenSet$code[iTrait]==comparisonSet$code[iComparison]){
+        #comparison trait is the main trait
+        cTraitVal.df2 <- cTraitVal.df2[cTraitVal.df2$var %in% df.traits[iTrait][[1]]$var,] #& cTraitVal.df2$val>0
+        # cTraitVal.df2$z <- cTraitVal.df2$val/cTraitVal.df2$se
+        # dfOrder <- head(na.omit(cTraitVal.df2[order(-cTraitVal.df2$val,na.last = T),]),30)
+      } else {
+        #comparison trait as standard
+        cTraitVal.df2 <- cTraitVal.df2[cTraitVal.df2$var %in% cTraitVal.df1$var & cTraitVal.df2$val>0 & cTraitVal.df1$val>0,]
+       
+      }
       
       cTraitVal.df1$z <- cTraitVal.df1$val/cTraitVal.df1$se
-      dfOrder <- head(na.omit(cTraitVal.df1[order(-cTraitVal.df1$z,na.last = T),]),20)
+      dfOrder <- head(na.omit(cTraitVal.df1[order(-cTraitVal.df1$val,na.last = T),]),30)
       
+      #df <- rbind(cTraitVal.df1,cTraitVal.df2)
+      df <- cTraitVal.df2
       varOrder<-rev(unique(dfOrder$var))
       
       #df <- df[df$p<0.05,]
@@ -3879,7 +3907,7 @@ for(igeneset in 1:length(toprocess)){
 for(iTrait in 1:nrow(chosenSet)){
   #iTrait<-1
   df <- df.traits[iTrait][[1]]
-  df <- df[which(df$set!="gtex8_rnaseq_median"),]
+  df <- df[which(df$set!="gtex8_rnaseq_median" & df$set!="brainspan_rnaseq_mean"),]
   df$set <- as.factor(df$set)
   
   #df.l <- pivot_longer(data = df,cols = set)
@@ -3887,20 +3915,22 @@ for(iTrait in 1:nrow(chosenSet)){
   
   if(nrow(df)>0){
        cplot  <- ggplot(df, aes(x=var, y=val, ymin=low, ymax=high,col=trait,fill=trait)) +
-          geom_linerange(size=1,position=position_dodge(width = 0.4)) +
+          geom_linerange(size=0.3, position=position_dodge(width = 0.8)) +
           geom_hline(yintercept=0, lty=2) +
-          geom_point(size=1.5, shape=21, colour="white", stroke = 0.5,position=position_dodge(width = 0.5)) +
-          scale_fill_manual(values=c(theme.color$contrastLight3,theme.color$contrastDark3)) +
-          scale_color_manual(values=c(theme.color$contrastLight3,theme.color$contrastDark3)) +
+          geom_point(size=0.6, shape=21, colour="white", stroke = 0.2,position=position_dodge(width = 0.8)) +
+          scale_fill_manual(values=c(theme.color$contrastDark2,theme.color$contrastDark3,theme.color$contrastLight3)) +
+          scale_color_manual(values=c(theme.color$contrastDark2,theme.color$contrastDark3,theme.color$contrastLight3)) +
           scale_x_discrete(name="Set") +
           scale_y_continuous(name="Regression beta") +
           #scale_y_continuous(name="Regression beta", limits = c(min(df$low)-0.1*max(abs(df$val)), max(df$high)+0.1*max(abs(df$val)))) +
           coord_flip() +
           facet_wrap(~ set, ncol = 1, shrink = T, drop = T, scales = "free") +
-          theme_bw() +
-          ggtitle(label = paste0("Gene-level MAGMA regression betas and standard errors"))
+          theme_bw(base_size = 7) +
+          theme(axis.text.y =element_text(size=5)) +
+          ggtitle(label = paste0("Gene-level MAGMA std. regression betas and standard errors"))
 
-        ggsave(filename=file.path(p$folderpath.plots,chosenSet$code[iTrait], paste0("genelevel.pair.",chosenSet$code[iTrait],".png")), plot = cplot, width = 600, height = 800, units = "mm")
+        ggsave(filename=file.path(p$folderpath.plots,chosenSet$code[iTrait], paste0("genelevel.multi.",chosenSet$code[iTrait],".png")), plot = cplot, width = 210, height = 297, units = "mm")
+        #A4 is 210 x 297 mm
   }
   
 }

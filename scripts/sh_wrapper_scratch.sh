@@ -224,6 +224,10 @@ for lev in "05" "1" "15" "2" "25" "3"; do sbatch --time 2-00:00:00 --partition b
 for lev in "05" "1" "15" "2" "25" "3"; do sbatch --time 2-00:00:00 --partition brc,shared --job-name="impt_$lev" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript LIMP_evaluation.R -t SMOK04 -a $lev" --output "LIMP_evaluation.SMOK04_$lev.$(date +%Y%m%d).out.txt"; done
 
 
+sbatch --time 2-00:00:00 --partition brc,shared --job-name="impt1" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript LIMP_evaluation.R -t EDUC03.gz" --output "LIMP_evaluation.EDUC03.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition brc,shared --job-name="impt2" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript LIMP_evaluation.R -t SCHI04.gz" --output "LIMP_evaluation.SCHI04.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition brc,shared --job-name="impt3" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript LIMP_evaluation.R -t ANXI03.gz" --output "LIMP_evaluation.ANXI03.$(date +%Y%m%d).out.txt"
+
 rsync -avzhpt --progress /mnt/lustre/groups/ukbiobank/sumstats/ /scratch/groups/gwas_sumstats/
 #sbatch --time 2-00:00:00 --partition brc,shared --job-name="rsync" --ntasks 1 --cpus-per-task 2 --mem 16G --wrap="rsync -avzhpt /mnt/lustre/groups/ukbiobank/sumstats/ /scratch/groups/gwas_sumstats/" --output "rsync.$(date +%Y%m%d).out.txt"
 ls /mnt/lustre/groups/ukbiobank/sumstats | xargs -n 1 -P 4 -I % rsync -avzhpt /mnt/lustre/groups/ukbiobank/sumstats/% /scratch/groups/gwas_sumstats/%
