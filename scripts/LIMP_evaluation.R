@@ -22,18 +22,19 @@ cLevelString <- clOptions$task_argument
 
 
 #settings
-filepathSNPReference <- normalizePath("/scratch/users/k19049801/project/JZ_GED_PHD_C1/data/combined.hm3_1kg.snplist.vanilla.jz2020.txt", mustWork = T)
-folderpathLDscores <- normalizePath("/scratch/users/k19049801/project/JZ_GED_PHD_C1/data/ld_scores/eur_w_ld_chr.1KG_Phase3", mustWork = T)
-folderpathEvaluationSumstats <- normalizePath("/users/k19049801/project/JZ_GED_PHD_C1/data/gwas_sumstats/munged_1kg_eur_supermunge_noimp", mustWork = T)
-folderpathEvaluationOutput <- normalizePath("/scratch/users/k19049801/project/JZ_GED_PHD_C1/working_directory", mustWork = T)
+# filepathSNPReference <- normalizePath("/scratch/users/k19049801/project/JZ_GED_PHD_C1/data/combined.hm3_1kg.snplist.vanilla.jz2020.txt", mustWork = T)
+# folderpathLDscores <- normalizePath("/scratch/users/k19049801/project/JZ_GED_PHD_C1/data/ld_scores/eur_w_ld_chr.1KG_Phase3", mustWork = T)
+# folderpathEvaluationSumstats <- normalizePath("/users/k19049801/project/JZ_GED_PHD_C1/data/gwas_sumstats/munged_1kg_eur_supermunge_noimp", mustWork = T)
+# folderpathEvaluationOutput <- normalizePath("/scratch/users/k19049801/project/JZ_GED_PHD_C1/working_directory", mustWork = T)
 
 #local settings
-# filepathSNPReference <- normalizePath("/Users/jakz/project/JZ_GED_PHD_C1/data/combined.hm3_1kg.snplist.vanilla.jz2020.txt", mustWork = T)
-# folderpathLDscores <- normalizePath("/Users/jakz/project/JZ_GED_PHD_C1/data/eur_w_ld_chr.1KG_Phase3", mustWork = T)
-# folderpathEvaluationSumstats <- normalizePath("/Users/jakz/project/JZ_GED_PHD_C1/data/gwas_sumstats/munged_1kg_eur_supermunge_noimp", mustWork = T)
-# folderpathEvaluationOutput <- normalizePath("/Users/jakz/project/JZ_GED_PHD_C1/working_directory", mustWork = T)
+filepathSNPReference <- normalizePath("/Users/jakz/project/JZ_GED_PHD_C1/data/combined.hm3_1kg.snplist.vanilla.jz2020.txt", mustWork = T)
+folderpathLDscores <- normalizePath("/Users/jakz/project/JZ_GED_PHD_C1/data/ld_scores/eur_w_ld_chr.1KG_Phase3", mustWork = T)
+folderpathEvaluationSumstats <- normalizePath("/Users/jakz/project/JZ_GED_PHD_C1/data/gwas_sumstats/munged_1kg_eur_supermunge_noimp", mustWork = T)
+folderpathEvaluationOutput <- normalizePath("/Users/jakz/project/JZ_GED_PHD_C1/working_directory", mustWork = T)
 
 folderpathEvaluationOutputLIMP <- file.path(folderpathEvaluationOutput,"LIMP")
+#folderpathEvaluationOutputLIMP <- file.path(folderpathEvaluationOutput,"LIMP_evaluation_old_8kbwindow")
 dir.create(path = folderpathEvaluationOutputLIMP)
 
 #traitList <- c("ADHD05","ANXI02","COAD01","OBES01","SMOK04")
@@ -78,16 +79,16 @@ if(is.na(cLevelString)){
 }
 
 #alt read from files
-# if(is.na(cLevelString)){
-#   for(iLevel in 1:length(levelList)){
-#     #iLevel<-1
-#     nfilepath<-file.path(folderpathEvaluationOutputLIMP,paste0(cTraitString,".",levelList[iLevel],".missing.gz"))
-#     d[iLevel]<-list(fread(file = nfilepath, check.names = T, fill = T, blank.lines.skip = T, data.table = T, nThread = 5, showProgress = F))
-#   }
-#   
-#   names(d)<-paste0(cTraitString,".",levelList,".imputed")
-#   
-# }
+if(is.na(cLevelString)){
+  for(iLevel in 1:length(levelList)){
+    #iLevel<-1
+    nfilepath<-file.path(folderpathEvaluationOutputLIMP,paste0(cTraitString,".",levelList[iLevel],".missing.gz"))
+    d[iLevel]<-list(fread(file = nfilepath, check.names = T, fill = T, blank.lines.skip = T, data.table = T, nThread = 5, showProgress = F))
+  }
+
+  names(d)<-paste0(cTraitString,".",levelList,".imputed")
+
+}
   
 #rm("d0")
 
@@ -130,6 +131,7 @@ rmseInformed<-list()
 cor<-list()
 corInformed<-list()
 corInfo<-list()
+corK<-list()
 
 scatterplots<-list()
 scatterplotsInformed<-list()
@@ -152,18 +154,20 @@ for(iLevel in 1:length(levelList)){
   condInformed<-condImputed & cImp$INFO.LIMP>0.5
   
   nimputed[[iLevel]]<-nrow(cImp)
-  cImp[,Z.O:=EFFECT.O/SE.O][,Z:=EFFECT/SE][,ZDIFF2:=(Z-Z.O)^2][,IMPQ:=1/(1+abs(Z-Z.O))]
+  cImp[,Z.O:=EFFECT.O/SE.O][,Z:=EFFECT/SE][,ABSZDIFF:=abs(Z-Z.O)][,ZDIFF2:=(Z-Z.O)^2][,IMPQ:=1/(1+abs(Z-Z.O))]
+  
   rmse[[iLevel]]<-sqrt(mean(cImp[condImputed,]$ZDIFF2,na.rm=T))
   rmseInformed[[iLevel]]<-sqrt(mean(cImp[condInformed,]$ZDIFF2,na.rm=T))
   ninformed[[iLevel]]<-nrow(cImp[INFO.LIMP>0.5,])
   cor[[iLevel]]<-cor(cImp[condImputed,]$Z,cImp[condImputed,]$Z.O)
   corInformed[[iLevel]]<-cor(cImp[condInformed,]$Z,cImp[condInformed,]$Z.O)
-  corInfo[[iLevel]]<-cor(cImp[condImputed,]$IMPQ,cImp[condImputed,]$INFO.LIMP)
+  corInfo[[iLevel]]<-cor(-cImp[condImputed,]$ABSZDIFF,cImp[condImputed,]$INFO.LIMP)
+  corK[[iLevel]]<-cor(-cImp[condImputed,]$ABSZDIFF,cImp[condImputed,]$K)
   
   scatterplots[[iLevel]]<-ggplot(cImp[condImputed,], aes(x=Z.O, Z, colour=INFO.LIMP)) +
     geom_abline(intercept =0 , slope = 1) +
     geom_point() +
-    labs(x='Observed Z',y='Imputed Z', title=paste0(dsnames[iLevel],'\nN = ',nrow(cImp[condImputed,]),', cor=',round(cor[[iLevel]],digits = 2),', cor=',round(rmse[[iLevel]],digits = 2))) +
+    labs(x='Observed Z',y='Imputed Z', title=paste0(dsnames[iLevel],'\nN = ',nrow(cImp[condImputed,]),', cor=',round(cor[[iLevel]],digits = 2),', rmse=',round(rmse[[iLevel]],digits = 2))) +
     coord_fixed() +
     theme_half_open() +
     background_grid()
@@ -172,7 +176,7 @@ for(iLevel in 1:length(levelList)){
   scatterplotsInformed[[iLevel]]<-ggplot(cImp[condInformed,], aes(x=Z.O, Z, colour=INFO.LIMP)) +
     geom_abline(intercept =0 , slope = 1) +
     geom_point() +
-    labs(x='Observed Z',y='Imputed Z', title=paste0(dsnames[iLevel],', informed variants','\nN = ',nrow(cImp[condInformed,]),', cor=',round(corInformed[[iLevel]],digits = 2),', cor=',round(rmseInformed[[iLevel]],digits = 2))) +
+    labs(x='Observed Z',y='Imputed Z', title=paste0(dsnames[iLevel],', informed variants','\nN = ',nrow(cImp[condInformed,]),', cor=',round(corInformed[[iLevel]],digits = 2),', rmse=',round(rmseInformed[[iLevel]],digits = 2))) +
     coord_fixed() +
     theme_half_open() +
     background_grid()
@@ -187,7 +191,8 @@ stats<-data.frame(
   rmseInformed=unlist(rmseInformed),
   cor=unlist(cor),
   corInformed=unlist(corInformed),
-  corInfo=unlist(corInfo)
+  corInfo=unlist(corInfo),
+  corK=unlist(corK)
   )
 
 stats$ratImputed<-stats$nimputed/stats$ntoimpute
