@@ -351,6 +351,8 @@ knitr::purl(p$filename.rmd)
 ```{r additional source setup, echo=FALSE, warning=F}
 
 #source(normalizePath(file.path(p$folderpath.scripts,"sumstats.mod-jz.R")))
+source(file.path(p$folderpath.scripts,"include","fastman.R"))
+source(file.path(p$folderpath.scripts,"include","fastqq.R"))
 
 ```
 
@@ -3106,7 +3108,7 @@ chosenSet<-p$sumstats.sel[p$sumstats.sel.set1.code,] #SET SELECTED SUMSTATS HERE
 
 for(iTrait in 1:nrow(chosenSet)){
   #test
-  #iTrait<-1
+  #iTrait<-10
   
   p$lfGWAS$gwas.for.display.info<-chosenSet[iTrait,]
   p$lfGWAS$gwas.for.display.info$code
@@ -3240,7 +3242,7 @@ for(iTrait in 1:nrow(chosenSet)){
   #dir.create(path = file.path(p$folderpath.plots,p$lfGWAS$gwas.for.display.info$code))
   gtsave(data = cTable, filename = file.path(p$folderpath.plots,paste0("top.",p$lfGWAS$gwas.for.display.info$code,".rtf")))
   
-  #manhattan plot
+  #manhattan plots
   #cPlot <- manhattan.custom(df = p$lfGWAS$gwas.for.display)
   #cPlot
   #ggsave(filename=file.path(p$folderpath.plots,cModel$code,paste0("gwas.F",iGwas,".png")), plot = last_plot(), width = 500, height = 300, units = "mm")
@@ -3252,19 +3254,79 @@ for(iTrait in 1:nrow(chosenSet)){
   qqmanGwas<-qqmanGwas[,c("SNP","BP","CHR","P")]
   qqmanGwas$CHR<-as.integer(qqmanGwas$CHR)
   
-  
-  #manhattan plot 2
+  #manhattan plot, fastman
   png(filename = file.path(p$folderpath.plots,paste0("man.",p$lfGWAS$gwas.for.display.info$code,".png")), width = 1200, height = 600)
-  qqman::manhattan(x = qqmanGwas)
+  fastman(
+    m = as.data.frame(qqmanGwas),
+    speedup = T, 
+    #col = 
+    maxP = 16,
+    annotatePval = 1e-7,
+    annotationWinMb = 4,
+    annotationCol = theme.color$contrastDark2,
+    cex.text = 0.7
+    #annotateTop = T,
+    #annotateN = 3
+      )
   dev.off()
+  
+  png(filename = file.path(p$folderpath.plots,paste0("qq.",p$lfGWAS$gwas.for.display.info$code,".png")), width = 600, height = 600)
+  fastqq(
+    p = qqmanGwas$P,
+    speedup = T,
+    lambda = T,
+    fix_zero = F
+         )
+  dev.off()
+  
+  #manhattan plot, qqman
+  # png(filename = file.path(p$folderpath.plots,paste0("man.",p$lfGWAS$gwas.for.display.info$code,".png")), width = 1200, height = 600)
+  # qqman::manhattan(x = qqmanGwas)
+  # dev.off()
   
   #qqman::qq(p$lfGWAS$gwas.for.display$Pval_Estimate)
   
-  png(filename = file.path(p$folderpath.plots,paste0("qq.",p$lfGWAS$gwas.for.display.info$code,".png")), width = 600, height = 600)
-  qqman::qq(qqmanGwas$P)
-  dev.off()
+  #qq plot, qqman
+  # png(filename = file.path(p$folderpath.plots,paste0("qq.",p$lfGWAS$gwas.for.display.info$code,".png")), width = 600, height = 600)
+  # qqman::qq(qqmanGwas$P)
+  # dev.off()
   
 }
+
+```
+
+# Visualise exported latent factor GWAS results in manhattan and qq plots - UNFINISHED
+```{r visualise composite manhattan and qq plots, purl=FALSE, eval=FALSE}
+
+chosenSet<-p$sumstats.sel[p$sumstats.sel.set1_spec.code,] #SET SELECTED SUMSTATS HERE
+
+manhattanPlots<-c()
+qqPlots<-c()
+
+for(iTrait in 1:nrow(chosenSet)){
+  #test
+  #iTrait<-1
+  
+  p$lfGWAS$gwas.for.display.info<-chosenSet[iTrait,]
+  p$lfGWAS$gwas.for.display.info$code
+  
+  cSumstats<-fread(file = file.path(p$folderpath.data.sumstats.export,paste0(p$lfGWAS$gwas.for.display.info$code,".gz")), na.strings =c(".",NA,"NA",""), encoding = "UTF-8",check.names = T, fill = T, blank.lines.skip = T, key = c("SNP","CHR","BP"), data.table = T,showProgress = F, nThread=5)
+  
+  # manhattanPlots[iTrait] <- fastman(
+  #   m = as.data.frame(cSumstats),
+  #   speedup = T, 
+  #   #col = 
+  #   maxP = 16,
+  #   annotatePval = 1e-7,
+  #   annotationWinMb = 4,
+  #   annotationCol = theme.color$contrastDark2,
+  #   cex.text = 0.7
+  #   #annotateTop = T,
+  #   #annotateN = 3
+  #     )
+  
+}
+
 
 ```
 

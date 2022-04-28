@@ -22,16 +22,16 @@ cLevelString <- clOptions$task_argument
 
 
 #settings
-# filepathSNPReference <- normalizePath("/scratch/users/k19049801/project/JZ_GED_PHD_C1/data/combined.hm3_1kg.snplist.vanilla.jz2020.txt", mustWork = T)
-# folderpathLDscores <- normalizePath("/scratch/users/k19049801/project/JZ_GED_PHD_C1/data/ld_scores/eur_w_ld_chr.1KG_Phase3", mustWork = T)
-# folderpathEvaluationSumstats <- normalizePath("/users/k19049801/project/JZ_GED_PHD_C1/data/gwas_sumstats/munged_1kg_eur_supermunge_noimp", mustWork = T)
-# folderpathEvaluationOutput <- normalizePath("/scratch/users/k19049801/project/JZ_GED_PHD_C1/working_directory", mustWork = T)
+filepathSNPReference <- normalizePath("/scratch/users/k19049801/project/JZ_GED_PHD_C1/data/combined.hm3_1kg.snplist.vanilla.jz2020.txt", mustWork = T)
+folderpathLDscores <- normalizePath("/scratch/users/k19049801/project/JZ_GED_PHD_C1/data/ld_scores/eur_w_ld_chr.1KG_Phase3", mustWork = T)
+folderpathEvaluationSumstats <- normalizePath("/users/k19049801/project/JZ_GED_PHD_C1/data/gwas_sumstats/munged_1kg_eur_supermunge_noimp", mustWork = T)
+folderpathEvaluationOutput <- normalizePath("/scratch/users/k19049801/project/JZ_GED_PHD_C1/working_directory", mustWork = T)
 
 #local settings
-filepathSNPReference <- normalizePath("/Users/jakz/project/JZ_GED_PHD_C1/data/combined.hm3_1kg.snplist.vanilla.jz2020.txt", mustWork = T)
-folderpathLDscores <- normalizePath("/Users/jakz/project/JZ_GED_PHD_C1/data/ld_scores/eur_w_ld_chr.1KG_Phase3", mustWork = T)
-folderpathEvaluationSumstats <- normalizePath("/Users/jakz/project/JZ_GED_PHD_C1/data/gwas_sumstats/munged_1kg_eur_supermunge_noimp", mustWork = T)
-folderpathEvaluationOutput <- normalizePath("/Users/jakz/project/JZ_GED_PHD_C1/working_directory", mustWork = T)
+# filepathSNPReference <- normalizePath("/Users/jakz/project/JZ_GED_PHD_C1/data/combined.hm3_1kg.snplist.vanilla.jz2020.txt", mustWork = T)
+# folderpathLDscores <- normalizePath("/Users/jakz/project/JZ_GED_PHD_C1/data/ld_scores/eur_w_ld_chr.1KG_Phase3", mustWork = T)
+# folderpathEvaluationSumstats <- normalizePath("/Users/jakz/project/JZ_GED_PHD_C1/data/gwas_sumstats/munged_1kg_eur_supermunge_noimp", mustWork = T)
+# folderpathEvaluationOutput <- normalizePath("/Users/jakz/project/JZ_GED_PHD_C1/working_directory", mustWork = T)
 
 folderpathEvaluationOutputLIMP <- file.path(folderpathEvaluationOutput,"LIMP")
 #folderpathEvaluationOutputLIMP <- file.path(folderpathEvaluationOutput,"LIMP_evaluation_old_8kbwindow")
@@ -102,7 +102,7 @@ if(is.na(cLevelString)){
     ref_df = r0,
     ldDirPath=folderpathLDscores,
     imputeFromLD=T,
-    imputeFrameLenBp=30000,
+    imputeFrameLenBp=100000,
     pathDirOutput = cOutputDir
   ) 
 } else {
@@ -113,7 +113,7 @@ if(is.na(cLevelString)){
     ldDirPath=folderpathLDscores,
     traitNames = cNameList,
     imputeFromLD=T,
-    imputeFrameLenBp=30000,
+    imputeFrameLenBp=100000,
     pathDirOutput = cOutputDir
   ) 
 }
