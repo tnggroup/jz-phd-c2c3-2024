@@ -367,6 +367,8 @@ else { # one colour scheme for the entire plot
   else { # typical plot
     plot(ms$BPn,ms$logP,pch=20,col=ms$C,cex=cex,cex.axis=cex.axis,las=1,xaxt="n",bty="n",xaxs="i",yaxs="i",xlim=xbnd,ylim=ybnd,xlab=xlbl,ylab=ylbl,...);
 	axis(side=1,at=cmat$midpf,labels=chrlabs,pos=0,las=1,cex.axis=cex.axis,col=NA,col.ticks="black");
+    
+    ggplot()
   }
 }
 

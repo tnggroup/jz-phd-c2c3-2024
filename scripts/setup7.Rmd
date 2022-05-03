@@ -1994,7 +1994,7 @@ for(iSelected in 1:nrow(p$CFA$models.selected)){
 
 ```
 
-# Plot CFA results
+# Visualise CFA results
 
 This will not work if the model does not converge.
 
@@ -2019,24 +2019,25 @@ for(iSelected in 1:nrow(p$CFA$models.selected)){
             "","","","","","","","","","","","","","","","","","","","","","","","","",
             rows = 3)
   
-  graph_sem(
-    #model = cModelResults$lresults,
-  model=cModel$gsemResults[[1]][[1]]$lresults,
-  layout = p$CFA$semGraphLayout,
-  spacing_y=8,
-  spacing_x=4,
-  ellipses_width=5,
-  rect_width=3,
-  variance_diameter=0.5,
-  angle=180
-  )
+  #this does not work anymore after package updates
+  # graph_sem(
+  #   #model = cModelResults$lresults,
+  # model=cModel$gsemResults[[1]][[1]]$lresults,
+  # layout = p$CFA$semGraphLayout,
+  # spacing_y=8,
+  # spacing_x=4,
+  # ellipses_width=5,
+  # rect_width=3,
+  # variance_diameter=0.5,
+  # angle=180
+  # )
   
-  ggsave(filename=file.path(p$folderpath.plots,cModel$code,paste0("cfa.png")), plot = last_plot(), width = 1200, height = 600, units = "mm")
+  #ggsave(filename=file.path(p$folderpath.plots,cModel$code,paste0("cfa.png")), plot = last_plot(), width = 1200, height = 600, units = "mm")
   
   
   #https://rpubs.com/danmirman/plotting_factor_analysis
-  #df<-as.data.frame(cModel$parsedGsemResults[[1]][[1]]$patternCoefficientsSTDGenotype.matrix)
-  df<-as.data.frame(sign(cModel$parsedGsemResults[[1]][[1]]$patternCoefficientsSTDGenotype.matrix)*cModel$parsedGsemResults[[1]][[1]]$relativeVarianceExplainedPerFactor) #plotting variance explained rather than factor loadings
+  df<-as.data.frame(cModel$parsedGsemResults[[1]][[1]]$patternCoefficientsSTDGenotype.matrix)
+  #df<-as.data.frame(sign(cModel$parsedGsemResults[[1]][[1]]$patternCoefficientsSTDGenotype.matrix)*cModel$parsedGsemResults[[1]][[1]]$relativeVarianceExplainedPerFactor) #plotting variance explained rather than factor loadings - only works for orthogonal factors!
   #add proportion of explained variance
   colnames(df)<-paste0(colnames(df),"(mExp=",round(cModel$parsedGsemResults[[1]][[1]]$meanRelativeVarianceExplainedPerFactor,digits = 2),")")
   df[,c(paste0("~disturbance(mExp=",round(cModel$parsedGsemResults[[1]][[1]]$meanTotalRelativeVarianceExplained,digits = 2),")"))]<-cModel$parsedGsemResults[[1]][[1]]$residualVariancesSTDGenotype.matrix #add disturbances
@@ -2051,7 +2052,8 @@ for(iSelected in 1:nrow(p$CFA$models.selected)){
   scale_fill_gradient2(name = "Loading", 
                        high = theme.color$contrastLight3, mid = "grey90", low = theme.color$contrastDark3, 
                        midpoint=0, guide=F) +
-  ylab("Variance explained in indicator * sign(loading)") + #improve y-axis label
+  ylab("Std. factor loading") + #improve y-axis label
+  #ylab("Variance explained in indicator * sign(loading)") + #improve y-axis label
   xlab("Indicator") +
   theme_bw(base_size=22) #use a black-and white theme with set font size
   
@@ -3103,7 +3105,7 @@ write.table(x = p$sumstats.sel[p$sumstats.sel.uv.code,c("code")],file = file.pat
 write.table(x = p$sumstats.sel[p$sumstats.sel.set1_spec.code,c("code")],file = file.path(p$folderpath.workingDirectory, "sumstats.sel.set1_spec.code.txt"),sep="\t", quote = FALSE, row.names = F, col.names = F, append = F)
 
 
-chosenSet<-p$sumstats.sel[p$sumstats.sel.set1.code,] #SET SELECTED SUMSTATS HERE
+chosenSet<-p$sumstats.sel[p$sumstats.sel.set1_spec.code,] #SET SELECTED SUMSTATS HERE
 
 
 for(iTrait in 1:nrow(chosenSet)){
@@ -3249,7 +3251,7 @@ for(iTrait in 1:nrow(chosenSet)){
   
   #qqman adaptations
   qqmanGwas<-cSumstats
-  qqmanGwas$P<- shru::clipValues(qqmanGwas$P,min = 10^(-16), max = NULL)
+  qqmanGwas$P<- shru::clipValues(qqmanGwas$P,min = 10^(-24), max = NULL)
   qqmanGwas<-qqmanGwas[which(!is.na(qqmanGwas$P)),]
   qqmanGwas<-qqmanGwas[,c("SNP","BP","CHR","P")]
   qqmanGwas$CHR<-as.integer(qqmanGwas$CHR)
@@ -3260,8 +3262,8 @@ for(iTrait in 1:nrow(chosenSet)){
     m = as.data.frame(qqmanGwas),
     speedup = T, 
     #col = 
-    maxP = 16,
-    annotatePval = 1e-7,
+    maxP = 24,
+    annotatePval = 1e-8,
     annotationWinMb = 4,
     annotationCol = theme.color$contrastDark2,
     cex.text = 0.7
@@ -3295,7 +3297,7 @@ for(iTrait in 1:nrow(chosenSet)){
 
 ```
 
-# Visualise exported latent factor GWAS results in manhattan and qq plots - UNFINISHED
+# Visualise exported latent factor GWAS results in manhattan and qq plots
 ```{r visualise composite manhattan and qq plots, purl=FALSE, eval=FALSE}
 
 chosenSet<-p$sumstats.sel[p$sumstats.sel.set1_spec.code,] #SET SELECTED SUMSTATS HERE
@@ -3310,7 +3312,9 @@ for(iTrait in 1:nrow(chosenSet)){
   p$lfGWAS$gwas.for.display.info<-chosenSet[iTrait,]
   p$lfGWAS$gwas.for.display.info$code
   
-  cSumstats<-fread(file = file.path(p$folderpath.data.sumstats.export,paste0(p$lfGWAS$gwas.for.display.info$code,".gz")), na.strings =c(".",NA,"NA",""), encoding = "UTF-8",check.names = T, fill = T, blank.lines.skip = T, key = c("SNP","CHR","BP"), data.table = T,showProgress = F, nThread=5)
+  cSumstats <- fread(file = file.path(p$folderpath.data.sumstats.export,paste0(p$lfGWAS$gwas.for.display.info$code,".gz")), na.strings =c(".",NA,"NA",""), encoding = "UTF-8",check.names = T, fill = T, blank.lines.skip = T, key = c("SNP","CHR","BP"), data.table = T,showProgress = F, nThread=5)
+  
+  
   
   # manhattanPlots[iTrait] <- fastman(
   #   m = as.data.frame(cSumstats),
@@ -3325,7 +3329,22 @@ for(iTrait in 1:nrow(chosenSet)){
   #   #annotateN = 3
   #     )
   
+  manhattanPlots[[iTrait]] <- plot.manhattan.custom(cSumstats,y_limits = c(0,24),maxNLogP = 24)
+  
+  #test save
+  #ggsave(filename=file.path(p$folderpath.plots, paste0("man_test.png")), plot = manhattanPlots[[iTrait]], width = 800, height = 400, units = "mm")
+
+  qqPlots[[iTrait]] <- plot.qq.custom(cSumstats$P)
+  #test save
+  #ggsave(filename=file.path(p$folderpath.plots, paste0("qq_test.png")), plot = qqPlots[[iTrait]], width = 400, height = 400, units = "mm")
+  
+  
 }
+
+full <- cowplot::plot_grid(plotlist = c(manhattanPlots,qqPlots),labels = "AUTO",ncol = 2, nrow = 6,byrow=F)
+
+ggsave(filename=file.path(p$folderpath.plots, paste0("manqq.factors.png")), plot = full, width = 210, height = 297, units = "mm", dpi = 320, scale = 3)
+#A4 is 210 x 297 mm
 
 
 ```
@@ -3802,23 +3821,30 @@ library(cowplot)
 chosenSet <- p$sumstats.sel[c("GSEM.F1"),] #configure selected trait set here!
 #comparisonSet <- p$sumstats.sel["EDUC03","NEUR02","INSO02","RISK02","RISK03","SUBJ01","TIRE01","ANXI03","DEPR05",GSEM.F1","GSEM.F2","GSEM.F3","GSEM.F5"] #comparison traits, apart from general mean
 #comparisonSet <- p$sumstats.sel[p$sumstats.sel.set1.code,] #comparison traits, apart from general mean
-comparisonSet <- p$sumstats.sel[c("EDUC03","NEUR02","GSEM.F1"),] #comparison traits, place main trait towards end if to include in combination plot
+comparisonSet <- p$sumstats.sel[c("NEUR02","GSEM.F1"),] #comparison traits, place main trait towards end if to include in combination plot
+#comparisonSet <- p$sumstats.sel[c("EDUC03","NEUR02","GSEM.F1"),] #comparison traits, place main trait towards end if to include in combination plot
 #comparisonSet <- p$sumstats.sel[c("SCHI04","BIPO02","GSEM.F1","GSEM.F3"),] #comparison traits, place main trait towards end if to include in combination plot
+#Old well powered
+# toprocess <- c(
+#   #"gtex8_rnaseq_median",
+#   "brainspan_rnaseq_mean",
+#   "msigdb.h.all.v7.5.1",
+#   #"msigdb.c2.cp.biocarta.v7.5.1",
+#   #"msigdb.c2.cp.kegg.v7.5.1",
+#   #"msigdb.c3.mir.mirdb.v7.5.1",
+#   #"msigdb.c3.tft.gtrd.v7.5.1",
+#   "msigdb.c5.gobp.v7.5.1",
+#   "msigdb.c5.gocc.v7.5.1",
+#   "msigdb.c5.gomf.v7.5.1",
+#   #"msigdb.c5.hpo.v7.5.1",
+#   #"msigdb.c5.other.v7.5.1",
+#   "msigdb.c7.all.v7.5.1",
+#   "msigdb.c8.all.v7.5.1"
+#   ) #sets to process
+
 toprocess <- c(
-  #"gtex8_rnaseq_median",
-  "brainspan_rnaseq_mean",
-  "msigdb.h.all.v7.5.1",
-  #"msigdb.c2.cp.biocarta.v7.5.1",
-  #"msigdb.c2.cp.kegg.v7.5.1",
-  #"msigdb.c3.mir.mirdb.v7.5.1",
-  #"msigdb.c3.tft.gtrd.v7.5.1",
   "msigdb.c5.gobp.v7.5.1",
-  "msigdb.c5.gocc.v7.5.1",
-  "msigdb.c5.gomf.v7.5.1",
-  #"msigdb.c5.hpo.v7.5.1",
-  #"msigdb.c5.other.v7.5.1",
-  "msigdb.c7.all.v7.5.1",
-  "msigdb.c8.all.v7.5.1"
+  "msigdb.c5.gomf.v7.5.1"
   ) #sets to process
 
 df.traits<-list()
@@ -3977,18 +4003,21 @@ for(iTrait in 1:nrow(chosenSet)){
   
   if(nrow(df)>0){
        cplot  <- ggplot(df, aes(x=var, y=val, ymin=low, ymax=high,col=trait,fill=trait)) +
+          geom_hline(yintercept=0, lty=2) + 
+          #geom_boxplot() +
           geom_linerange(size=0.3, position=position_dodge(width = 0.8)) +
-          geom_hline(yintercept=0, lty=2) +
-          geom_point(size=0.6, shape=21, colour="white", stroke = 0.2,position=position_dodge(width = 0.8)) +
-          scale_fill_manual(values=c(theme.color$contrastDark2,theme.color$contrastDark3,theme.color$contrastLight3)) +
-          scale_color_manual(values=c(theme.color$contrastDark2,theme.color$contrastDark3,theme.color$contrastLight3)) +
+          
+          geom_point(size=0.8, shape=21, colour="white", stroke = 0.2,position=position_dodge(width = 0.8)) +
+          
+          scale_fill_manual(values=c(theme.color$contrastDark3,theme.color$contrastLight3)) +
+          scale_color_manual(values=c(theme.color$contrastDark3,theme.color$contrastLight3)) +
           scale_x_discrete(name="Set") +
           scale_y_continuous(name="Regression beta") +
           #scale_y_continuous(name="Regression beta", limits = c(min(df$low)-0.1*max(abs(df$val)), max(df$high)+0.1*max(abs(df$val)))) +
           coord_flip() +
           facet_wrap(~ set, ncol = 1, shrink = T, drop = T, scales = "free") +
-          theme_bw(base_size = 7) +
-          theme(axis.text.y =element_text(size=5)) +
+          theme_bw(base_size = 8) +
+          theme(axis.text.y =element_text(size=7)) +
           ggtitle(label = paste0("Gene-level MAGMA std. regression betas and standard errors"))
 
         ggsave(filename=file.path(p$folderpath.plots,chosenSet$code[iTrait], paste0("genelevel.multi.",chosenSet$code[iTrait],".png")), plot = cplot, width = 210, height = 297, units = "mm")
