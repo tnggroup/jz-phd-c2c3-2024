@@ -17,7 +17,7 @@ clOptions <- parse_args(clParser)
 cTraitString <- clOptions$task
 cLevelString <- clOptions$task_argument
 
-#cTraitString<-"EDUC03.gz"
+#cTraitString<-"SCHI04.gz"
 #cLevelString<-NA
 
 
@@ -33,7 +33,7 @@ folderpathLDscores <- normalizePath("/Users/jakz/project/JZ_GED_PHD_C1/data/ld_s
 folderpathEvaluationSumstats <- normalizePath("/Users/jakz/project/JZ_GED_PHD_C1/data/gwas_sumstats/munged_1kg_eur_supermunge_noimp", mustWork = T)
 folderpathEvaluationOutput <- normalizePath("/Users/jakz/project/JZ_GED_PHD_C1/working_directory", mustWork = T)
 
-folderpathEvaluationOutputLIMP <- file.path(folderpathEvaluationOutput,"LIMP_100kb")
+folderpathEvaluationOutputLIMP <- file.path(folderpathEvaluationOutput,"LIMP_8kb")
 #folderpathEvaluationOutputLIMP <- file.path(folderpathEvaluationOutput,"LIMP_evaluation_old_8kbwindow")
 dir.create(path = folderpathEvaluationOutputLIMP)
 
