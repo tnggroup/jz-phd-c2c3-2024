@@ -303,8 +303,16 @@ sbatch --time 12:00:00 --partition brc,shared --job-name="refpan" --ntasks 1 --c
 #https://genome.sph.umich.edu/wiki/LiftOver
 #liftOver input.bed hg18ToHg19.over.chain.gz output.bed unlifted.bed
 
+#create a full b38 genetic recombination map from b37 1KG (and HM2 X)
+sbatch --time 1-00:00:00 --partition brc,shared --job-name="cmorgan" --ntasks 1 --cpus-per-task 4 --mem 32G --wrap="Rscript ../../../JZ_GED_PHD_C1/scripts/combine_genetic_recombination_map.R" --output "combine_genetic_recombination_map.$(date +%Y%m%d).out.txt"
+
 #set genomic position in cM
-sbatch --time 2-00:00:00 --partition brc,shared --job-name="cmorgan" --ntasks 1 --cpus-per-task 4 --mem 32G --wrap="Rscript ../../../JZ_GED_PHD_C1/scripts/interpolate_cm.R" --output "interpolate_cm.$(date +%Y%m%d).out.txt"
-sbatch --time 2-00:00:00 --partition brc,shared --job-name="cmorgan" --ntasks 1 --cpus-per-task 4 --mem 32G --wrap="Rscript ../../../JZ_GED_PHD_C1/scripts/interpolate_cm.R -c 22" --output "interpolate_cm.$(date +%Y%m%d).22.out.txt"
+#sbatch --time 1-00:00:00 --partition brc,shared --job-name="cmorgan" --ntasks 1 --cpus-per-task 4 --mem 32G --wrap="Rscript ../../../JZ_GED_PHD_C1/scripts/interpolate_cm.R -c X" --output "interpolate_cm.$(date +%Y%m%d).X.out.txt"
+sbatch --time 12:00:00 --partition brc,shared --job-name="cmorgan2" --ntasks 1 --cpus-per-task 4 --mem 80G --wrap="plink --bfile 1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel --cm-map ../../genetic_recombination_mapping/genetic-map-chr-bp-rr-cm.1KGP3.b38.jz2022.SHAPEIT.chr/genetic_map_chr@_combined_b38.jz2022.txt --make-bed --out 1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel_CM" --output "1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel_CM.plink.$(date +%Y%m%d).out.txt"
+
+#dbSNP
+sbatch --time 12:00:00 --partition brc,shared --job-name="wget" --ntasks 1 --cpus-per-task 4 --mem 8G --wrap="wget -r –level=0 -E –ignore-length -x -k -p -erobots=off -np -N https://ftp.ncbi.nih.gov/snp/organisms/human_9606_b151_GRCh38p7/VCF/00-All.vcf.gz" --output "wget.dbsnp.human_9606_b151_GRCh38p7.$(date +%Y%m%d).out.txt"
+wget -r –level=0 -E –ignore-length -x -k -p -erobots=off -np -N https://ftp.ncbi.nih.gov/snp/organisms/human_9606_b151_GRCh38p7/VCF/00-All.vcf.gz.tbi
+sbatch --time 1-00:00:00 --partition brc,shared --job-name="rsids" --ntasks 1 --cpus-per-task 4 --mem 80G --wrap="Rscript ../../../../JZ_GED_PHD_C1/scripts/set_reference_panel_rsid.R" --output "set_reference_panel_rsid.$(date +%Y%m%d).out.txt"
 
 

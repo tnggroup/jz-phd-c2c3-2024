@@ -3,22 +3,36 @@
 
 library(data.table)
 
+filenameFinal <- "genetic-map-chr-bp-rr-cm.1KGP3.b38.jz2022.gz"
+if(!file.exists(filenameFinal)){
 
 mTot<-c()
-for(iChr in 1:23){
-  #iChr<-1
-  m <- fread(file = file.path(paste0("genetic_map_chr",iChr,"_combined_b37.txt")), na.strings =c(".",NA,"NA",""), encoding = "UTF-8", header = T, check.names = T, fill = T, blank.lines.skip = T, key = c("position"), data.table = T,showProgress = F, nThread=4)
+for(iChr in 1:22){
+  #The 1kg download does not have the X recombination map
+  #iChr<-22
+  m <- fread(file = file.path("1000GP_Phase3",paste0("genetic_map_chr",iChr,"_combined_b37.txt")), na.strings =c(".",NA,"NA",""), encoding = "UTF-8", header = T, check.names = T, fill = T, blank.lines.skip = T, key = c("position"), data.table = T,showProgress = F, nThread=4)
   m$CHR<-iChr
   mTot<-rbind(mTot,m)
 }
 
 colnames(mTot)<-c("BP","RR_CM_MB","CM","CHR")
 
-mTot$SNP<-1:nrow(mTot)
 
+#read the X chromosome info from the HMII map
+m <- fread(file = file.path("genetic_map_HapMapII",paste0("genetic_map_GRCh37_chrX.txt")), na.strings =c(".",NA,"NA",""), encoding = "UTF-8", header = T, check.names = T, fill = T, blank.lines.skip = T, key = c("Position.bp."), data.table = T,showProgress = F, nThread=4)
+m$Chromosome<-23
+colnames(m)<-c("CHR","BP","RR_CM_MB","CM")
+
+mTot<-rbindlist(list(mTot,m),fill=T, use.names=T)
+mTot[,BP:=as.integer(BP)]
+mTot[,RR_CM_MB:=as.double(RR_CM_MB)]
+mTot[,CM:=as.double(CM)]
+mTot[,CHR:=as.integer(CHR)]
+
+mTot$SNP<-1:nrow(mTot)
 mTot<-mTot[,c("SNP","CHR","BP","RR_CM_MB","CM")]
 
-fwrite(x = mTot, file = "genetic-map-chr-bp-rr-cm.1KGP3.grch37.gz", append = F, quote = F, sep = "\t",na = "NA", col.names = T,nThread=4)
+fwrite(x = mTot, file = "genetic-map-chr-bp-rr-cm.1KGP3.b37.jz2022.gz", append = F, quote = F, sep = "\t",na = "NA", col.names = T,nThread=4)
 
 #if not already present
 #mTot<-fread(file = file.path("genetic-map-chr-bp-rr-cm.1KGP3.grch37.gz"), na.strings =c(".",NA,"NA",""), encoding = "UTF-8",check.names = T, fill = T, blank.lines.skip = T, data.table = T,showProgress = F, nThread=4)
@@ -49,6 +63,9 @@ chains.dt$qName[chains.dt$strange_qName] <- unlist(lapply(matches[chains.dt$stra
 #chromosome Un
 #https://genome.ucsc.edu/FAQ/FAQdownloads.html#download11
 
+chains.dt[,score:=as.numeric(score)]
+chains.dt[,tName:=as.integer(tName)]
+chains.dt[,qName:=as.integer(qName)]
 
 setkeyv(chains.dt,cols = c("tStart","tEnd","qStart","qEnd","id","row"))
 #chains.dt<-chains.dt[order("row")]
@@ -91,15 +108,64 @@ for(i in 1:nrow(chains.dt)){
   
 }
 
+nrow(mTot)
+
 remapped <- mTot[CHR!=CHR2 | BP!= BP2,]
 nrow(remapped)
 
 unmapped <- mTot[is.na(CHR2) | is.na(BP2),]
 nrow(unmapped)
 
-mTot<-mTot[!(is.na(CHR2) | is.na(BP2)),][,c("CHR","BP"):=list(CHR2,BP2)]
-nrow(mTot[CHR!=CHR2 | BP!= BP2,]) #check
+mTot<-mTot[!(is.na(CHR2) | is.na(BP2)),][,c("CHR_ORIG","BP_ORIG"):=list(CHR,BP)][,c("CHR","BP"):=list(CHR2,BP2)]
+nrow(mTot[CHR!=CHR2 | BP!= BP2,]) #check - should be 0
 
-mTot<-mTot[,c("SNP","CHR","BP","RR_CM_MB","CM")]
-fwrite(x = mTot, file = "genetic-map-chr-bp-rr-cm.1KGP3.grch38.gz", append = F, quote = F, sep = "\t",na = "NA", col.names = T,nThread=4)
+mTot<-mTot[,c("SNP","CHR","BP","RR_CM_MB","CM","CHR_ORIG","BP_ORIG")]
+
+
+#fix remapped previous cM values
+setkeyv(mTot,cols = c("SNP","CHR","BP","CHR_ORIG","BP_ORIG"))
+mTot<-mTot[order(mTot$CHR,mTot$BP),]
+#mTot[,misaligned:=CHR!=CHR_ORIG]
+chromosomes <- unique(mTot$CHR)
+cat("Setting misalignment note for chromosomes")
+cat(chromosomes)
+for(iCHR in 1:length(chromosomes)){
+  #iCHR<-15
+  cat("\nSetting misalignment note for chromosome",chromosomes[iCHR])
+  sub<-mTot[CHR==chromosomes[iCHR],]
+  n_sub<-nrow(sub)
+  for(iSNP in 2:n_sub){
+    set(x = sub,i = iSNP,j = "misaligned",
+        value = ((sub$CHR!=sub$CHR_ORIG || sub$BP!=sub$BP_ORIG) && any(sub[iSNP,]$CM < sub$CM && sub[iSNP,]$BP > sub$BP) || (sub[iSNP,]$CM > sub$CM && sub[iSNP,]$BP < sub$BP))
+    )
+  }
+  
+  misaligned<-sub[misaligned==T,]$SNP
+  mTot[SNP %in% misaligned,]$CM<-NA
+  
+}
+
+#remove rows with NA
+hasNa <- rowSums(is.na(mTot)) > 0
+cat("\nNumber of rows with NA:",sum(hasNa),"\n")
+mTot<-mTot[!hasNa,]
+
+
+fwrite(x = mTot, file = file.path(filenameFinal), append = F, quote = F, sep = "\t",na = "NA", col.names = T, nThread=4)
+} else {
+  mTot <- fread(file = file.path(filenameFinal), na.strings =c(".",NA,"NA",""), encoding = "UTF-8", header = T, check.names = T, fill = T, blank.lines.skip = T, data.table = T,showProgress = F, nThread=4)
+}
+
+#SHAPEIT genetic map, per chromosome
+chromosomes<-unique(mTot$CHR)
+
+for(iChromosome in 1:length(chromosomes)){
+  #iChromosome<-1
+  cChromosome<-chromosomes[iChromosome]
+  mTotChr<-mTot[CHR==eval(cChromosome),c("BP","RR_CM_MB","CM")]
+  names(mTotChr)<-c("position","COMBINED_rate(cM/Mb)","Genetic_Map(cM)")
+  fwrite(x = mTotChr, file = file.path("genetic-map-chr-bp-rr-cm.1KGP3.b38.jz2022.SHAPEIT.chr",paste0("genetic_map_chr",cChromosome,"_combined_b38.jz2022.txt")), append = F, quote = F, sep = " ",na = "NA", col.names = T, nThread=4) #space delimited!
+}
+
+
 

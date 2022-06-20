@@ -14,7 +14,7 @@ mTot<-fread(file = file.path("genetic-map-chr-bp-rr-cm.1KGP3.grch38.gz"), na.str
 #chromosomes <- unique(mTot$CHR)
 
 #Update the BIM!
-d <- fread(file = file.path("../reference_panel/hc1kg.grch38.plink/1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.bim"), na.strings =c(".",NA,"NA",""), encoding = "UTF-8",check.names = T, fill = T, blank.lines.skip = T, data.table = T,showProgress = F, nThread=4, header = F)
+d <- fread(file = file.path("../reference_panel/hc1kgp3.b38.plink/1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.bim"), na.strings =c(".",NA,"NA",""), encoding = "UTF-8",check.names = T, fill = T, blank.lines.skip = T, data.table = T,showProgress = F, nThread=4, header = F)
 colnames(d)<-c("CHR","SNP","CM","BP","A1","A2")
 #for test!!! d<-d[1:100000,] d<-d[CHR=="chrX",]
 d$NSNP <- paste0(1:nrow(d),"_interpolate_cm_UNKNOWN")
@@ -26,6 +26,7 @@ mTot$RR_CM_BP<-as.numeric(mTot$RR_CM_MB)/10^6
 setkeyv(d,cols = c("CHR","SNP","BP"))
 chromosomes <- unique(d$CHR)
 print(chromosomes)
+print(unique(mTot$CHR))
 print("Running interpolation of CM!")
 #for(i in 1:length(chromosomes)){
   #i<-1
@@ -34,7 +35,7 @@ print("Running interpolation of CM!")
   print(paste("Processing chromosome",cChr))
   dChr<-d[CHR==eval(cChr),][order(BP,SNP),]
   #for test!!!
-  dChr<-dChr[1:1000000,] #REMOVE THIS
+  #dChr<-dChr[1:1000000,] #REMOVE THIS
   
   setkeyv(dChr,cols = c("SNP","BP"))
   
@@ -72,7 +73,13 @@ print("Running interpolation of CM!")
   #dChr[,CM:=(DCM/DBP + (RR0*(DBP-d)/DBP + RR1*d/DBP)*(DBP/2-abs(DBP/2-d)))*d + CM0]
   dChr[,CM:=(DCM/DBP)*d + CM0]
   
-  fwrite(x = dChr[,c("CHR","SNP","CM","BP","A1","A2")], file = paste0("../reference_panel/hc1kg.grch38.plink/1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel_CM_",cChr,".gz"), append = F, quote = F, sep = "\t",na = "NA", col.names = F,nThread=4)
+  fwrite(x = dChr[,c("CHR","SNP","CM","BP","A1","A2")], file = paste0("../reference_panel/hc1kgp3.b38.plink/1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel_CM_",cChr,".gz"), append = F, quote = F, sep = "\t",na = "NA", col.names = F,nThread=4)
+  
+  #SHAPEIT genetic map, per chromosome
+  dChr<-dChr[,RR:=RR1*10^6]
+  dChr<-dChr[,c("BP","RR","CM")]
+  names(dChr)<-c("position","COMBINED_rate(cM/Mb)","Genetic_Map(cM)")
+  fwrite(x = dChr, file = paste0("genetic_map_chr",shru::parseCHRColumn(cChr),"_combined_b38.txt"), append = F, quote = F, sep = " ",na = "NA", col.names = T,nThread=4) #space delimited!
   
   
   #d[dChr,on=c('CHR','SNP'),CM:=i.CM]

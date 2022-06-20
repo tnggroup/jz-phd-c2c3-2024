@@ -2042,19 +2042,27 @@ for(iSelected in 1:nrow(p$CFA$models.selected)){
   colnames(df)<-paste0(colnames(df),"(mExp=",round(cModel$parsedGsemResults[[1]][[1]]$meanRelativeVarianceExplainedPerFactor,digits = 2),")")
   df[,c(paste0("~disturbance(mExp=",round(cModel$parsedGsemResults[[1]][[1]]$meanTotalRelativeVarianceExplained,digits = 2),")"))]<-cModel$parsedGsemResults[[1]][[1]]$residualVariancesSTDGenotype.matrix #add disturbances
   df<-rownames_to_column(df,var = "var")
-  df.l <- pivot_longer(data = df,  -var)
   
-  ggplot(df.l, aes(var, abs(value), fill=value)) + 
+  #set nice rownames
+  df$var <- p$sumstats.sel[df$var, ]$name.nice
+  #df<-df[order(df$var, decreasing = T,method = "radix"),]
+  df$var <- as.factor(df$var)
+  
+  df.l <- pivot_longer(data = df,  -var)
+  #df.l<-df.l[order(df.l$name,df.l$var, decreasing = c(F,F),method = "radix"),]
+  
+  #ggplot(df.l, aes(x = var, y = abs(value), fill=value)) + 
+  ggplot(df.l, aes(x = abs(value), y = var, fill=value)) + 
   facet_wrap(~ name, nrow=1) + #place the factors in separate facets #scales = "free_x"
   geom_bar(stat="identity") + #make the bars
-  coord_flip() + #flip the axes so the test names can be horizontal  
+  #coord_flip() + #flip the axes so the test names can be horizontal  
   #define the fill color gradient: blue=positive, red=negative
   scale_fill_gradient2(name = "Loading", 
                        high = theme.color$contrastLight3, mid = "grey90", low = theme.color$contrastDark3, 
                        midpoint=0, guide=F) +
-  ylab("Std. factor loading") + #improve y-axis label
-  #ylab("Variance explained in indicator * sign(loading)") + #improve y-axis label
-  xlab("Indicator") +
+  xlab("Std. factor loading") + #improve y-axis label
+  #xlab("Variance explained in indicator * sign(loading)") + #improve y-axis label
+  ylab("Indicator") +
   theme_bw(base_size=22) #use a black-and white theme with set font size
   
   ggsave(filename=file.path(p$folderpath.plots,cModel$code, paste0("ipc.png")), plot = last_plot(), width = 800, height = 400, units = "mm")
@@ -2701,17 +2709,17 @@ p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,
 
 #GSEM latent factor GWAS
 factorCode<-"GSEM.F1"
-p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_172.COR.ML.F1","fNeuroticism",364979)
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_172.COR.ML.F1","Factor neuroticism",364979)
 factorCode<-"GSEM.F2"
-p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_172.COR.ML.F2","fPsychoticism",159862)
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_172.COR.ML.F2","Factor psychoticism",159862)
 factorCode<-"GSEM.F3"
-p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_172.COR.ML.F3","fDepression",448644)
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_172.COR.ML.F3","Factor depression",448644)
 factorCode<-"GSEM.F4"
-p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_172.COR.ML.F4","fRisktaking",46293)
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_172.COR.ML.F4","Factor risktaking",46293)
 factorCode<-"GSEM.F5"
-p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_172.COR.ML.F5","fDeprivation",271911)
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_172.COR.ML.F5","Factor deprivation",271911)
 factorCode<-"GSEM.F6"
-p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_172.COR.ML.F6","fNeuropsyche",91409)
+p$sumstats[factorCode,c("code","code.file","name","n_effective")]<-c(factorCode,"M20_6_172.COR.ML.F6","Factor neuropsyche",91409)
 
 #nmeta latent factor GWAS
 factorCode<-"nmeta.CF1"
@@ -3673,6 +3681,7 @@ gtsave(data = p$plots.factors.sel.table, filename = paste0(p$folderpath.plots,"/
 
 ## Gene association analyses, multivariate
 ```{r Plots gene association analyses - multivariate, fig.width=10, fig.height=6, out.width="1600px", out.height="1000px", eval=FALSE, purl=FALSE}
+#install.packages("UpSetR")
 library(UpSetR)
 #https://upset.app/
 #Don't forget to cite!
@@ -3687,6 +3696,9 @@ for(iTrait in 1:nrow(chosenSet)){
   cAssociation <- cAssociation[cAssociation$P.FDR<0.05,]
   codesAllSets[[cCode]] <- c(cAssociation$CODE)
 }
+
+#set nice names
+names(codesAllSets) <- p$sumstats.sel[names(codesAllSets), ]$name.nice
 
 #png(filename = file.path(p$folderpath.plots,paste0("ga.png")), width = 800, height = 600, units = "px")
 pdf(file = file.path(p$folderpath.plots,paste0("ga.pdf")))
