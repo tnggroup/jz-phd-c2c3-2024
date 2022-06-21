@@ -313,6 +313,7 @@ sbatch --time 12:00:00 --partition brc,shared --job-name="cmorgan2" --ntasks 1 -
 #dbSNP
 sbatch --time 12:00:00 --partition brc,shared --job-name="wget" --ntasks 1 --cpus-per-task 4 --mem 8G --wrap="wget -r –level=0 -E –ignore-length -x -k -p -erobots=off -np -N https://ftp.ncbi.nih.gov/snp/organisms/human_9606_b151_GRCh38p7/VCF/00-All.vcf.gz" --output "wget.dbsnp.human_9606_b151_GRCh38p7.$(date +%Y%m%d).out.txt"
 wget -r –level=0 -E –ignore-length -x -k -p -erobots=off -np -N https://ftp.ncbi.nih.gov/snp/organisms/human_9606_b151_GRCh38p7/VCF/00-All.vcf.gz.tbi
-sbatch --time 1-00:00:00 --partition brc,shared --job-name="rsids" --ntasks 1 --cpus-per-task 4 --mem 80G --wrap="Rscript ../../../../JZ_GED_PHD_C1/scripts/set_reference_panel_rsid.R" --output "set_reference_panel_rsid.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition brc,shared --job-name="rsids" --ntasks 1 --cpus-per-task 5 --mem 120G --wrap="Rscript ../../../../JZ_GED_PHD_C1/scripts/set_reference_panel_rsid.R" --output "set_reference_panel_rsid.$(date +%Y%m%d).out.txt"
+
 
 
