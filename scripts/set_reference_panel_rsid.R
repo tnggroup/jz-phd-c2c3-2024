@@ -12,9 +12,9 @@ filepath.dbSNP <- file.path("..","dbsnp.human_9606_b151_GRCh38p7","00-All.vcf") 
 filepath.refpanelBim <- file.path("1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.bim")
 
 
-increment<-10000000
+increment<-30000000
 nrows <- 56
-
+dbSNP.nrows<-660146231
 
 dbSNP.dt.top<-fread(file = filepath.dbSNP, na.strings =c(".",NA,"NA",""), encoding = "UTF-8", fill = T, blank.lines.skip = T, data.table = T,showProgress = T, nThread = nThreads, nrows = 60, skip=nrows, sep="\t")
 cat("\nRead top dbSNP\n")
@@ -58,6 +58,7 @@ for(iIteration in 1:10000){
   print(dbSNP.dt[,1:8])
   
   cat("\n\nUpdating rsid's\n")
+  #This is not optimal as alleles can have alternate forms in the VCF separated by a comma
   refpanelBim.dt[dbSNP.dt,on=c(V1="#CHROM",V4="POS",V5="REF",V6="ALT"),c("NNAME","CHR_REF","BP_REF") :=list(i.ID,`i.#CHROM`,i.POS)]
   cat("\nUpdating rsid's\n")
   refpanelBim.dt[dbSNP.dt,on=c(V1="#CHROM",V4="POS",V5="ALT",V6="REF"),c("NNAME","CHR_REF","BP_REF") :=list(i.ID,`i.#CHROM`,i.POS)]
@@ -67,7 +68,7 @@ for(iIteration in 1:10000){
                  ,on=c(V1="#CHROM",V4="POS",V6="REF"),c("NNAME","CHR_REF","BP_REF") :=list(i.ID,`i.#CHROM`,i.POS)]
   cat("Updated rsid's\n")
   
-  nrows <- nrows + increment
+  nrows <- clipValues(x = (nrows + increment),min = NA, max = dbSNP.nrows)
 }
 
 refpanelBim.dt[is.na(NNAME),NNAME:=V2]

@@ -1,0 +1,195 @@
+---
+title: "INSERT TITLE"
+author: "INSERT NAME"
+date: "23/06/2022"
+output:
+  html_document:
+    fig_height: 6
+    fig_width: 9
+  pdf_document: default
+  word_document:
+    fig_height: 6
+    fig_width: 9
+---
+
+```{r clean, include=FALSE, purl=FALSE}
+rm(list = ls(all.names = TRUE)) #will clear all objects includes hidden objects.
+#gc() #free up memory and report the memory usage.
+```
+
+# Packages
+```{r package setup, echo=FALSE, warning=F}
+
+library(data.table)
+
+```
+
+# Script settings
+```{r settings}
+
+folderpath.project<-normalizePath("/Users/jakz/project/JZ_GED_PHD_C1",mustWork = T) #Set the absolute path to the project folder here
+folderpath.work<-file.path(folderpath.project,"Work")
+folderpath.data<-file.path(folderpath.project,"Data")
+
+
+filepath.geneMapping<-file.path(folderpath.data,"gene_mapping","NCBI37.3.gene.loc")
+
+
+
+```
+
+```{r knitr setup, include=FALSE, purl=FALSE}
+knitr::opts_chunk$set(echo = TRUE,comment=NA,prompt=FALSE,cache=FALSE)
+knitr::opts_knit$set(root.dir=normalizePath(folderpath.work))
+
+```
+
+# Metadata setup
+
+## Setup GWAS summary statistics datasets
+
+```{r setup GWAS sumstat datasets}
+
+gwas_sumstats<-as.data.frame(matrix(data = NA,nrow = 0,ncol = 0))
+gwas_sumstats[nrow(gwas_sumstats)+1,c("code","name", "nCase","nControl","gwasReferenceDOI","populationPrevalence","prevalenceReferenceDOI","filePath")] <- list(
+  code="DEPR",
+  name="Major depressive disorder",
+  nCase=16823,
+  nControl=25632,
+  gwasReferenceDOI="https://doi.org/10.1038/s41588-018-0090-3",
+  populationPrevalence=.146, #MDD, .15 from the LD-calculations in https://doi.org/10.1038/s41588-018-0090-3 (2018), but with a possible reference to https://doi.org/10.1146/annurev-publhealth-031912-114409 (2013) which states 14.6% lifetime prevalence of MDE in high-income countries.
+  prevalenceReferenceDOI="https://doi.org/10.1146/annurev-publhealth-031912-114409",
+  filePath=file.path(folderpath.data,"GWAS","DEPR08.gz")
+  )
+
+gwas_sumstats[nrow(gwas_sumstats)+1,c("code","name", "nCase","nControl","gwasReferenceDOI","populationPrevalence","prevalenceReferenceDOI","filePath")]<- list(
+  code="NEUR",
+  name="Neuroticism",
+  nCase=449484,
+  nControl=0,
+  gwasReferenceDOI="https://doi.org/10.1038/s41588-018-0151-7",
+  populationPrevalence=NA_real_,
+  prevalenceReferenceDOI=NA_character_,
+  filePath=file.path(folderpath.data,"GWAS","NEUR02.gz")
+  )
+
+
+gwas_sumstats$nTotal<-gwas_sumstats$nCase+gwas_sumstats$nControl
+
+rownames(gwas_sumstats)<-gwas_sumstats$code
+
+
+```
+
+
+## Setup gene sets
+```{r Setup gene sets}
+genesets<-as.data.frame(matrix(data=NA,nrow = 0,ncol = 0))
+
+genesets["gtex8_rnaseq_median",c("code","filePath")]<-c("GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct",file.path(folderpath.data,"genesets", "GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz"))
+
+genesets["brainspan_rnaseq_mean",c("code","filePath")]<-c("BRAINSPAN_RNA-Seq_Gencode_v10_summarized_to_genes_genes_matrix_csv",file.path(folderpath.data,"genesets","BRAINSPAN_RNA-Seq_Gencode_v10_summarized_to_genes_genes_matrix_csv","expression_matrix.csv"))
+
+genesets["msigdb.h.all.v7.5.1",c("code","filePath")]<-c("MSigDB Hallmark",file.path(folderpath.data,"genesets","msigdb.h.all.v7.5.1.symbols.gmt"))
+genesets["msigdb.c2.cp.biocarta.v7.5.1",c("code","filePath")]<-c("MSigDB Canonical pathways Biocarta",file.path(folderpath.data,"genesets","msigdb.c2.cp.biocarta.v7.5.1.symbols.gmt"))
+genesets["msigdb.c2.cp.kegg.v7.5.1",c("code","filePath")]<-c("MSigDB Canonical pathways KEGG",file.path(folderpath.data,"genesets","msigdb.c2.cp.kegg.v7.5.1.symbols.gmt"))
+genesets["msigdb.c3.mir.mirdb.v7.5.1",c("code","filePath")]<-c("MSigDB Regulatory target miRDB",file.path(folderpath.data,"genesets","msigdb.c3.mir.mirdb.v7.5.1.symbols.gmt"))
+genesets["msigdb.c3.tft.gtrd.v7.5.1",c("code","filePath")]<-c("MSigDB Regulatory target GTRD",file.path(folderpath.data,"genesets","msigdb.c3.tft.gtrd.v7.5.1.symbols.gmt"))
+genesets["msigdb.c5.all.v7.5.1",c("code","filePath")]<-c("MSigDB Ontology",file.path(folderpath.data,"genesets","msigdb.c5.all.v7.5.1.symbols.gmt"))
+genesets["msigdb.c7.all.v7.5.1",c("code","filePath")]<-c("MSigDB Immunologic signature",file.path(folderpath.data,"genesets","msigdb.c7.all.v7.5.1.symbols.gmt"))
+genesets["msigdb.c8.all.v7.5.1",c("code","filePath")]<-c("MSigDB Cell type",file.path(folderpath.data,"genesets","msigdb.c8.all.v7.5.1.symbols.gmt"))
+
+rownames(genesets)<-genesets$code
+
+
+```
+
+
+## Harmonise gene sets to gene map and MAGMA format
+
+This does not have to be run all the time after we have run it once. Or I could just give you the formatted files. Can be used for reference to see what was being done to the original gene set files.
+
+```{r Harmonise gene sets to gene map and MAGMA format}
+
+geneMap<-fread(file = filepath.geneMapping, na.strings =c(".",NA,"NA",""), encoding = "UTF-8",check.names = T, fill = T, blank.lines.skip = T, data.table = T,showProgress = F, nThread=5)
+setkeyv(geneMap,cols = c("V6"))
+rownames(geneMap)<-geneMap$V6
+geneCodesByName<-geneMap$V1
+names(geneCodesByName)<-geneMap$V6
+
+#gtex
+cCode<-"gtex8_rnaseq_median"
+cGeneSet<-read.table(genesets[cCode,]$filePath, header=T, quote="\"",fill=T,na.string=c(".",NA,"NA",""), sep="\t", skip = 2)
+setDT(cGeneSet,key = "Description")
+cGeneSet[geneMap, on=c(Description='V6'), c("KEY"):=list(i.V1)]
+ncolnames<-c("KEY",colnames(cGeneSet)[3:(length(colnames(cGeneSet))-1)]) #columns from after description
+cGeneSet <- cGeneSet[,..ncolnames][!is.na(KEY),]
+cGeneSet <- aggregate(x = cGeneSet, by = list(cGeneSet$KEY), FUN = head, 1) #DO I NEED THIS?
+cGeneSet <- cGeneSet[,2:length(colnames(cGeneSet))]
+fwrite(x = cGeneSet, file = file.path(folderpath.work,paste0("geneset.",cCode,".magma")), append = F, quote = F, sep = "\t",na = "NA", col.names = T,nThread=5)
+
+#brainspan
+cCode<-"brainspan_rnaseq_mean"
+cGeneSet<-read.table(genesets[cCode,]$filePath, header=F, quote="\"",fill=T,na.string=c(".",NA,"NA",""), sep=",")
+cGenes<-read.table(file.path(folderpath.data,"genesets","BRAINSPAN_RNA-Seq_Gencode_v10_summarized_to_genes_genes_matrix_csv","rows_metadata.csv"), header=T, quote="\"",fill=T,na.string=c(".",NA,"NA",""), sep=",")
+cSets<-read.table(file.path(folderpath.data,"genesets","BRAINSPAN_RNA-Seq_Gencode_v10_summarized_to_genes_genes_matrix_csv","columns_metadata.csv"), header=T, quote="\"",fill=T,na.string=c(".",NA,"NA",""), sep=",")
+
+cGeneSet<-cGeneSet[,2:ncol(cGeneSet)]
+colnames(cGeneSet)<-cSets$structure_name
+cGeneSet$gene_symbol<-cGenes$gene_symbol
+
+ncolnames<-c("gene_symbol",colnames(cGeneSet)[1:(ncol(cGeneSet)-1)])
+cGeneSet<-cGeneSet[,ncolnames]
+
+setDT(cGeneSet,key = "gene_symbol") 
+
+cGeneSet[p$geneMap, on=c(gene_symbol='V6'), c("KEY"):=list(i.V1)]
+ncolnames<-c("KEY",colnames(cGeneSet)[2:(length(colnames(cGeneSet))-1)]) #columns after rearrangement
+cGeneSet <- cGeneSet[,..ncolnames][!is.na(KEY),]
+cGeneSet <- aggregate(x = cGeneSet, by = list(cGeneSet$KEY), FUN = head, 1) #DO I NEED THIS?
+cGeneSet <- cGeneSet[,2:ncol(cGeneSet)]
+colnames(cGeneSet)<-gsub(pattern = " ", replacement = "_", x = colnames(cGeneSet))
+fwrite(x = cGeneSet, file = file.path(folderpath.work,paste0("geneset.",cCode,".magma")), append = F, quote = F, sep = "\t",na = "NA", col.names = T,nThread=5)
+
+#MSigDB
+chosenSet<-c("msigdb.h.all.v7.5.1","msigdb.c2.cp.biocarta.v7.5.1","msigdb.c2.cp.kegg.v7.5.1", "msigdb.c3.mir.mirdb.v7.5.1","msigdb.c3.tft.gtrd.v7.5.1", "msigdb.c5.all.v7.5.1","msigdb.c7.all.v7.5.1","msigdb.c8.all.v7.5.1")
+for(cCode in chosenSet){
+  #cCode<-"msigdb.c2.cp.biocarta.v7.5.1"
+  cGeneSet<-read.table(genesets[cCode,]$filePath, header=F, quote="\"",fill=T,na.string=c(".",NA,"NA",""), sep="\t")
+  incols<-c(1,3:ncol(cGeneSet))
+  cGeneSet<-cGeneSet[,incols]
+  setDT(cGeneSet,key = "V1")
+  for(iCol in 2:ncol(cGeneSet)){
+    #iCol<-2
+    col<-colnames(cGeneSet)[iCol]
+    cGeneSet[, (col):=geneCodesByName[get(col)]]
+  }
+  rcount <- aggregate(V3 ~ V1,cGeneSet,length)
+  rcount <- rcount[rcount$V3>1,]
+  cGeneSet2 <- aggregate(x = cGeneSet, by = list(cGeneSet$V1), FUN = head, 1) #remove duplicate sets
+  cGeneSet2 <- cGeneSet2[,2:ncol(cGeneSet2)]
+  rownames(cGeneSet2)<-cGeneSet2$V1
+  
+  if(nrow(rcount)>0){
+    cGeneSet2[,(ncol(cGeneSet2)+1):(2*(ncol(cGeneSet2)+1))]<-NA #add more columns to make room for new data
+    
+    #collect genes from duplicate set rows
+    for(i in 1:nrow(rcount)){
+      #i<-2
+      cGeneSet2[rcount$V1[i],2:ncol(cGeneSet2)] <- padList(unique(unlist(cGeneSet[V1==rcount$V1[i],2:ncol(cGeneSet)])),NA,ncol(cGeneSet2))
+    }
+  }
+  
+  fwrite(x = cGeneSet2, file = file.path(folderpath.work,paste0("geneset.",cCode,".magma")), append = F, quote = F, sep = "\t",na = "NA", col.names = F,nThread=5)
+}
+
+```
+
+
+
+
+
+
+
+
+
