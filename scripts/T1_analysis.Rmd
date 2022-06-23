@@ -28,8 +28,8 @@ library(data.table)
 ```{r settings}
 
 folderpath.project<-normalizePath("/Users/jakz/project/JZ_GED_PHD_C1",mustWork = T) #Set the absolute path to the project folder here
-folderpath.work<-file.path(folderpath.project,"Work")
-folderpath.data<-file.path(folderpath.project,"Data")
+folderpath.work<-file.path(folderpath.project,"working_directory")
+folderpath.data<-file.path(folderpath.project,"data")
 
 
 filepath.geneMapping<-file.path(folderpath.data,"gene_mapping","NCBI37.3.gene.loc")
@@ -59,7 +59,7 @@ gwas_sumstats[nrow(gwas_sumstats)+1,c("code","name", "nCase","nControl","gwasRef
   gwasReferenceDOI="https://doi.org/10.1038/s41588-018-0090-3",
   populationPrevalence=.146, #MDD, .15 from the LD-calculations in https://doi.org/10.1038/s41588-018-0090-3 (2018), but with a possible reference to https://doi.org/10.1146/annurev-publhealth-031912-114409 (2013) which states 14.6% lifetime prevalence of MDE in high-income countries.
   prevalenceReferenceDOI="https://doi.org/10.1146/annurev-publhealth-031912-114409",
-  filePath=file.path(folderpath.data,"GWAS","DEPR08.gz")
+  filePath=file.path(folderpath.data,"gwas_sumstats","munged_1kg_eur_supermunge","DEPR08.gz")
   )
 
 gwas_sumstats[nrow(gwas_sumstats)+1,c("code","name", "nCase","nControl","gwasReferenceDOI","populationPrevalence","prevalenceReferenceDOI","filePath")]<- list(
@@ -70,11 +70,16 @@ gwas_sumstats[nrow(gwas_sumstats)+1,c("code","name", "nCase","nControl","gwasRef
   gwasReferenceDOI="https://doi.org/10.1038/s41588-018-0151-7",
   populationPrevalence=NA_real_,
   prevalenceReferenceDOI=NA_character_,
-  filePath=file.path(folderpath.data,"GWAS","NEUR02.gz")
+  filePath=file.path(folderpath.data,"gwas_sumstats","munged_1kg_eur_supermunge","NEUR02.gz")
   )
 
 
 gwas_sumstats$nTotal<-gwas_sumstats$nCase+gwas_sumstats$nControl
+gwas_sumstats[gwas_sumstats$nControl>0,c("samplePrevalence")]<-gwas_sumstats[gwas_sumstats$nControl>0,]$nCase/gwas_sumstats[gwas_sumstats$nControl>0,]$nTotal
+
+
+gwas_sumstats$filePath.mtCOJO<-file.path(folderpath.data,"gwas_sumstats","munged_1kg_eur_supermunge",paste0(gwas_sumstats$code,".raw.gz"))
+
 
 rownames(gwas_sumstats)<-gwas_sumstats$code
 
@@ -104,8 +109,27 @@ rownames(genesets)<-genesets$code
 
 ```
 
+# Create mtCOJO input files and GWAS sumstats in mtCOJO format
 
-## Harmonise gene sets to gene map and MAGMA format
+```{r Create mtCOJO input files}
+
+#output mtCOJO formatted sumstats (.raw)
+for(iGWAS in 1:nrow(gwas_sumstats)){
+  #iGWAS<-2
+  cGWAS<-fread(file = gwas_sumstats[iGWAS,]$filePath, na.strings =c(".",NA,"NA",""), encoding = "UTF-8",check.names = T, fill = T, blank.lines.skip = T, data.table = T, nThread = 5, showProgress = F)
+  
+  fwrite(x = cGWAS[,.(SNP,A1,A2,freq=FRQ,b=EFFECT,se=SE,p=P,N)], file = gwas_sumstats[iGWAS,]$filePath.mtCOJO, append = F, quote = F, sep = "\t",na = "NA", col.names = T,nThread=5)
+  
+}
+
+#output the mtcojo_summary_data.list
+fwrite(x = gwas_sumstats[,c("code","filePath.mtCOJO","samplePrevalence","populationPrevalence")], file = file.path(folderpath.work,"mtcojo_summary_data.list"), append = F, quote = F, sep = "\t",na = "", col.names = F,nThread=5)
+
+
+```
+
+
+# Harmonise gene sets to gene map and MAGMA format
 
 This does not have to be run all the time after we have run it once. Or I could just give you the formatted files. Can be used for reference to see what was being done to the original gene set files.
 
@@ -184,6 +208,10 @@ for(cCode in chosenSet){
 }
 
 ```
+
+
+
+
 
 
 
