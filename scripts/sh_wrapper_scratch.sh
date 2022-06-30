@@ -14,7 +14,10 @@ plink --merge-list ~/project/JZ_GED_PHD_C1/working_directory/plink.merge.txt --m
 
 rsync -avzhpt --progress /mnt/lustre/groups/ukbiobank/sumstats/ /scratch/groups/gwas_sumstats/
 #sbatch --time 2-00:00:00 --partition brc,shared --job-name="rsync" --ntasks 1 --cpus-per-task 2 --mem 16G --wrap="rsync -avzhpt /mnt/lustre/groups/ukbiobank/sumstats/ /scratch/groups/gwas_sumstats/" --output "rsync.$(date +%Y%m%d).out.txt"
+#This command may have added duplicate subfolders under each folder
 ls /mnt/lustre/groups/ukbiobank/sumstats | xargs -n 1 -P 4 -I % rsync -avzhpt /mnt/lustre/groups/ukbiobank/sumstats/% /scratch/groups/gwas_sumstats/%
+rsync -avzhpt --progress /rosalind_ro/scratch/groups/gwas_sumstats/ /scratch/prj/gwas_sumstats/
+
 
 #work
 
@@ -288,32 +291,8 @@ sbatch --time 2-00:00:00 --partition brc,shared --job-name="ssimp" --ntasks 1 --
 
 sbatch --time 1:00:00 --partition brc,shared --job-name="ssimp" --ntasks 1 --cpus-per-task 3 --mem 8G --wrap="export LC_ALL=C; /mnt/lustre/groups/gwas_sumstats/ssimp_software-master/ssimp --gwas ../working_directory/IMPTEST/ADHD05.gz.0.2.missing.ssimp --ref /mnt/lustre/groups/gwas_sumstats/ssimp_software-master/ref/small.vcf.sample.vcf.gz --out ../working_directory/IMPTEST/ADHD05.gz.0.2.ssimp.gz;" --output "SSIMP_evaluation.ADHD05.$(date +%Y%m%d).out.txt"
 
-#new high coverage 1KG reference panel
-sbatch --time 12:00:00 --partition brc,shared --job-name="wget" --ntasks 1 --cpus-per-task 4 --mem 8G --wrap="wget -r –level=0 -E –ignore-length -x -k -p -erobots=off -np -N http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/working/20220422_3202_phased_SNV_INDEL_SV" --output "wget.hc1kg.$(date +%Y%m%d).out.txt"
-vcf-concat 1kGP_high_coverage_Illumina.chr*.filtered.SNV_INDEL_SV_phased_panel.vcf.gz | gzip > 1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.vcf.gz #change this to use bgzip -c instead, for getting the correct zip format to work with tabix.
-#alternatively with bcftools(not tested) to get the correct BGZF zip format:
-#bcftools concat -o 1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.vcf.gz
-bcftools view -Oz -o 1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel_2.vcf.gz 1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.vcf.gz #used to get the correct zip-format. rename second version to original file-name and continue. discard the first file.
-tabix -p vcf 1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.vcf.gz
-sbatch --time 12:00:00 --partition brc,shared --job-name="refpan" --ntasks 1 --cpus-per-task 4 --mem 60G --wrap="plink --vcf 1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.vcf.gz --out 1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel" --output "1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.vcf.gz.plink.$(date +%Y%m%d).out.txt"
-#run combine_genetic_recombination_map.R - does the liftover!!!!
-#otherwise
-#Liftover needs the UCSC tools from: http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/
-#UCSC LiftOver
-#https://genome.sph.umich.edu/wiki/LiftOver
-#liftOver input.bed hg18ToHg19.over.chain.gz output.bed unlifted.bed
 
-#create a full b38 genetic recombination map from b37 1KG (and HM2 X)
-sbatch --time 1-00:00:00 --partition brc,shared --job-name="cmorgan" --ntasks 1 --cpus-per-task 4 --mem 32G --wrap="Rscript ../../../JZ_GED_PHD_C1/scripts/combine_genetic_recombination_map.R" --output "combine_genetic_recombination_map.$(date +%Y%m%d).out.txt"
-
-#set genomic position in cM
-#sbatch --time 1-00:00:00 --partition brc,shared --job-name="cmorgan" --ntasks 1 --cpus-per-task 4 --mem 32G --wrap="Rscript ../../../JZ_GED_PHD_C1/scripts/interpolate_cm.R -c X" --output "interpolate_cm.$(date +%Y%m%d).X.out.txt"
-sbatch --time 12:00:00 --partition brc,shared --job-name="cmorgan2" --ntasks 1 --cpus-per-task 4 --mem 80G --wrap="plink --bfile 1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel --cm-map ../../genetic_recombination_mapping/genetic-map-chr-bp-rr-cm.1KGP3.b38.jz2022.SHAPEIT.chr/genetic_map_chr@_combined_b38.jz2022.txt --make-bed --out 1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel_CM" --output "1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel_CM.plink.$(date +%Y%m%d).out.txt"
-
-#dbSNP
-sbatch --time 12:00:00 --partition brc,shared --job-name="wget" --ntasks 1 --cpus-per-task 4 --mem 8G --wrap="wget -r –level=0 -E –ignore-length -x -k -p -erobots=off -np -N https://ftp.ncbi.nih.gov/snp/organisms/human_9606_b151_GRCh38p7/VCF/00-All.vcf.gz" --output "wget.dbsnp.human_9606_b151_GRCh38p7.$(date +%Y%m%d).out.txt"
-wget -r –level=0 -E –ignore-length -x -k -p -erobots=off -np -N https://ftp.ncbi.nih.gov/snp/organisms/human_9606_b151_GRCh38p7/VCF/00-All.vcf.gz.tbi
-sbatch --time 2-00:00:00 --partition brc,shared --job-name="rsids" --ntasks 1 --cpus-per-task 5 --mem 120G --wrap="Rscript ../../../../JZ_GED_PHD_C1/scripts/set_reference_panel_rsid.R" --output "set_reference_panel_rsid.$(date +%Y%m%d).out.txt"
-
+#fix duplicates in PLINK refpanel for Thibault
+plink2 --bfile g1000_eur --rm-dup --make-pgen --out g1000_eur.iddup
 
 

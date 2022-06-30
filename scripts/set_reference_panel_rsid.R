@@ -1,4 +1,4 @@
-#set rsids of the reference panel .bim file from dbSNP panel. output two column filr with old and new variant names/id's to be used by plink
+#set rsids of the reference panel .bim file from dbSNP panel. output two column file with old and new variant names/id's to be used by plink
 #run in the folder of the working reference panel
 
 library(data.table)
@@ -12,7 +12,7 @@ filepath.dbSNP <- file.path("..","dbsnp.human_9606_b151_GRCh38p7","00-All.vcf") 
 filepath.refpanelBim <- file.path("1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.bim")
 
 
-increment<-30000000
+increment<-5000000
 nrows <- 56
 dbSNP.nrows<-660146231
 
@@ -32,18 +32,28 @@ cat("\nRead and indexed bim\n")
 cat("Overview of bim data table:\n\n")
 print(refpanelBim.dt)
 
-
+doBreak<-F
 #loop to read the dbSNP in chunks because big
 for(iIteration in 1:10000){
   #iIteration<-1
   cat("\n\n***Iteration",iIteration,"***\n")
   
   cat("\nReading dbSNP\n")
+  if(nrows+increment>dbSNP.nrows) {
+    increment<-nrows+increment-dbSNP.nrows #last increment
+    doBreak<-T
+    }
+  
+  # if(increment<1) {
+  #   cat("Breaking because of no increment\n")
+  #   break
+  # }
+  
   dbSNP.dt<-fread(file = filepath.dbSNP, na.strings =c(".",NA,"NA",""), encoding = "UTF-8", fill = T, blank.lines.skip = T, data.table = T,showProgress = T, nThread=nThreads, nrows = increment, skip = nrows, sep="\t")
   cat("\nRead dbSNP\n")
   
-  if(nrow(dbSNP.dt)<1 | length(colnames(dbSNP.dt))<5){
-    cat("Breaking because of empty dt!\n")
+  if(doBreak | nrow(dbSNP.dt)<1 | length(colnames(dbSNP.dt))<5){
+    cat("Breaking because of last increment or empty dt!\n")
     break
   }
   
@@ -68,7 +78,11 @@ for(iIteration in 1:10000){
                  ,on=c(V1="#CHROM",V4="POS",V6="REF"),c("NNAME","CHR_REF","BP_REF") :=list(i.ID,`i.#CHROM`,i.POS)]
   cat("Updated rsid's\n")
   
-  nrows <- clipValues(x = (nrows + increment),min = NA, max = dbSNP.nrows)
+  #nrows <- clipValues(x = (nrows + increment),min = NA, max = dbSNP.nrows)
+  nrows <- nrows + increment
+  
+  #to save memory
+  rm(dbSNP.dt)
 }
 
 refpanelBim.dt[is.na(NNAME),NNAME:=V2]

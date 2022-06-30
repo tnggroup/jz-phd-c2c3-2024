@@ -56,6 +56,7 @@ This analysis script is meant to contain most of the analysis steps performed in
 #install.packages("stats")
 #remove.packages("shru")
 #devtools::install_github("johanzvrskovec/shru")
+#remotes::install_github("johanzvrskovec/shru") #install without devtools and without compiling c++ parts
 #install.packages("reticulate")
 #install.packages("readr")  
 
@@ -141,7 +142,8 @@ p$folderpath.data<-normalizePath(file.path(p$folderpath,"data"))
 p$folderpath.data.sumstats.cleaned<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","cleaned"))
 
 ##munged sumstats folder
-p$folderpath.data.sumstats.munged<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","munged_1kg_eur_supermunge_filtered"))
+p$folderpath.data.sumstats.munged<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","munged_1kg_eur_supermunge"))
+p$folderpath.data.sumstats.imputed<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","imputed_1kg_eur_supermunge"))
 #p$folderpath.data.sumstats.munged<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","munged_1kg_eur_supermunge"))
 #p$folderpath.data.sumstats.munged<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","munged_1kg_eur_gSEM"))
 
@@ -560,6 +562,8 @@ p$sumstats$cleanedpath<-file.path(p$folderpath.data.sumstats.cleaned,paste0(p$su
 
 p$sumstats$mungedpath<-file.path(p$folderpath.data.sumstats.munged,paste0(p$sumstats$code,p$filename.suffix.data.sumstats.munged))
 
+p$sumstats$imputedpath<-file.path(p$folderpath.data.sumstats.imputed,paste0(p$sumstats$code,p$filename.suffix.data.sumstats.munged))
+
 
 #special modification for special datasets for munging locally or at rosalind
 if(p$host=="local"){
@@ -837,58 +841,55 @@ write.table(p$sumstats.sel[,c("code", "name.nice","year", "n_case","n_control","
 ```{r High-LD regions}
 #From 10.1016/j.ajhg.2008.06.005
 #via 10.1101/211821
-p$highld<-data.frame(matrix(data=NA,ncol=0,nrow=0))
+p$highld_b37<-data.frame(matrix(data=NA,ncol=0,nrow=0))
 
-p$highld[(nrow(p$highld)+1),c("CHR","BP1","BP2")]<-c(1,48287980,52287979)
-p$highld[(nrow(p$highld)+1),c("CHR","BP1","BP2")]<-c(2,86088342,101041482)
-p$highld[(nrow(p$highld)+1),c("CHR","BP1","BP2")]<-c(2,134666268,138166268)
-p$highld[(nrow(p$highld)+1),c("CHR","BP1","BP2")]<-c(2,183174494,190174494)
-p$highld[(nrow(p$highld)+1),c("CHR","BP1","BP2")]<-c(3,47524996,50024996)
-p$highld[(nrow(p$highld)+1),c("CHR","BP1","BP2")]<-c(3,83417310,96017310)
-p$highld[(nrow(p$highld)+1),c("CHR","BP1","BP2")]<-c(5,44464243,50464243)
-p$highld[(nrow(p$highld)+1),c("CHR","BP1","BP2")]<-c(5,97972100,100472101)
-p$highld[(nrow(p$highld)+1),c("CHR","BP1","BP2")]<-c(5,128972101,131972101)
-p$highld[(nrow(p$highld)+1),c("CHR","BP1","BP2")]<-c(5,135472101,138472101)
-p$highld[(nrow(p$highld)+1),c("CHR","BP1","BP2")]<-c(6,25392021,33392022)
-p$highld[(nrow(p$highld)+1),c("CHR","BP1","BP2")]<-c(6,56892041,63942041)
-p$highld[(nrow(p$highld)+1),c("CHR","BP1","BP2")]<-c(6,139958307,142458307)
-p$highld[(nrow(p$highld)+1),c("CHR","BP1","BP2")]<-c(7,55225791,66555850)
-p$highld[(nrow(p$highld)+1),c("CHR","BP1","BP2")]<-c(8,7962590,11962591)
-p$highld[(nrow(p$highld)+1),c("CHR","BP1","BP2")]<-c(8,42880843,49837447)
-p$highld[(nrow(p$highld)+1),c("CHR","BP1","BP2")]<-c(8,111930824,114930824)
-p$highld[(nrow(p$highld)+1),c("CHR","BP1","BP2")]<-c(10,36959994,43679994)
-p$highld[(nrow(p$highld)+1),c("CHR","BP1","BP2")]<-c(11,46043424,57243424)
-p$highld[(nrow(p$highld)+1),c("CHR","BP1","BP2")]<-c(11,87860352,90860352)
-p$highld[(nrow(p$highld)+1),c("CHR","BP1","BP2")]<-c(12,33108733,41713733)
-p$highld[(nrow(p$highld)+1),c("CHR","BP1","BP2")]<-c(12,111037280,113537280)
-p$highld[(nrow(p$highld)+1),c("CHR","BP1","BP2")]<-c(17,31799963,33389579)
-p$highld[(nrow(p$highld)+1),c("CHR","BP1","BP2")]<-c(17,40928985,42139672)
-p$highld[(nrow(p$highld)+1),c("CHR","BP1","BP2")]<-c(20,32536339,35066586)
+p$highld_b37[(nrow(p$highld_b37)+1),c("CHR","BP","BP2")]<-c(1,48287980,52287979)
+p$highld_b37[(nrow(p$highld_b37)+1),c("CHR","BP","BP2")]<-c(2,86088342,101041482)
+p$highld_b37[(nrow(p$highld_b37)+1),c("CHR","BP","BP2")]<-c(2,134666268,138166268)
+p$highld_b37[(nrow(p$highld_b37)+1),c("CHR","BP","BP2")]<-c(2,183174494,190174494)
+p$highld_b37[(nrow(p$highld_b37)+1),c("CHR","BP","BP2")]<-c(3,47524996,50024996)
+p$highld_b37[(nrow(p$highld_b37)+1),c("CHR","BP","BP2")]<-c(3,83417310,96017310)
+p$highld_b37[(nrow(p$highld_b37)+1),c("CHR","BP","BP2")]<-c(5,44464243,50464243)
+p$highld_b37[(nrow(p$highld_b37)+1),c("CHR","BP","BP2")]<-c(5,97972100,100472101)
+p$highld_b37[(nrow(p$highld_b37)+1),c("CHR","BP","BP2")]<-c(5,128972101,131972101)
+p$highld_b37[(nrow(p$highld_b37)+1),c("CHR","BP","BP2")]<-c(5,135472101,138472101)
+p$highld_b37[(nrow(p$highld_b37)+1),c("CHR","BP","BP2")]<-c(6,25392021,33392022)
+p$highld_b37[(nrow(p$highld_b37)+1),c("CHR","BP","BP2")]<-c(6,56892041,63942041)
+p$highld_b37[(nrow(p$highld_b37)+1),c("CHR","BP","BP2")]<-c(6,139958307,142458307)
+p$highld_b37[(nrow(p$highld_b37)+1),c("CHR","BP","BP2")]<-c(7,55225791,66555850)
+p$highld_b37[(nrow(p$highld_b37)+1),c("CHR","BP","BP2")]<-c(8,7962590,11962591)
+p$highld_b37[(nrow(p$highld_b37)+1),c("CHR","BP","BP2")]<-c(8,42880843,49837447)
+p$highld_b37[(nrow(p$highld_b37)+1),c("CHR","BP","BP2")]<-c(8,111930824,114930824)
+p$highld_b37[(nrow(p$highld_b37)+1),c("CHR","BP","BP2")]<-c(10,36959994,43679994)
+p$highld_b37[(nrow(p$highld_b37)+1),c("CHR","BP","BP2")]<-c(11,46043424,57243424)
+p$highld_b37[(nrow(p$highld_b37)+1),c("CHR","BP","BP2")]<-c(11,87860352,90860352)
+p$highld_b37[(nrow(p$highld_b37)+1),c("CHR","BP","BP2")]<-c(12,33108733,41713733)
+p$highld_b37[(nrow(p$highld_b37)+1),c("CHR","BP","BP2")]<-c(12,111037280,113537280)
+p$highld_b37[(nrow(p$highld_b37)+1),c("CHR","BP","BP2")]<-c(17,31799963,33389579)
+p$highld_b37[(nrow(p$highld_b37)+1),c("CHR","BP","BP2")]<-c(17,40928985,42139672)
+p$highld_b37[(nrow(p$highld_b37)+1),c("CHR","BP","BP2")]<-c(20,32536339,35066586)
 
-setDT(p$highld)
-setkeyv(p$highld, cols = c("CHR","BP1","BP2"))
+setDT(p$highld_b37)
+setkeyv(p$highld_b37, cols = c("CHR","BP","BP2"))
 
-# #test filter
-# test<-readFile(filePath = p$sumstats.sel[1,]$mungedpath)
-# 
-# nrow(test)
-# 
-# setDT(test)
-# setkeyv(test, cols = c("CHR","BP"))
-# #test2<-p$highld[test,on = .(CHR==CHR, BP <= BP1, BP >= BP2)]
-# #test2<-merge(p$highld,)
-# 
-# test2<-test
-# 
-# #NOT DONE!!!
-# for(isegment in 1:nrow(p$highld)){
-#   #isegment<-1
-#   test2 <- test2[!(CHR==p$highld$CHR[isegment] & BP>=p$highld$BP1[isegment] & BP<=p$highld$BP2[isegment]),]
-#   #testExc <- test2[(CHR==1 & BP>=48287980 & BP<=52287979),]
-#   #test2 <- test2[!(CHR==1 & BP>=48287980 & BP<=52287979),]
-# }
-# 
-# nrow(test2)
+p$filepath.highld_b38<-file.path(p$folderpath.data,"gene_mapping","highld_b38.gz")
+if(file.exists(p$filepath.highld_b38)){
+  p$highld_b38 <- fread(file = p$filepath.highld_b38, header = T)
+} else {
+
+  #create lift-over build 38- move to data/gene_mapping
+  res <- supermunge(
+    list_df = list(highld_b38=p$highld_b37),
+    chainFilePath = "../data/alignment_chains/hg19ToHg38.over.chain.gz",
+    pathDirOutput = p$folderpath.workingDirectory,
+    lossless = T,
+    process = F
+    )
+  p$highld_b38<-res
+}
+#View(res$last[order(res$last$CHR,res$last$BP),])
+
+#p$highld_b37<-NULL
 
 ```
 
@@ -945,17 +946,16 @@ if(p$clOptions$task=="munge" & !all(file.exists(p$sumstats.sel$mungedpath))){
   # print(p$folderpath.data.sumstats.munged)
   
   #mask<-c(F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,T,T,T,T,T)
-  #munging with no filters applied
+  #munging with no filters applied - only munge without imputation!
   p$munge$results <- supermunge(
             filePaths = p$munge$filesToUse,
             refFilePath = p$filepath.SNPReference.1kg,
             #refFilePath = p$filepath.SNPReference.hm3,
             #mask = mask,
-            ldDirPath=p$folderpath.data.mvLDSC.ld.1kg,
+            #ldDirPath=p$folderpath.data.mvLDSC.ld.1kg,
             traitNames = p$munge$traitNamesToUse,
-            setChangeEffectDirectionOnAlleleFlip = T, #T=same behaviour as genomic SEM
-            imputeFromLD=T,
-            region.imputation.filter_df=p$highld, #provide the high-ld regions to not use for imputation
+            #imputeFromLD=T,
+            #region.imputation.filter_df=p$highld, #provide the high-ld regions to not use for imputation
             #produceVariantTable = T,
             N = p$munge$NToUse,
             OLS = p$munge$OLSToUse,
@@ -966,11 +966,32 @@ if(p$clOptions$task=="munge" & !all(file.exists(p$sumstats.sel$mungedpath))){
             invertEffectDirectionOn = c("ANXI04") #ANXI4 has an inverted effect direction for some reason
               ) 
     
+  # #Munge with imputation
+  # p$munge$results <- supermunge(
+  #           filePaths = p$munge$filesToUse,
+  #           refFilePath = p$filepath.SNPReference.1kg,
+  #           #refFilePath = p$filepath.SNPReference.hm3,
+  #           #mask = mask,
+  #           ldDirPath=p$folderpath.data.mvLDSC.ld.1kg,
+  #           traitNames = p$munge$traitNamesToUse,
+  #           imputeFromLD=T,
+  #           region.imputation.filter_df=p$highld, #provide the high-ld regions to not use for imputation
+  #           #produceVariantTable = T,
+  #           N = p$munge$NToUse,
+  #           OLS = p$munge$OLSToUse,
+  #           linprob=p$munge$linprobToUse,
+  #           se.logit = p$munge$se.logitToUse,
+  #           prop=p$munge$propToUse,
+  #           pathDirOutput = p$folderpath.data.sumstats.imputed,
+  #           invertEffectDirectionOn = c("ANXI04") #ANXI4 has an inverted effect direction for some reason
+  #             )
+
+  
   p$munge$results$meta %>% gt()
-  
   gtsave(data = (p$munge$results$meta %>% gt()), filename = file.path(p$folderpath.workingDirectory,"munge.meta.rtf"))
-  
   saveRDS(object = p$munge$results$meta, file = p$filepath.munge.meta)
+  
+  
   
 } else if(file.exists(p$filepath.munge.meta)){
   p$munge$results$meta<-readRDS(file=p$filepath.munge.meta)
