@@ -7,6 +7,7 @@ module add apps/R/3.6.0
 srun -p brc,shared --ntasks 1 --cpus-per-task 3 --mem 8G --pty /bin/bash
 #ok for ldsc munge using 1KG
 srun -p brc,shared --ntasks 1 --cpus-per-task 3 --mem 16G --pty /bin/bash
+srun -p cpu --ntasks 1 --cpus-per-task 5 --mem 32G --pty /bin/bash
 
 #misc
 #merge plink datasets
@@ -17,6 +18,10 @@ rsync -avzhpt --progress /mnt/lustre/groups/ukbiobank/sumstats/ /scratch/groups/
 #This command may have added duplicate subfolders under each folder
 ls /mnt/lustre/groups/ukbiobank/sumstats | xargs -n 1 -P 4 -I % rsync -avzhpt /mnt/lustre/groups/ukbiobank/sumstats/% /scratch/groups/gwas_sumstats/%
 rsync -avzhpt --progress /rosalind_ro/scratch/groups/gwas_sumstats/ /scratch/prj/gwas_sumstats/
+sbatch --time 2-00:00:00 --partition cpu --job-name="rsync" --ntasks 1 --cpus-per-task 2 --mem 16G --wrap="rsync -avzhpt /rosalind_ro/scratch/groups/gwas_sumstats/ /scratch/prj/gwas_sumstats/" --output "rsync.$(date +%Y%m%d).out.txt"
+
+#Thibault's gcta command
+../../JZ_GED_PHD_ADMIN_GENERAL/software/gcta/gcta_v1.94.0Beta_linux_kernel_3_x86_64/gcta --bfile ../data/reference_panel/1KG_eur.plink/g1000_eur --mtcojo-file mtcojo_summary_data.list --ref-ld-chr ../data/ld_scores/eur_w_ld_chr.1KG_Phase3/ --w-ld-chr ../data/ld_scores/eur_w_ld_chr.1KG_Phase3/ --out test_mtcojo_result
 
 
 #work
@@ -228,68 +233,90 @@ done < sumstats.sel.set1.code.txt
 
 
 #setup8
-sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup8.R -t munge -a ADHD05 -l cluster" --output "setup8.munge.ADHD05.$(date +%Y%m%d).out.txt"
-sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup8.R -t munge -a ALCD03 -l cluster" --output "setup8.munge.ALCD03.$(date +%Y%m%d).out.txt"
-sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup8.R -t munge -a ANOR02 -l cluster" --output "setup8.munge.ANOR02.$(date +%Y%m%d).out.txt"
-sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup8.R -t munge -a ANXI03 -l cluster" --output "setup8.munge.ANXI03.$(date +%Y%m%d).out.txt"
-sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup8.R -t munge -a ANXI04 -l cluster" --output "setup8.munge.ANXI04.$(date +%Y%m%d).out.txt"
-sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup8.R -t munge -a AUTI07 -l cluster" --output "setup8.munge.AUTI07.$(date +%Y%m%d).out.txt"
-sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup8.R -t munge -a BIPO02 -l cluster" --output "setup8.munge.BIPO02.$(date +%Y%m%d).out.txt"
-sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup8.R -t munge -a DEPR05 -l cluster" --output "setup8.munge.DEPR05.$(date +%Y%m%d).out.txt"
-sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup8.R -t munge -a DEPR08 -l cluster" --output "setup8.munge.DEPR08.$(date +%Y%m%d).out.txt"
-sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup8.R -t munge -a EDUC03 -l cluster" --output "setup8.munge.EDUC03.$(date +%Y%m%d).out.txt"
-sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup8.R -t munge -a HEAL01 -l cluster" --output "setup8.munge.HEAL01.$(date +%Y%m%d).out.txt"
-sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup8.R -t munge -a INCO03 -l cluster" --output "setup8.munge.INCO03.$(date +%Y%m%d).out.txt"
-sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup8.R -t munge -a INSO02 -l cluster" --output "setup8.munge.INSO02.$(date +%Y%m%d).out.txt"
-sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup8.R -t munge -a NEUR02 -l cluster" --output "setup8.munge.NEUR02.$(date +%Y%m%d).out.txt"
-sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup8.R -t munge -a PTSD04 -l cluster" --output "setup8.munge.PTSD04.$(date +%Y%m%d).out.txt"
-sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup8.R -t munge -a RISK02 -l cluster" --output "setup8.munge.RISK02.$(date +%Y%m%d).out.txt"
-sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup8.R -t munge -a RISK03 -l cluster" --output "setup8.munge.RISK03.$(date +%Y%m%d).out.txt"
-sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup8.R -t munge -a SCHI04 -l cluster" --output "setup8.munge.SCHI04.$(date +%Y%m%d).out.txt"
-sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup8.R -t munge -a SUBJ01 -l cluster" --output "setup8.munge.SUBJ01.$(date +%Y%m%d).out.txt"
-sbatch --time 24:00:00 --partition brc,shared --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript setup8.R -t munge -a TIRE01 -l cluster" --output "setup8.munge.TIRE01.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition cpu --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 10G --wrap="Rscript setup8.R -t munge -a ADHD05 -l cluster" --output "setup8.munge.ADHD05.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition cpu --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 10G --wrap="Rscript setup8.R -t munge -a ALCD03 -l cluster" --output "setup8.munge.ALCD03.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition cpu --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 10G --wrap="Rscript setup8.R -t munge -a ANOR02 -l cluster" --output "setup8.munge.ANOR02.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition cpu --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 10G --wrap="Rscript setup8.R -t munge -a ANXI03 -l cluster" --output "setup8.munge.ANXI03.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition cpu --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 10G --wrap="Rscript setup8.R -t munge -a ANXI04 -l cluster" --output "setup8.munge.ANXI04.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition cpu --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 10G --wrap="Rscript setup8.R -t munge -a AUTI07 -l cluster" --output "setup8.munge.AUTI07.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition cpu --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 10G --wrap="Rscript setup8.R -t munge -a BIPO02 -l cluster" --output "setup8.munge.BIPO02.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition cpu --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 10G --wrap="Rscript setup8.R -t munge -a BODY11 -l cluster" --output "setup8.munge.BODY11.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition cpu --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 10G --wrap="Rscript setup8.R -t munge -a BVOL01 -l cluster" --output "setup8.munge.BVOL01.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition cpu --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 10G --wrap="Rscript setup8.R -t munge -a DEPR05 -l cluster" --output "setup8.munge.DEPR05.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition cpu --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 10G --wrap="Rscript setup8.R -t munge -a DEPR09 -l cluster" --output "setup8.munge.DEPR09.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition cpu --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 10G --wrap="Rscript setup8.R -t munge -a EDUC03 -l cluster" --output "setup8.munge.EDUC03.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition cpu --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 10G --wrap="Rscript setup8.R -t munge -a HEAL01 -l cluster" --output "setup8.munge.HEAL01.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition cpu --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 10G --wrap="Rscript setup8.R -t munge -a INCO03 -l cluster" --output "setup8.munge.INCO03.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition cpu --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 10G --wrap="Rscript setup8.R -t munge -a INSO02 -l cluster" --output "setup8.munge.INSO02.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition cpu --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 10G --wrap="Rscript setup8.R -t munge -a INSO03 -l cluster" --output "setup8.munge.INSO03.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition cpu --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 10G --wrap="Rscript setup8.R -t munge -a NEUR02 -l cluster" --output "setup8.munge.NEUR02.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition cpu --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 10G --wrap="Rscript setup8.R -t munge -a PTSD04 -l cluster" --output "setup8.munge.PTSD04.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition cpu --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 10G --wrap="Rscript setup8.R -t munge -a RISK02 -l cluster" --output "setup8.munge.RISK02.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition cpu --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 10G --wrap="Rscript setup8.R -t munge -a RISK03 -l cluster" --output "setup8.munge.RISK03.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition cpu --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 10G --wrap="Rscript setup8.R -t munge -a SCHI04 -l cluster" --output "setup8.munge.SCHI04.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition cpu --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 10G --wrap="Rscript setup8.R -t munge -a SUBJ01 -l cluster" --output "setup8.munge.SUBJ01.$(date +%Y%m%d).out.txt"
+sbatch --time 24:00:00 --partition cpu --job-name="smunge" --ntasks 1 --cpus-per-task 4 --mem 10G --wrap="Rscript setup8.R -t munge -a TIRE01 -l cluster" --output "setup8.munge.TIRE01.$(date +%Y%m%d).out.txt"
 
-sbatch --time 12:00:00 --partition brc,shared --job-name="mvLD" --ntasks 1 --cpus-per-task 4 --mem 64G --wrap="Rscript setup8.R -t mvLD -l cluster" --output "setup8.mvLD.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition cpu --job-name="ld-imp" --ntasks 1 --cpus-per-task 5 --mem 20G --wrap="Rscript setup8.R -t impute -a ADHD05 -l cluster" --output "setup8.ldimp.ADHD05.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition cpu --job-name="ld-imp" --ntasks 1 --cpus-per-task 5 --mem 20G --wrap="Rscript setup8.R -t impute -a ALCD03 -l cluster" --output "setup8.ldimp.ALCD03.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition cpu --job-name="ld-imp" --ntasks 1 --cpus-per-task 5 --mem 20G --wrap="Rscript setup8.R -t impute -a ANOR02 -l cluster" --output "setup8.ldimp.ANOR02.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition cpu --job-name="ld-imp" --ntasks 1 --cpus-per-task 5 --mem 20G --wrap="Rscript setup8.R -t impute -a ANXI03 -l cluster" --output "setup8.ldimp.ANXI03.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition cpu --job-name="ld-imp" --ntasks 1 --cpus-per-task 5 --mem 20G --wrap="Rscript setup8.R -t impute -a ANXI04 -l cluster" --output "setup8.ldimp.ANXI04.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition cpu --job-name="ld-imp" --ntasks 1 --cpus-per-task 5 --mem 20G --wrap="Rscript setup8.R -t impute -a AUTI07 -l cluster" --output "setup8.ldimp.AUTI07.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition cpu --job-name="ld-imp" --ntasks 1 --cpus-per-task 5 --mem 20G --wrap="Rscript setup8.R -t impute -a BIPO02 -l cluster" --output "setup8.ldimp.BIPO02.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition cpu --job-name="ld-imp" --ntasks 1 --cpus-per-task 5 --mem 20G --wrap="Rscript setup8.R -t impute -a BODY11 -l cluster" --output "setup8.ldimp.BODY11.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition cpu --job-name="ld-imp" --ntasks 1 --cpus-per-task 5 --mem 20G --wrap="Rscript setup8.R -t impute -a BVOL01 -l cluster" --output "setup8.ldimp.BVOL01.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition cpu --job-name="ld-imp" --ntasks 1 --cpus-per-task 5 --mem 20G --wrap="Rscript setup8.R -t impute -a DEPR05 -l cluster" --output "setup8.ldimp.DEPR05.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition cpu --job-name="ld-imp" --ntasks 1 --cpus-per-task 5 --mem 20G --wrap="Rscript setup8.R -t impute -a DEPR09 -l cluster" --output "setup8.ldimp.DEPR09.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition cpu --job-name="ld-imp" --ntasks 1 --cpus-per-task 5 --mem 20G --wrap="Rscript setup8.R -t impute -a EDUC03 -l cluster" --output "setup8.ldimp.EDUC03.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition cpu --job-name="ld-imp" --ntasks 1 --cpus-per-task 5 --mem 20G --wrap="Rscript setup8.R -t impute -a HEAL01 -l cluster" --output "setup8.ldimp.HEAL01.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition cpu --job-name="ld-imp" --ntasks 1 --cpus-per-task 5 --mem 20G --wrap="Rscript setup8.R -t impute -a INCO03 -l cluster" --output "setup8.ldimp.INCO03.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition cpu --job-name="ld-imp" --ntasks 1 --cpus-per-task 5 --mem 20G --wrap="Rscript setup8.R -t impute -a INSO02 -l cluster" --output "setup8.ldimp.INSO02.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition cpu --job-name="ld-imp" --ntasks 1 --cpus-per-task 5 --mem 20G --wrap="Rscript setup8.R -t impute -a INSO03 -l cluster" --output "setup8.ldimp.INSO03.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition cpu --job-name="ld-imp" --ntasks 1 --cpus-per-task 5 --mem 20G --wrap="Rscript setup8.R -t impute -a NEUR02 -l cluster" --output "setup8.ldimp.NEUR02.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition cpu --job-name="ld-imp" --ntasks 1 --cpus-per-task 5 --mem 20G --wrap="Rscript setup8.R -t impute -a PTSD04 -l cluster" --output "setup8.ldimp.PTSD04.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition cpu --job-name="ld-imp" --ntasks 1 --cpus-per-task 5 --mem 20G --wrap="Rscript setup8.R -t impute -a RISK02 -l cluster" --output "setup8.ldimp.RISK02.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition cpu --job-name="ld-imp" --ntasks 1 --cpus-per-task 5 --mem 20G --wrap="Rscript setup8.R -t impute -a RISK03 -l cluster" --output "setup8.ldimp.RISK03.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition cpu --job-name="ld-imp" --ntasks 1 --cpus-per-task 5 --mem 20G --wrap="Rscript setup8.R -t impute -a SCHI04 -l cluster" --output "setup8.ldimp.SCHI04.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition cpu --job-name="ld-imp" --ntasks 1 --cpus-per-task 5 --mem 20G --wrap="Rscript setup8.R -t impute -a SUBJ01 -l cluster" --output "setup8.ldimp.SUBJ01.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition cpu --job-name="ld-imp" --ntasks 1 --cpus-per-task 5 --mem 20G --wrap="Rscript setup8.R -t impute -a TIRE01 -l cluster" --output "setup8.ldimp.TIRE01.$(date +%Y%m%d).out.txt"
 
-
-for lev in "05" "1" "15" "2" "25" "3"; do sbatch --time 2-00:00:00 --partition brc,shared --job-name="impt_$lev" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript LIMP_evaluation.R -t ADHD05 -a $lev" --output "LIMP_evaluation.ADHD05_$lev.$(date +%Y%m%d).out.txt"; done
-for lev in "05" "1" "15" "2" "25" "3"; do sbatch --time 2-00:00:00 --partition brc,shared --job-name="impt_$lev" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript LIMP_evaluation.R -t ANXI02 -a $lev" --output "LIMP_evaluation.ANXI02_$lev.$(date +%Y%m%d).out.txt"; done
-for lev in "05" "1" "15" "2" "25" "3"; do sbatch --time 2-00:00:00 --partition brc,shared --job-name="impt_$lev" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript LIMP_evaluation.R -t COAD01 -a $lev" --output "LIMP_evaluation.COAD01_$lev.$(date +%Y%m%d).out.txt"; done
-for lev in "05" "1" "15" "2" "25" "3"; do sbatch --time 2-00:00:00 --partition brc,shared --job-name="impt_$lev" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript LIMP_evaluation.R -t OBES01 -a $lev" --output "LIMP_evaluation.OBES01_$lev.$(date +%Y%m%d).out.txt"; done
-for lev in "05" "1" "15" "2" "25" "3"; do sbatch --time 2-00:00:00 --partition brc,shared --job-name="impt_$lev" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript LIMP_evaluation.R -t SMOK04 -a $lev" --output "LIMP_evaluation.SMOK04_$lev.$(date +%Y%m%d).out.txt"; done
-
-sbatch --time 2-00:00:00 --partition brc,shared --job-name="impt1" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript LIMP_evaluation.R -t EDUC03.gz" --output "LIMP_evaluation.EDUC03.$(date +%Y%m%d).out.txt"
-sbatch --time 2-00:00:00 --partition brc,shared --job-name="impt2" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript LIMP_evaluation.R -t SCHI04.gz" --output "LIMP_evaluation.SCHI04.$(date +%Y%m%d).out.txt"
-sbatch --time 2-00:00:00 --partition brc,shared --job-name="impt3" --ntasks 1 --cpus-per-task 4 --mem 24G --wrap="Rscript LIMP_evaluation.R -t ANXI03.gz" --output "LIMP_evaluation.ANXI03.$(date +%Y%m%d).out.txt"
-
-#limp evaluation 2
-sbatch --time 2-00:00:00 --partition brc,shared --job-name="limp" --ntasks 1 --cpus-per-task 3 --mem 8G --wrap="Rscript LIMP_evaluation2.R -t limp -d ADHD05.gz" --output "LIMP_evaluation.ADHD05.$(date +%Y%m%d).out.txt"
-sbatch --time 2-00:00:00 --partition brc,shared --job-name="limp" --ntasks 1 --cpus-per-task 3 --mem 8G --wrap="Rscript LIMP_evaluation2.R -t limp -d ALCD03.gz" --output "LIMP_evaluation.ALCD03.$(date +%Y%m%d).out.txt"
-sbatch --time 2-00:00:00 --partition brc,shared --job-name="limp" --ntasks 1 --cpus-per-task 3 --mem 8G --wrap="Rscript LIMP_evaluation2.R -t limp -d ANOR02.gz" --output "LIMP_evaluation.ANOR02.$(date +%Y%m%d).out.txt"
-sbatch --time 2-00:00:00 --partition brc,shared --job-name="limp" --ntasks 1 --cpus-per-task 3 --mem 8G --wrap="Rscript LIMP_evaluation2.R -t limp -d ANXI03.gz" --output "LIMP_evaluation.ANXI03.$(date +%Y%m%d).out.txt"
-sbatch --time 2-00:00:00 --partition brc,shared --job-name="limp" --ntasks 1 --cpus-per-task 3 --mem 8G --wrap="Rscript LIMP_evaluation2.R -t limp -d ANXI04.gz" --output "LIMP_evaluation.ANXI04.$(date +%Y%m%d).out.txt"
-sbatch --time 2-00:00:00 --partition brc,shared --job-name="limp" --ntasks 1 --cpus-per-task 3 --mem 8G --wrap="Rscript LIMP_evaluation2.R -t limp -d AUTI07.gz" --output "LIMP_evaluation.AUTI07.$(date +%Y%m%d).out.txt"
-sbatch --time 2-00:00:00 --partition brc,shared --job-name="limp" --ntasks 1 --cpus-per-task 3 --mem 8G --wrap="Rscript LIMP_evaluation2.R -t limp -d BIPO02.gz" --output "LIMP_evaluation.BIPO02.$(date +%Y%m%d).out.txt"
-sbatch --time 2-00:00:00 --partition brc,shared --job-name="limp" --ntasks 1 --cpus-per-task 3 --mem 8G --wrap="Rscript LIMP_evaluation2.R -t limp -d DEPR05.gz" --output "LIMP_evaluation.DEPR05.$(date +%Y%m%d).out.txt"
-sbatch --time 2-00:00:00 --partition brc,shared --job-name="limp" --ntasks 1 --cpus-per-task 3 --mem 8G --wrap="Rscript LIMP_evaluation2.R -t limp -d DEPR08.gz" --output "LIMP_evaluation.DEPR08.$(date +%Y%m%d).out.txt"
-sbatch --time 2-00:00:00 --partition brc,shared --job-name="limp" --ntasks 1 --cpus-per-task 3 --mem 8G --wrap="Rscript LIMP_evaluation2.R -t limp -d EDUC03.gz" --output "LIMP_evaluation.EDUC03.$(date +%Y%m%d).out.txt"
-sbatch --time 2-00:00:00 --partition brc,shared --job-name="limp" --ntasks 1 --cpus-per-task 3 --mem 8G --wrap="Rscript LIMP_evaluation2.R -t limp -d HEAL01.gz" --output "LIMP_evaluation.HEAL01.$(date +%Y%m%d).out.txt"
-sbatch --time 2-00:00:00 --partition brc,shared --job-name="limp" --ntasks 1 --cpus-per-task 3 --mem 8G --wrap="Rscript LIMP_evaluation2.R -t limp -d INCO03.gz" --output "LIMP_evaluation.INCO03.$(date +%Y%m%d).out.txt"
-sbatch --time 2-00:00:00 --partition brc,shared --job-name="limp" --ntasks 1 --cpus-per-task 3 --mem 8G --wrap="Rscript LIMP_evaluation2.R -t limp -d INSO02.gz" --output "LIMP_evaluation.INSO02.$(date +%Y%m%d).out.txt"
-sbatch --time 2-00:00:00 --partition brc,shared --job-name="limp" --ntasks 1 --cpus-per-task 3 --mem 8G --wrap="Rscript LIMP_evaluation2.R -t limp -d NEUR02.gz" --output "LIMP_evaluation.NEUR02.$(date +%Y%m%d).out.txt"
-sbatch --time 2-00:00:00 --partition brc,shared --job-name="limp" --ntasks 1 --cpus-per-task 3 --mem 8G --wrap="Rscript LIMP_evaluation2.R -t limp -d PTSD04.gz" --output "LIMP_evaluation.PTSD04.$(date +%Y%m%d).out.txt"
-sbatch --time 2-00:00:00 --partition brc,shared --job-name="limp" --ntasks 1 --cpus-per-task 3 --mem 8G --wrap="Rscript LIMP_evaluation2.R -t limp -d RISK02.gz" --output "LIMP_evaluation.RISK02.$(date +%Y%m%d).out.txt"
-sbatch --time 2-00:00:00 --partition brc,shared --job-name="limp" --ntasks 1 --cpus-per-task 3 --mem 8G --wrap="Rscript LIMP_evaluation2.R -t limp -d RISK03.gz" --output "LIMP_evaluation.RISK03.$(date +%Y%m%d).out.txt"
-sbatch --time 2-00:00:00 --partition brc,shared --job-name="limp" --ntasks 1 --cpus-per-task 3 --mem 8G --wrap="Rscript LIMP_evaluation2.R -t limp -d SCHI04.gz" --output "LIMP_evaluation.SCHI04.$(date +%Y%m%d).out.txt"
-sbatch --time 2-00:00:00 --partition brc,shared --job-name="limp" --ntasks 1 --cpus-per-task 3 --mem 8G --wrap="Rscript LIMP_evaluation2.R -t limp -d SUBJ01.gz" --output "LIMP_evaluation.SUBJ01.$(date +%Y%m%d).out.txt"
-sbatch --time 2-00:00:00 --partition brc,shared --job-name="limp" --ntasks 1 --cpus-per-task 3 --mem 8G --wrap="Rscript LIMP_evaluation2.R -t limp -d TIRE01.gz" --output "LIMP_evaluation.TIRE01.$(date +%Y%m%d).out.txt"
-
-#ssimp evaluation
-/mnt/lustre/groups/gwas_sumstats/ssimp_software-master/ssimp --download.build.db
-sbatch --time 2-00:00:00 --partition brc,shared --job-name="ssimp" --ntasks 1 --cpus-per-task 3 --mem 8G --wrap="export LC_ALL=C; /mnt/lustre/groups/gwas_sumstats/ssimp_software-master/ssimp --gwas ../working_directory/IMPTEST/ADHD05.gz.0.2.missing.ssimp.gz --ref /mnt/lustre/groups/gwas_sumstats/ssimp_software-master/EUR_phase3.MAF_01_49.vcf.gz --out ../working_directory/IMPTEST/ADHD05.gz.0.2.ssimp.gz;" --output "SSIMP_evaluation.ADHD05.$(date +%Y%m%d).out.txt"
+#ssimp imputation
+sbatch --time 2-00:00:00 --partition cpu --job-name="ssimpformat" --ntasks 1 --cpus-per-task 5 --mem 8G --wrap="Rscript setup8.R -t ssimpformat -l cluster" --output "setup8.ssimpformat.$(date +%Y%m%d).out.txt"
 
 
-sbatch --time 1:00:00 --partition brc,shared --job-name="ssimp" --ntasks 1 --cpus-per-task 3 --mem 8G --wrap="export LC_ALL=C; /mnt/lustre/groups/gwas_sumstats/ssimp_software-master/ssimp --gwas ../working_directory/IMPTEST/ADHD05.gz.0.2.missing.ssimp --ref /mnt/lustre/groups/gwas_sumstats/ssimp_software-master/ref/small.vcf.sample.vcf.gz --out ../working_directory/IMPTEST/ADHD05.gz.0.2.ssimp.gz;" --output "SSIMP_evaluation.ADHD05.$(date +%Y%m%d).out.txt"
+/scratch/prj/gwas_sumstats/ssimp_software-master/ssimp --download.build.db
+#test
+sbatch --time 1:00:00 --partition cpu --job-name="ssimp" --ntasks 1 --cpus-per-task 3 --mem 8G --wrap="export LC_ALL=C; date; /scratch/prj/gwas_sumstats/ssimp_software-master/ssimp --gwas ../data/gwas_sumstats/munged_1kg_eur_supermunge/ADHD05.gz --ref /scratch/prj/gwas_sumstats/ssimp_software-master/ref/small.vcf.sample.vcf.gz --out ../data/gwas_sumstats/imputed_1kg_eur_ssimp/ADHD05.txt; date;" --output "SSIMP_evaluation.ADHD05.$(date +%Y%m%d).out.txt"
+
+
+for chr in 1 2 3 4 5 6 7 8 9 10 11 "12-14" "15-17" "18-23"; do sbatch --time 2-00:00:00 --partition cpu --job-name="ssimp" --ntasks 1 --cpus-per-task 4 --mem 20G --wrap="export LC_ALL=C; date; /scratch/prj/gwas_sumstats/ssimp_software-master/ssimp --gwas ../data/gwas_sumstats/munged_1kg_eur_supermunge.4ssimp/SCHI04.gz --ref ../data/reference_panel/hc1kgp3.b38.plink/hc1kgp3.b38.eur.jz2022.vcf.gz --out ../data/gwas_sumstats/imputed_1kg_eur_ssimp/SCHI04.$chr --impute.maf 0.001 --tag.maf 0.01 --impute.range $chr; date;" --output "setup8.ssimp.SCHI04.$chr.$(date +%Y%m%d).out.txt"; done
+
+for chr in 1 2 3 4 5 6 7 8 9 10 11 "12-14" "15-17" "18-23"; do sbatch --time 2-00:00:00 --partition cpu --job-name="ssimp" --ntasks 1 --cpus-per-task 4 --mem 20G --wrap="export LC_ALL=C; date; /scratch/prj/gwas_sumstats/ssimp_software-master/ssimp --gwas ../data/gwas_sumstats/munged_1kg_eur_supermunge.4ssimp/BODY11.gz --ref ../data/reference_panel/hc1kgp3.b38.plink/hc1kgp3.b38.eur.jz2022.vcf.gz --out ../data/gwas_sumstats/imputed_1kg_eur_ssimp/BODY11.$chr --impute.maf 0.001 --tag.maf 0.01 --impute.range $chr; date;" --output "setup8.ssimp.BODY11.$chr.$(date +%Y%m%d).out.txt"; done
+
+for chr in 1 2 3 4 5 6 7 8 9 10 11 "12-14" "15-17" "18-23"; do sbatch --time 2-00:00:00 --partition cpu --job-name="ssimp" --ntasks 1 --cpus-per-task 4 --mem 20G --wrap="export LC_ALL=C; date; /scratch/prj/gwas_sumstats/ssimp_software-master/ssimp --gwas ../data/gwas_sumstats/munged_1kg_eur_supermunge.4ssimp/NEUR02.gz --ref ../data/reference_panel/hc1kgp3.b38.plink/hc1kgp3.b38.eur.jz2022.vcf.gz --out ../data/gwas_sumstats/imputed_1kg_eur_ssimp/NEUR02.$chr --impute.maf 0.001 --tag.maf 0.01 --impute.range $chr; date;" --output "setup8.ssimp.NEUR02.$chr.$(date +%Y%m%d).out.txt"; done
+
+for chr in 1 2 3 4 5 6 7 8 9 10 11 "12-14" "15-17" "18-23"; do sbatch --time 2-00:00:00 --partition cpu --job-name="ssimp" --ntasks 1 --cpus-per-task 4 --mem 20G --wrap="export LC_ALL=C; date; /scratch/prj/gwas_sumstats/ssimp_software-master/ssimp --gwas ../data/gwas_sumstats/munged_1kg_eur_supermunge.4ssimp/DEPR05.gz --ref ../data/reference_panel/hc1kgp3.b38.plink/hc1kgp3.b38.eur.jz2022.vcf.gz --out ../data/gwas_sumstats/imputed_1kg_eur_ssimp/DEPR05.$chr --impute.maf 0.001 --tag.maf 0.01 --impute.range $chr; date;" --output "setup8.ssimp.DEPR05.$chr.$(date +%Y%m%d).out.txt"; done
+
+for chr in 1 2 3 4 5 6 7 8 9 10 11 "12-14" "15-17" "18-23"; do sbatch --time 2-00:00:00 --partition cpu --job-name="ssimp" --ntasks 1 --cpus-per-task 4 --mem 20G --wrap="export LC_ALL=C; date; /scratch/prj/gwas_sumstats/ssimp_software-master/ssimp --gwas ../data/gwas_sumstats/munged_1kg_eur_supermunge.4ssimp/DEPR09.gz --ref ../data/reference_panel/hc1kgp3.b38.plink/hc1kgp3.b38.eur.jz2022.vcf.gz --out ../data/gwas_sumstats/imputed_1kg_eur_ssimp/DEPR09.$chr --impute.maf 0.001 --tag.maf 0.01 --impute.range $chr; date;" --output "setup8.ssimp.DEPR09.$chr.$(date +%Y%m%d).out.txt"; done
+
+for chr in 1 2 3 4 5 6 7 8 9 10 11 "12-14" "15-17" "18-23"; do sbatch --time 2-00:00:00 --partition cpu --job-name="ssimp" --ntasks 1 --cpus-per-task 4 --mem 20G --wrap="export LC_ALL=C; date; /scratch/prj/gwas_sumstats/ssimp_software-master/ssimp --gwas ../data/gwas_sumstats/munged_1kg_eur_supermunge.4ssimp/BIPO02.gz --ref ../data/reference_panel/hc1kgp3.b38.plink/hc1kgp3.b38.eur.jz2022.vcf.gz --out ../data/gwas_sumstats/imputed_1kg_eur_ssimp/BIPO02.$chr --impute.maf 0.001 --tag.maf 0.01 --impute.range $chr; date;" --output "setup8.ssimp.BIPO02.$chr.$(date +%Y%m%d).out.txt"; done
+
+for chr in 1 2 3 4 5 6 7 8 9 10 11 "12-14" "15-17" "18-23"; do sbatch --time 2-00:00:00 --partition cpu --job-name="ssimp" --ntasks 1 --cpus-per-task 4 --mem 20G --wrap="export LC_ALL=C; date; /scratch/prj/gwas_sumstats/ssimp_software-master/ssimp --gwas ../data/gwas_sumstats/munged_1kg_eur_supermunge.4ssimp/ANXI03.gz --ref ../data/reference_panel/hc1kgp3.b38.plink/hc1kgp3.b38.eur.jz2022.vcf.gz --out ../data/gwas_sumstats/imputed_1kg_eur_ssimp/ANXI03.$chr --impute.maf 0.001 --tag.maf 0.01 --impute.range $chr; date;" --output "setup8.ssimp.ANXI03.$chr.$(date +%Y%m%d).out.txt"; done
+
+for chr in 1 2 3 4 5 6 7 8 9 10 11 "12-14" "15-17" "18-23"; do sbatch --time 2-00:00:00 --partition cpu --job-name="ssimp" --ntasks 1 --cpus-per-task 4 --mem 20G --wrap="export LC_ALL=C; date; /scratch/prj/gwas_sumstats/ssimp_software-master/ssimp --gwas ../data/gwas_sumstats/munged_1kg_eur_supermunge.4ssimp/INSO02.gz --ref ../data/reference_panel/hc1kgp3.b38.plink/hc1kgp3.b38.eur.jz2022.vcf.gz --out ../data/gwas_sumstats/imputed_1kg_eur_ssimp/INSO02.$chr --impute.maf 0.001 --tag.maf 0.01 --impute.range $chr; date;" --output "setup8.ssimp.INSO02.$chr.$(date +%Y%m%d).out.txt"; done
+
+for chr in 1 2 3 4 5 6 7 8 9 10 11 "12-14" "15-17" "18-23"; do sbatch --time 2-00:00:00 --partition cpu --job-name="ssimp" --ntasks 1 --cpus-per-task 4 --mem 20G --wrap="export LC_ALL=C; date; /scratch/prj/gwas_sumstats/ssimp_software-master/ssimp --gwas ../data/gwas_sumstats/munged_1kg_eur_supermunge.4ssimp/EDUC03.gz --ref ../data/reference_panel/hc1kgp3.b38.plink/hc1kgp3.b38.eur.jz2022.vcf.gz --out ../data/gwas_sumstats/imputed_1kg_eur_ssimp/EDUC03.$chr --impute.maf 0.001 --tag.maf 0.01 --impute.range $chr; date;" --output "setup8.ssimp.EDUC03.$chr.$(date +%Y%m%d).out.txt"; done
+
+for chr in 1 2 3 4 5 6 7 8 9 10 11 "12-14" "15-17" "18-23"; do sbatch --time 2-00:00:00 --partition cpu --job-name="ssimp" --ntasks 1 --cpus-per-task 4 --mem 20G --wrap="export LC_ALL=C; date; /scratch/prj/gwas_sumstats/ssimp_software-master/ssimp --gwas ../data/gwas_sumstats/munged_1kg_eur_supermunge.4ssimp/BVOL01.gz --ref ../data/reference_panel/hc1kgp3.b38.plink/hc1kgp3.b38.eur.jz2022.vcf.gz --out ../data/gwas_sumstats/imputed_1kg_eur_ssimp/BVOL01.$chr --impute.maf 0.001 --tag.maf 0.01 --impute.range $chr; date;" --output "setup8.ssimp.BVOL01.$chr.$(date +%Y%m%d).out.txt"; done
+
+sbatch --time 2-00:00:00 --partition cpu --job-name="merge" --ntasks 1 --cpus-per-task 5 --mem 32G --wrap="Rscript setup8.R -t merge -l cluster" --output "setup8.merge.$(date +%Y%m%d).out.txt"
+
+sbatch --time 2-00:00:00 --partition cpu --job-name="mvLD" --ntasks 1 --cpus-per-task 5 --mem 64G --wrap="Rscript setup8.R -t mvLD -l cluster" --output "setup8.mvLD.$(date +%Y%m%d).out.txt"
+#for running original ldsc
+sbatch --time 2-00:00:00 --partition cpu --job-name="mvLD" --ntasks 1 --cpus-per-task 5 --mem 64G --wrap="source /users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/software/ldsc-venv/bin/activate; Rscript setup8.R -t mvLD -l cluster;" --output "setup8.mvLD.$(date +%Y%m%d).out.txt"
+Rscript setup8.R -t mvLD -l cluster > "setup8.mvLD.$(date +%Y%m%d).out.txt" #if needed to run on interactive node beacuase of python venv activation issues
+
 
 
 #fix duplicates in PLINK refpanel for Thibault

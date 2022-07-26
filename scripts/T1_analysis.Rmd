@@ -59,7 +59,7 @@ gwas_sumstats[nrow(gwas_sumstats)+1,c("code","name", "nCase","nControl","gwasRef
   gwasReferenceDOI="https://doi.org/10.1038/s41588-018-0090-3",
   populationPrevalence=.146, #MDD, .15 from the LD-calculations in https://doi.org/10.1038/s41588-018-0090-3 (2018), but with a possible reference to https://doi.org/10.1146/annurev-publhealth-031912-114409 (2013) which states 14.6% lifetime prevalence of MDE in high-income countries.
   prevalenceReferenceDOI="https://doi.org/10.1146/annurev-publhealth-031912-114409",
-  filePath=file.path(folderpath.data,"gwas_sumstats","munged_1kg_eur_supermunge","DEPR08.gz")
+  filePath=file.path(folderpath.data,"gwas_sumstats","export","DEPR.raw.old.gz")
   )
 
 gwas_sumstats[nrow(gwas_sumstats)+1,c("code","name", "nCase","nControl","gwasReferenceDOI","populationPrevalence","prevalenceReferenceDOI","filePath")]<- list(
@@ -70,7 +70,7 @@ gwas_sumstats[nrow(gwas_sumstats)+1,c("code","name", "nCase","nControl","gwasRef
   gwasReferenceDOI="https://doi.org/10.1038/s41588-018-0151-7",
   populationPrevalence=NA_real_,
   prevalenceReferenceDOI=NA_character_,
-  filePath=file.path(folderpath.data,"gwas_sumstats","munged_1kg_eur_supermunge","NEUR02.gz")
+  filePath=file.path(folderpath.data,"gwas_sumstats","export","NEUR.raw.old.gz")
   )
 
 
@@ -115,10 +115,14 @@ rownames(genesets)<-genesets$code
 
 #output mtCOJO formatted sumstats (.raw)
 for(iGWAS in 1:nrow(gwas_sumstats)){
-  #iGWAS<-2
+  #iGWAS<-1
   cGWAS<-fread(file = gwas_sumstats[iGWAS,]$filePath, na.strings =c(".",NA,"NA",""), encoding = "UTF-8",check.names = T, fill = T, blank.lines.skip = T, data.table = T, nThread = 5, showProgress = F)
   
-  fwrite(x = cGWAS[,.(SNP,A1,A2,freq=FRQ,b=EFFECT,se=SE,p=P,N)], file = gwas_sumstats[iGWAS,]$filePath.mtCOJO, append = F, quote = F, sep = "\t",na = "NA", col.names = T,nThread=5)
+  cGWAS<-cGWAS[order(-freq),]
+  cGWAS.unique<-cGWAS[, .(A1 = head(A1,1),A2 = head(A2,1),freq = head(freq,1),b = head(b,1),se = head(se,1),p = head(p,1), N = head(N,1)), by = c("SNP")]
+  
+  fwrite(x = cGWAS.unique, file = gwas_sumstats[iGWAS,]$filePath.mtCOJO, append = F, quote = F, sep = "\t",na = "NA", col.names = T,nThread=5)
+  #fwrite(x = cGWAS[,.(SNP,A1,A2,freq=FRQ,b=EFFECT,se=SE,p=P,N)], file = gwas_sumstats[iGWAS,]$filePath.mtCOJO, append = F, quote = F, sep = "\t",na = "NA", col.names = T,nThread=5)
   
 }
 

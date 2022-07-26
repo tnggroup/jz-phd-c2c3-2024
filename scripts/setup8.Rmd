@@ -62,6 +62,7 @@ This analysis script is meant to contain most of the analysis steps performed in
 
 #for testing supermunge
 library(R.utils)
+library(corrplot) #do not run on cluster, does not work?
 #library(disk.frame)
 library(data.table)
 library(optparse)
@@ -143,9 +144,26 @@ p$folderpath.data.sumstats.cleaned<-normalizePath(file.path(p$folderpath.data,"g
 
 ##munged sumstats folder
 p$folderpath.data.sumstats.munged<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","munged_1kg_eur_supermunge"))
-p$folderpath.data.sumstats.imputed<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","imputed_1kg_eur_supermunge"))
-#p$folderpath.data.sumstats.munged<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","munged_1kg_eur_supermunge"))
-#p$folderpath.data.sumstats.munged<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","munged_1kg_eur_gSEM"))
+
+##munged sumstats folder
+p$folderpath.data.sumstats.munged.4ssimp<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","munged_1kg_eur_supermunge.4ssimp"))
+
+##imputed sumstats folder
+#p$folderpath.data.sumstats.imputed<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","imputed_1kg_eur_supermunge"))
+p$folderpath.data.sumstats.imputed<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","imputed_1kg_eur_supermunge.500Kwin"))
+
+p$folderpath.data.sumstats.imputed.10<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","imputed_1kg_eur_supermunge.10Kwin"))
+
+p$folderpath.data.sumstats.imputed.500<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","imputed_1kg_eur_supermunge.500Kwin"))
+
+##imputed sumstats folder, SSIMP
+p$folderpath.data.sumstats.imputed.ssimp<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","imputed_1kg_eur_ssimp"))
+
+
+
+p$filename.suffix.data.sumstats.munged<-".gz"
+#p$filename.suffix.data.sumstats.munged<-"_noMHC.sumstats.gz"
+
 
 ##imputed sumstats folder
 #p$folderpath.data.sumstats.imputed<-normalizePath(file.path(p$folderpath.data,"gwas_sumstat","imputed"))
@@ -161,22 +179,32 @@ if(p$host=="local") {
   p$folderpath.pythonVenv<-normalizePath(file.path(p$folderpath,"python-venv"))
 }
 
+#variant lists folder
+p$folderpath.data.variantLists<-normalizePath(file.path(p$folderpath.data,"variant_lists"))
+
+
 ##Reference SNP-list (HapMap3 SNPs for example). Used for munging sumstat SNP data.
-p$filepath.SNPReference.hm3<-normalizePath(file.path(p$folderpath.data,"w_hm3.noMHC.snplist")) #HapMap3 SNPs
+p$filepath.SNPReference.hm3<-normalizePath(file.path(p$folderpath.data.variantLists,"w_hm3.noMHC.snplist")) #HapMap3 SNPs
 ## Used in the preparation step for performing latent factor GWAS as reference for calculating SNP variance across traits.
 #p$filepath.SNPReference<-normalizePath(paste0(p$folderpath.data,"/","reference.1000G.maf.0.005.txt")) #1000 genomes phase 3
-p$filepath.SNPReference.1kg<-normalizePath(file.path(p$folderpath.data,"combined.hm3_1kg.snplist.vanilla.jz2020.txt")) #custom hm3 + 1kg SNPs, based on individual level data in /users/k1204688/brc_scratch/Public/1KG_Phase3
-#N.B GRCh38/hg38 assembly used
 
-p$filename.suffix.data.sumstats.munged<-".gz"
-#p$filename.suffix.data.sumstats.munged<-"_noMHC.sumstats.gz"
+p$filepath.SNPReference.1kg<-normalizePath(file.path(p$folderpath.data.variantLists,"hc1kgp3.b38.eur.l2.jz2022.gz")) #Based on the high coverage 1kgp3 panel in b38
+
+#p$filepath.SNPReference.1kg<-normalizePath(file.path(p$folderpath.data.variantLists,"combined.hm3_1kg.snplist.vanilla.jz2020.txt")) #custom hm3 + 1kg SNPs, based on individual level data in /users/k1204688/brc_scratch/Public/1KG_Phase3
+
+
+p$filepath.rsSynonyms.dbSNP151<-normalizePath(file.path(p$folderpath.data.variantLists,"dbsnp151.synonyms.gz"))
+
+#reference panels
+p$folderpath.data.referencePanels<-normalizePath(file.path(p$folderpath.data,"reference_panel"))
 
 ##Reference panel folder containing individual level data reference panel. Used for GWAS sumstat imputation tasks.
-#roject$folderpath.data.sumstatImp.genomeReference<-"/users/k1204688/brc_scratch/Public/1KG_Phase3/All"
-p$folderpath.data.sumstatImp.genomeReference<-"/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/data/reference.panel.1KG_Phase3.CLEANED.EUR.cM" #source /users/k1204688/brc_scratch/Public/1KG_Phase3
+p$folderpath.data.sumstatImp.genomeReference<-file.path(p$folderpath.data.referencePanels,"hc1kgp3.b38.plink")
+
+#p$folderpath.data.sumstatImp.genomeReference<-"/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/data/reference.panel.1KG_Phase3.CLEANED.EUR.cM" #source /users/k1204688/brc_scratch/Public/1KG_Phase3
 
 ##LD scores datasets folders (these strings need to have a trailing slash for the GSEM LDSC to work)
-p$folderpath.data.mvLDSC.ld.1kg <- file.path(p$folderpath.data,"ld_scores","eur_w_ld_chr.1KG_Phase3")
+p$folderpath.data.mvLDSC.ld.1kg <- file.path(p$folderpath.data,"ld_scores","hc1kgp3.b38.eur.l2")
 p$folderpath.data.mvLDSC.ld.hm3 <- file.path(p$folderpath.data,"ld_scores","eur_w_ld_chr")
 #Weights, if different from LD-scores
 #Set weights to the same folder as ldscores
@@ -192,7 +220,7 @@ if(p$host=="local") {
 }
 
 ##Gene mapping
-p$filepath.geneMapping<-file.path(p$folderpath.data,"gene_mapping","NCBI37.3.gene.loc")
+p$filepath.geneMapping<-file.path(p$folderpath.data,"gene_mapping","NCBI37.3.gene.locUPDATETHIS")
 
 ##Transcription target maps
 p$filepath.transcriptionTargetMap.mirdb <- file.path(p$folderpath.data,"gene_set","miRDB_v6.0_prediction_result.txt.gz")
@@ -227,8 +255,6 @@ print("Setup done!")
 
 # Functions
 ```{r plot functions}
-
-library(corrplot) #do not run on cluster, does not work?
 
 #c(theme.color$contrastDark3,theme.color$contrastLight3)
 p$printCorr <- function(corr, SE=NULL, filename, addrect = 4, is.corr = T, number.cex = 1, number.digits=2){
@@ -344,14 +370,14 @@ knitr::opts_knit$set(root.dir=normalizePath(p$folderpath.workingDirectory))
 
 ```{r purl export, include=FALSE, purl=FALSE, eval=FALSE}
 #running this will produce an R-script with the same name as the Rmd-file. Used for running the program on computational clusters (Rosalind), when the code just has to be run rather than creating a knitted output.
-knitr::purl(p$filename.rmd)
+knitr::purl(p$filepath.rmd)
   
 ```
 
 
 ```{r additional source setup, echo=FALSE, warning=F}
 
-#source(normalizePath(file.path(p$folderpath.scripts,"sumstats.mod-jz.R")))
+source(normalizePath(file.path(p$folderpath.scripts,"include","ldsc.orig.R")))
 #source(file.path(p$folderpath.scripts,"include","fastman.R"))
 #source(file.path(p$folderpath.scripts,"include","fastqq.R"))
 
@@ -523,22 +549,27 @@ p$sumstats[nrow(p$sumstats)+1,c("code","name", "n_case","n_control","n_total","p
   reference_doi=c("https://doi.org/10.1038/s41588-018-0151-7")
   )
 
-#add missing datasets and data
-p$sumstats[nrow(p$sumstats)+1,c("code","name","n_total","phenotype_id")]=list(
-  code="NOIS01",
-  name="Noise 1",
-  n_total=766345,
-  phenotype_id=197
+p$sumstats[nrow(p$sumstats)+1,c("code","name", "n_case","n_control","n_total","phenotype_id","reference_id","reference_doi")]=list(
+  code="INSO03",
+  name="Insomnia",
+  n_case=593724,
+  n_control=1771286,
+  n_total=2365010,
+  phenotype_id=171,
+  reference_id=NA_integer_,
+  reference_doi=c("10.1038/s41588-022-01124-w")
   )
 
-p$sumstats[nrow(p$sumstats)+1,c("code","name","n_total","phenotype_id")]=list(
-  code="NOIS02",
-  name="Noise 2",
-  n_total=766345,
-  phenotype_id=197
+p$sumstats[nrow(p$sumstats)+1,c("code","name", "n_case","n_control","n_total","phenotype_id","reference_id","reference_doi")]=list(
+  code="BVOL01",
+  name="Brain volume",
+  n_case=47316,
+  n_control=NA_integer_,
+  n_total=47316,
+  phenotype_id=NA_integer_,
+  reference_id=NA_integer_,
+  reference_doi=c("10.1038/s41467-020-19378-5")
   )
-
-
 
 #reformat columns
 p$sumstats$name<-as.character(p$sumstats$name)
@@ -557,12 +588,18 @@ mutate(
 #set code as rowname
 rownames(p$sumstats)<-p$sumstats$code
 
-##Add sumstat cleaned and munged file paths
+##Add sumstat full file paths
 p$sumstats$cleanedpath<-file.path(p$folderpath.data.sumstats.cleaned,paste0(p$sumstats$code,p$filename.suffix.data.sumstats.munged))
 
 p$sumstats$mungedpath<-file.path(p$folderpath.data.sumstats.munged,paste0(p$sumstats$code,p$filename.suffix.data.sumstats.munged))
 
 p$sumstats$imputedpath<-file.path(p$folderpath.data.sumstats.imputed,paste0(p$sumstats$code,p$filename.suffix.data.sumstats.munged))
+
+p$sumstats$imputedpath.10<-file.path(p$folderpath.data.sumstats.imputed.10,paste0(p$sumstats$code,p$filename.suffix.data.sumstats.munged))
+
+p$sumstats$imputedpath.500<-file.path(p$folderpath.data.sumstats.imputed.500,paste0(p$sumstats$code,p$filename.suffix.data.sumstats.munged))
+
+p$sumstats$imputedpath.ssimp<-file.path(p$folderpath.data.sumstats.imputed.ssimp,paste0(p$sumstats$code,p$filename.suffix.data.sumstats.munged))
 
 
 #special modification for special datasets for munging locally or at rosalind
@@ -570,20 +607,37 @@ if(p$host=="local"){
   p$sumstats["ANXI04",]$cleanedpath<-"/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/raw/GAD7_BGENIE_SexRegressed_For_LDSC.gz"
 } else {
   p$sumstats["ANXI04",]$cleanedpath<-"/users/k19049801/project/JZ_GED_PHD_C1/data/gwas_sumstats/raw/GAD7_BGENIE_SexRegressed_For_LDSC.gz"
-    }
+}
+
+if(p$host=="local"){
+  p$sumstats["BODY11",]$cleanedpath<-"/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/raw/bmi.giant-ukbb.meta-analysis.combined.23May2018.txt.gz"
+} else {
+  p$sumstats["BODY11",]$cleanedpath<-"/users/k19049801/project/JZ_GED_PHD_C1/data/gwas_sumstats/raw/bmi.giant-ukbb.meta-analysis.combined.23May2018.txt.gz"
+}
 
 if(p$host=="local"){
   p$sumstats["NEUR02",]$cleanedpath<-"/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/raw/sumstats_neuroticism_ctg_format.txt.gz"
 } else {
   p$sumstats["NEUR02",]$cleanedpath<-"/users/k19049801/project/JZ_GED_PHD_C1/data/gwas_sumstats/raw/sumstats_neuroticism_ctg_format.txt.gz"
-    }
+}
+
+if(p$host=="local"){
+  p$sumstats["INSO03",]$cleanedpath<-"/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/raw/insomnia_ukb2b_EUR_sumstats_20190311_with_chrX_mac_100.txt.gz"
+} else {
+  p$sumstats["INSO03",]$cleanedpath<-"/users/k19049801/project/JZ_GED_PHD_C1/data/gwas_sumstats/raw/insomnia_ukb2b_EUR_sumstats_20190311_with_chrX_mac_100.txt.gz"
+}
+
+if(p$host=="local"){
+  p$sumstats["BVOL01",]$cleanedpath<-"/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/raw/meta_analysis_BV_Jansenetal_2020.sumstats.txt.gz"
+} else {
+  p$sumstats["BVOL01",]$cleanedpath<-"/users/k19049801/project/JZ_GED_PHD_C1/data/gwas_sumstats/raw/meta_analysis_BV_Jansenetal_2020.sumstats.txt.gz"
+}
 
 
-
-
-##add reference year
+##add reference year - UPDATE THESE!!
 p$sumstats["ANXI03",]$year=2019
 p$sumstats["ANXI04",]$year=2019
+p$sumstats["BVOL01",]$year=2020
 p$sumstats["DEPR05",]$year=2018
 p$sumstats["NEUR02",]$year=2018
 
@@ -592,7 +646,9 @@ p$sumstats["ALCD03",]$reference_doi="https://doi.org/10.1038/s41593-018-0275-1"
 p$sumstats["ANXI03",]$reference_doi="https://doi.org/10.1038/s41380-019-0559-1"
 p$sumstats["ANXI04",]$reference_doi="https://doi.org/10.1038/s41380-019-0559-1"
 p$sumstats["AUTI07",]$reference_doi="https://doi.org/10.1038/s41588-019-0344-8"
+p$sumstats["BODY11",]$reference_doi="https://doi.org/10.1093/hmg/ddy271"
 p$sumstats["DEPR08",]$reference_doi="https://doi.org/10.1038/s41588-018-0090-3"
+p$sumstats["DEPR09",]$reference_doi="https://doi.org/10.1038/s41593-018-0326-7"
 p$sumstats["EDUC03",]$reference_doi="https://doi.org/10.1038/s41588-018-0147-3"
 p$sumstats["HEAL01",]$reference_doi="https://doi.org/10.1093/ije/dyw219"
 p$sumstats["NEUR01",]$reference_doi="https://doi.org/10.1038/ng.3552"
@@ -611,10 +667,6 @@ p$sumstats$dependent_variable[which(p$sumstats$code=="DEPR05")]="binary"
 ##add participant numbers
 p$sumstats$n_total[which(p$sumstats$code=="NEUR01")]=170911
 
-##add ancestry details
-p$sumstats$ancestry[which(p$sumstats$code=="NEUR01")]="EUR"
-p$sumstats$ancestry[which(p$sumstats$code=="DEPR05")]="EUR"
-
 ##add sex details
 p$sumstats$sex[which(p$sumstats$code=="ANXI04")]="both"
 p$sumstats$sex[which(p$sumstats$code=="NEUR01")]="both"
@@ -632,7 +684,7 @@ p$sumstats$age.sd[which(p$sumstats$code=="TIRE01")]=7.93
 
 
 ##add sample prevalence for all datasets
-p$sumstats$samplePrevalence<-p$sumstats$n_case/p$sumstats$n_total
+p$sumstats$samplePrevalence<-ifelse(is.na(p$sumstats$n_control),NA_real_, p$sumstats$n_case/p$sumstats$n_total)
 
 ##add number of cases or total column
 p$sumstats$n_case_total<-ifelse(is.na(p$sumstats$n_case),p$sumstats$n_total,p$sumstats$n_case)
@@ -645,8 +697,10 @@ p$sumstats$name.nice[which(p$sumstats$code=="ANOR02")]="Anorexia nervosa"
 p$sumstats$name.nice[which(p$sumstats$code=="ANXI03")]="Anxiety disorder"
 p$sumstats$name.nice[which(p$sumstats$code=="ANXI04")]="Generalised anxiety symptoms"
 p$sumstats$name.nice[which(p$sumstats$code=="AUTI07")]="Autism spectrum disorder"
+p$sumstats$name.nice[which(p$sumstats$code=="BODY11")]="BMI"
 p$sumstats$name.nice[which(p$sumstats$code=="DEPR05")]="MDD, narrow"
 p$sumstats$name.nice[which(p$sumstats$code=="DEPR08")]="MDD"
+p$sumstats$name.nice[which(p$sumstats$code=="DEPR09")]="MDD"
 p$sumstats$name.nice[which(p$sumstats$code=="EDUC03")]="Educational attainment"
 p$sumstats$name.nice[which(p$sumstats$code=="EXTR01")]="Extraversion"
 p$sumstats$name.nice[which(p$sumstats$code=="INCO03")]="Social deprivation"
@@ -666,26 +720,30 @@ p$sumstats$name.nice.and_code<-paste0(p$sumstats$name.nice," (",p$sumstats$code,
 
 ##Add nice dataset citation
 p$sumstats$reference.nice<-NA_character_
-p$sumstats["ADHD05",]$reference.nice <- "Demontis et al"
-p$sumstats["ALCD03",]$reference.nice <- "Walters et al"
-p$sumstats["ANOR02",]$reference.nice <- "Watson et al"
-p$sumstats["ANXI03",]$reference.nice <- "Purves et al"
-p$sumstats["ANXI04",]$reference.nice <- "Purves et al"
-p$sumstats["AUTI07",]$reference.nice <- "Grove et al"
-p$sumstats["BIPO02",]$reference.nice <- "Stahl et al"
-p$sumstats["DEPR05",]$reference.nice <- "Wray et al"
-p$sumstats["DEPR08",]$reference.nice <- "Wray et al"
-p$sumstats["EDUC03",]$reference.nice <- "Lee et al"
-p$sumstats["HEAL01",]$reference.nice <- "Harris et al"
-p$sumstats["INCO03",]$reference.nice <- "Hill et al"
-p$sumstats["INSO02",]$reference.nice <- "Jansen et al"
-p$sumstats["NEUR02",]$reference.nice <- "Nagel et al"
-p$sumstats["PTSD04",]$reference.nice <- "Nievergelt et al"
-p$sumstats["RISK02",]$reference.nice <- "Karlsson Linnér et al"
-p$sumstats["RISK03",]$reference.nice <- "Karlsson Linnér et al"
-p$sumstats["SCHI04",]$reference.nice <- "Pardiñas et al"
-p$sumstats["SUBJ01",]$reference.nice <- "Okbay et al"
-p$sumstats["TIRE01",]$reference.nice <- "Deary et al"
+p$sumstats["ADHD05",]$reference.nice <- "Demontis et al."
+p$sumstats["ALCD03",]$reference.nice <- "Walters et al."
+p$sumstats["ANOR02",]$reference.nice <- "Watson et al."
+p$sumstats["ANXI03",]$reference.nice <- "Purves et al."
+p$sumstats["ANXI04",]$reference.nice <- "Purves et al."
+p$sumstats["AUTI07",]$reference.nice <- "Grove et al."
+p$sumstats["BODY11",]$reference.nice <- "Yengo et al."
+p$sumstats["BIPO02",]$reference.nice <- "Stahl et al."
+p$sumstats["BVOL01",]$reference.nice <- "Jansen et al."
+p$sumstats["DEPR05",]$reference.nice <- "Wray et al."
+p$sumstats["DEPR08",]$reference.nice <- "Wray et al."
+p$sumstats["DEPR09",]$reference.nice <- "Howard et al."
+p$sumstats["EDUC03",]$reference.nice <- "Lee et al."
+p$sumstats["HEAL01",]$reference.nice <- "Harris et al."
+p$sumstats["INCO03",]$reference.nice <- "Hill et al."
+p$sumstats["INSO02",]$reference.nice <- "Jansen et al."
+p$sumstats["INSO03",]$reference.nice <- "Watanabe et al."
+p$sumstats["NEUR02",]$reference.nice <- "Nagel et al."
+p$sumstats["PTSD04",]$reference.nice <- "Nievergelt et al."
+p$sumstats["RISK02",]$reference.nice <- "Karlsson Linnér et al."
+p$sumstats["RISK03",]$reference.nice <- "Karlsson Linnér et al."
+p$sumstats["SCHI04",]$reference.nice <- "Pardiñas et al."
+p$sumstats["SUBJ01",]$reference.nice <- "Okbay et al."
+p$sumstats["TIRE01",]$reference.nice <- "Deary et al."
 
 #test
 # tSumstats <- read.table(p$sumstats["NEUR01",]$cleanedpath,header=T, quote="\"",fill=T,na.string=c(".",NA,"NA",""))
@@ -699,9 +757,11 @@ p$sumstats$dependent_variable.OLS[which(p$sumstats$code=="ANOR02")]=F
 p$sumstats$dependent_variable.OLS[which(p$sumstats$code=="ANXI03")]=F
 p$sumstats$dependent_variable.OLS[which(p$sumstats$code=="ANXI04")]=F
 p$sumstats$dependent_variable.OLS[which(p$sumstats$code=="AUTI07")]=F
+p$sumstats$dependent_variable.OLS[which(p$sumstats$code=="BODY11")]=T
 p$sumstats$dependent_variable.OLS[which(p$sumstats$code=="BIPO02")]=F
 p$sumstats$dependent_variable.OLS[which(p$sumstats$code=="DEPR05")]=F
 p$sumstats$dependent_variable.OLS[which(p$sumstats$code=="DEPR08")]=F
+p$sumstats$dependent_variable.OLS[which(p$sumstats$code=="DEPR09")]=T
 p$sumstats$dependent_variable.OLS[which(p$sumstats$code=="EDUC03")]=T
 p$sumstats$dependent_variable.OLS[which(p$sumstats$code=="EXTR01")]=T
 p$sumstats$dependent_variable.OLS[which(p$sumstats$code=="HEAL01")]=T
@@ -727,9 +787,11 @@ p$sumstats$dependent_variable.linprob[which(p$sumstats$code=="ANOR02")]=F
 p$sumstats$dependent_variable.linprob[which(p$sumstats$code=="ANXI03")]=F
 p$sumstats$dependent_variable.linprob[which(p$sumstats$code=="ANXI04")]=T #bgenie uses a linear estimator
 p$sumstats$dependent_variable.linprob[which(p$sumstats$code=="AUTI07")]=F
+p$sumstats$dependent_variable.linprob[which(p$sumstats$code=="BODY11")]=F
 p$sumstats$dependent_variable.linprob[which(p$sumstats$code=="BIPO02")]=F
 p$sumstats$dependent_variable.linprob[which(p$sumstats$code=="DEPR05")]=F
 p$sumstats$dependent_variable.linprob[which(p$sumstats$code=="DEPR08")]=F
+p$sumstats$dependent_variable.linprob[which(p$sumstats$code=="DEPR09")]=F
 p$sumstats$dependent_variable.linprob[which(p$sumstats$code=="EDUC03")]=F
 p$sumstats$dependent_variable.linprob[which(p$sumstats$code=="EXTR01")]=F
 p$sumstats$dependent_variable.linprob[which(p$sumstats$code=="HEAL01")]=F
@@ -756,9 +818,11 @@ p$sumstats$se.logit[which(p$sumstats$code=="ANOR02")]=T #Tested
 p$sumstats$se.logit[which(p$sumstats$code=="ANXI03")]=T #Tested
 p$sumstats$se.logit[which(p$sumstats$code=="ANXI04")]=F #Tested
 p$sumstats$se.logit[which(p$sumstats$code=="AUTI07")]=T #Tested
+p$sumstats$se.logit[which(p$sumstats$code=="BODY11")]=F #NOT Tested!!!!!
 p$sumstats$se.logit[which(p$sumstats$code=="BIPO02")]=T #Tested
 p$sumstats$se.logit[which(p$sumstats$code=="DEPR05")]=T #Tested
 p$sumstats$se.logit[which(p$sumstats$code=="DEPR08")]=T #Tested
+p$sumstats$se.logit[which(p$sumstats$code=="DEPR09")]=F #NOT Tested!!!!!
 p$sumstats$se.logit[which(p$sumstats$code=="EDUC03")]=F #Continuous
 p$sumstats$se.logit[which(p$sumstats$code=="EXTR01")]=F #Continuous
 p$sumstats$se.logit[which(p$sumstats$code=="HEAL01")]=F #Continuous
@@ -816,11 +880,19 @@ p$genesets["msigdb.c8.all.v7.5.1",c("name","filepath.raw")]<-c("MSigDB Cell type
 ```{r GWAS sumstat dataset variable selection}
 
 #selection based on specific traits
-#p$sumstats.sel.code<-c("ANXI04")
+#p$sumstats.sel.code<-c("ANXI03","DEPR09","NEUR02")
 #p$sumstats.sel.code<-c("ADHD05","ANXI04")
 #p$sumstats.sel.code<-c("RISK02","RISK03","SCHI04","SUBJ01","TIRE01")
 #p$sumstats.sel.code<-c("TIRE01")
-p$sumstats.sel.code<-c("ADHD05","ALCD03","ANOR02","ANXI03","ANXI04","AUTI07","BIPO02", "DEPR05","DEPR08","EDUC03","HEAL01","INCO03","INSO02","NEUR02", "PTSD04","RISK02","RISK03","SCHI04","SUBJ01","TIRE01")
+
+#p$sumstats.sel.ssimp.code <- c("ANXI03","DEPR09","DEPR05","NEUR02","BODY11")
+#full
+p$sumstats.sel.ssimp.code<-c("ANXI03","BODY11","BIPO02","BVOL01","DEPR05","DEPR09","EDUC03","INSO02","NEUR02","SCHI04")
+
+p$sumstats.sel.code <- p$sumstats.sel.ssimp.code
+#p$sumstats.sel.code<-c("ADHD05","ALCD03","ANOR02","ANXI03","ANXI04","AUTI07","BODY11","BIPO02", "BVOL01","DEPR05","DEPR09","EDUC03","HEAL01","INCO03","INSO03","NEUR02", "PTSD04","RISK02","RISK03","SCHI04","SUBJ01","TIRE01")
+
+
 p$sumstats.sel<-p$sumstats[which(p$sumstats$code %in% p$sumstats.sel.code),]
 
 #p$sumstats.sel$code_orig<-p$sumstats.sel$code
@@ -894,6 +966,7 @@ if(file.exists(p$filepath.highld_b38)){
 ```
 
 
+
 ## GWAS summary statistics munge - if needed
 Munging of GWAS sumstat datasets. The summary statistics is also prepared for latent factor GWAS (previously, the sumstats()-function of the GSEM package). Here reference alleles are standardised across all datasets, and SNP effects and their s.e. are scaled to match unit-variance phenotypes.
 ```{r GWAS sumstat munge}
@@ -910,7 +983,7 @@ p$munge<-c()
 if(p$clOptions$task=="munge" & !all(file.exists(p$sumstats.sel$mungedpath))){
   
   #test
-  #p$clOptions$task_argument<-"INSO02"
+  #p$clOptions$task_argument<-"ADHD05"
   if(!is.na(p$clOptions$task_argument)){
     #task argument sets the specific dataset to munge
     
@@ -918,20 +991,12 @@ if(p$clOptions$task=="munge" & !all(file.exists(p$sumstats.sel$mungedpath))){
     p$munge$filesToUse<-p$sumstats.sel$cleanedpath[which(p$sumstats.sel$code==p$clOptions$task_argument)]
     p$munge$traitNamesToUse<-p$sumstats.sel$code[which(p$sumstats.sel$code==p$clOptions$task_argument)]
     p$munge$NToUse<-p$sumstats.sel$n_total[which(p$sumstats.sel$code==p$clOptions$task_argument)]
-    p$munge$OLSToUse<-p$sumstats.sel$dependent_variable.OLS[which(p$sumstats.sel$code==p$clOptions$task_argument)]
-    p$munge$linprobToUse<-p$sumstats.sel$dependent_variable.linprob[which(p$sumstats.sel$code==p$clOptions$task_argument)]
-    p$munge$se.logitToUse<-p$sumstats.sel$se.logit[which(p$sumstats.sel$code==p$clOptions$task_argument)]
-    p$munge$propToUse<-(p$sumstats.sel$n_case/p$sumstats.sel$n_total)[which(p$sumstats.sel$code==p$clOptions$task_argument)]
     
   } else {
     #defaults
     p$munge$filesToUse<-p$sumstats.sel$cleanedpath
     p$munge$traitNamesToUse<-p$sumstats.sel$code
     p$munge$NToUse<-p$sumstats.sel$n_total
-    p$munge$OLSToUse<-p$sumstats.sel$dependent_variable.OLS
-    p$munge$linprobToUse<-p$sumstats.sel$dependent_variable.linprob
-    p$munge$se.logitToUse<-p$sumstats.sel$se.logit
-    p$munge$propToUse<-(p$sumstats.sel$n_case/p$sumstats.sel$n_total)
   }
   
   # cat("\nMunging with:\n")
@@ -949,43 +1014,15 @@ if(p$clOptions$task=="munge" & !all(file.exists(p$sumstats.sel$mungedpath))){
   #munging with no filters applied - only munge without imputation!
   p$munge$results <- supermunge(
             filePaths = p$munge$filesToUse,
+            rsSynonymsFilePath = p$filepath.rsSynonyms.dbSNP151,
             refFilePath = p$filepath.SNPReference.1kg,
-            #refFilePath = p$filepath.SNPReference.hm3,
-            #mask = mask,
-            #ldDirPath=p$folderpath.data.mvLDSC.ld.1kg,
             traitNames = p$munge$traitNamesToUse,
-            #imputeFromLD=T,
-            #region.imputation.filter_df=p$highld, #provide the high-ld regions to not use for imputation
-            #produceVariantTable = T,
+            chainFilePath = file.path(p$folderpath.data,"alignment_chains","hg19ToHg38.over.chain.gz"),
             N = p$munge$NToUse,
-            OLS = p$munge$OLSToUse,
-            linprob=p$munge$linprobToUse,
-            se.logit = p$munge$se.logitToUse,
-            prop=p$munge$propToUse,
             pathDirOutput = p$folderpath.data.sumstats.munged,
             invertEffectDirectionOn = c("ANXI04") #ANXI4 has an inverted effect direction for some reason
               ) 
     
-  # #Munge with imputation
-  # p$munge$results <- supermunge(
-  #           filePaths = p$munge$filesToUse,
-  #           refFilePath = p$filepath.SNPReference.1kg,
-  #           #refFilePath = p$filepath.SNPReference.hm3,
-  #           #mask = mask,
-  #           ldDirPath=p$folderpath.data.mvLDSC.ld.1kg,
-  #           traitNames = p$munge$traitNamesToUse,
-  #           imputeFromLD=T,
-  #           region.imputation.filter_df=p$highld, #provide the high-ld regions to not use for imputation
-  #           #produceVariantTable = T,
-  #           N = p$munge$NToUse,
-  #           OLS = p$munge$OLSToUse,
-  #           linprob=p$munge$linprobToUse,
-  #           se.logit = p$munge$se.logitToUse,
-  #           prop=p$munge$propToUse,
-  #           pathDirOutput = p$folderpath.data.sumstats.imputed,
-  #           invertEffectDirectionOn = c("ANXI04") #ANXI4 has an inverted effect direction for some reason
-  #             )
-
   
   p$munge$results$meta %>% gt()
   gtsave(data = (p$munge$results$meta %>% gt()), filename = file.path(p$folderpath.workingDirectory,"munge.meta.rtf"))
@@ -999,6 +1036,43 @@ if(p$clOptions$task=="munge" & !all(file.exists(p$sumstats.sel$mungedpath))){
 }
 
 print(p$munge$results$meta)
+
+
+if(p$clOptions$task=="impute"
+   #& !all(file.exists(p$sumstats.sel$imputedpath))
+   ){
+  #test
+  #p$clOptions$task_argument<-"ANXI03"
+  if(!is.na(p$clOptions$task_argument)){
+    #task argument sets the specific dataset to munge
+    
+    cat("\nSet to IMPUTE with arg",p$clOptions$task_argument,"\n")
+    p$munge$filesToUse<-p$sumstats.sel$mungedpath[which(p$sumstats.sel$code==p$clOptions$task_argument)]
+    p$munge$traitNamesToUse<-p$sumstats.sel$code[which(p$sumstats.sel$code==p$clOptions$task_argument)]
+    p$munge$NToUse<-p$sumstats.sel$n_total[which(p$sumstats.sel$code==p$clOptions$task_argument)]
+    
+  } else {
+    #defaults
+    p$munge$filesToUse<-p$sumstats.sel$mungedpath
+    p$munge$traitNamesToUse<-p$sumstats.sel$code
+    p$munge$NToUse<-p$sumstats.sel$n_total
+  }
+  
+  
+  #Munge with imputation
+  p$munge$results <- supermunge(
+            filePaths = p$munge$filesToUse,
+            refFilePath = p$filepath.SNPReference.1kg,
+            process = F,
+            #ldDirPath=p$folderpath.data.mvLDSC.ld.1kg,
+            traitNames = p$munge$traitNamesToUse,
+            imputeFromLD=T,
+            imputeFrameLenBp = 10000, #TEMPORARY to get the 10k imputation
+            imputeFrameLenCM=NULL,
+            region.imputation.filter_df=p$highld_b38, #provide the high-ld regions to not use for imputation
+            pathDirOutput = p$folderpath.data.sumstats.imputed.10 #TEMPORARY to get the 10k imputation
+              )
+}
 
 if(file.exists(p$filepath.lfgwas.sumstats)) {
   # p$lfGWAS$sumstats<-readRDS(file=p$filepath.lfgwas.sumstats)
@@ -1054,7 +1128,7 @@ if(file.exists(p$filepath.lfgwas.sumstats)) {
   
 } else if(p$clOptions$task=="munge2"){
   p$munge$results<-supermunge(
-    filePaths = p$sumstats.sel$mungedpath,
+    filePaths = p$sumstats.sel$imputedpath,
     refFilePath = p$filepath.SNPReference.1kg,
     traitNames = p$sumstats.sel$code,
     produceCompositeTable = T,
@@ -1077,9 +1151,74 @@ if(file.exists(p$filepath.lfgwas.sumstats)) {
   print("Done preparing summary statistics for latent factor GWAS. The result should have been saved to a file.")
 }
 
-if(p$clOptions$task=="munge" || p$clOptions$task=="munge2") quit(save = "no")
+if(p$clOptions$task=="munge" ||  p$clOptions$task=="impute" || p$clOptions$task=="munge2") quit(save = "no")
 
 ```
+
+## Format SSIMP munged datasets
+```{r ssimp munged format}
+
+if(p$clOptions$task=="ssimpformat"){
+  
+  cat("\nFormatting SSIMP munged datasets!\n")
+  
+  for(cTraitCode in p$sumstats.sel.ssimp.code) {
+      cSumstats <- shru::readFile(filePath = p$sumstats.sel[cTraitCode,]$mungedpath, nThreads = 5)
+      cSumstats[,BP:=NULL][,CHR:=NULL]
+      fwrite(x = cSumstats,file = file.path(p$folderpath.data.sumstats.munged.4ssimp,paste0(cTraitCode,".gz")),append = F,quote = F,sep = "\t",col.names = T)
+  }
+  if(p$clOptions$task=="ssimpformat") quit(save = "no")
+}
+
+```
+
+
+## Merge SSIMP imputed datasets
+```{r GWAS imputed merge}
+
+if(p$clOptions$task=="merge"){
+  
+  cat("\nMerging SSIMP fractured datasets!\n")
+  
+  #cRef <- shru::readFile(filePath = p$filepath.SNPReference.1kg,nThreads = 5)
+  
+  for(cTraitCode in p$sumstats.sel.ssimp.code) {
+    files<-list.files(path = p$folderpath.data.sumstats.imputed.ssimp, pattern = paste0("^",cTraitCode,"\\..+"))
+    print(files)
+    fullTraitList<-lapply(files, function(x){
+      shru::readFile(filePath = file.path(p$folderpath.data.sumstats.imputed.ssimp,x),nThreads = 5)
+    }
+    )
+    
+    if(length(fullTraitList)>0){
+      fullTrait <- rbindlist(l = fullTraitList, use.names = T, fill = T)
+      
+      print(fullTrait)
+      
+      colnames(fullTrait)[colnames(fullTrait)=="r2.pred"]<-"LD_IMP"
+      colnames(fullTrait)[colnames(fullTrait)=="z_imp"]<-"Z"
+      colnames(fullTrait)[colnames(fullTrait)=="N.imp"]<-"N"
+      colnames(fullTrait)[colnames(fullTrait)=="P.imp"]<-"P"
+      
+      shru::supermunge(list_df = list(fullTrait) , traitNames = cTraitCode, process = F, nThreads = 5, pathDirOutput = p$folderpath.data.sumstats.imputed.ssimp)
+      
+      
+      rm(fullTrait)
+    }
+    
+    rm(fullTraitList)
+  }
+  
+  #rm(cRef)
+  
+  if(p$clOptions$task=="merge") quit(save = "no")
+  
+}
+
+
+
+```
+
 
 
 ## Harmonise gene sets to gene map and MAGMA format
@@ -1163,8 +1302,6 @@ if(p$clOptions$task=="genesets"){
 ```
 
 
-
-
 # Multivariate LD
 The multivariate LDSC and HDL procedure calculates genetic correlations between the different traits and estimates of correlation standard errors, producing S (variances and covariances = heritabilities and coheritabilities) and V (diagonal: squared standard errors of elements in S. Off-diagonal: Covariances of elements in S - "dependencies between estimation errors used to model dependencies due to sample overlap") matrices used later in the Genomic SEM model fitting.
 
@@ -1179,206 +1316,159 @@ if (file.exists(p$filepath.mvLD)) {
   print("Using existing covariance structures from previous LD computations.")
   p$mvLD<-readRDS(file=p$filepath.mvLD)
 } else {
+  p$mvLD<-c()
+}
+
+if(p$clOptions$task=="mvLD" || (!file.exists(p$filepath.mvLD) & p$clOptions$task=="0"))
+{
   print("Running (multivariate) LD regression with different methods. This might take a while. If the procedure runs for too long you may want to abort the process.")
   
   cat("The current task is specified as:",p$clOptions$task,"\n")
-  p$mvLD<-c()
   
-  if(p$clOptions$task=="mvLD" || (!file.exists(p$filepath.mvLD) & p$clOptions$task=="0")){
-    #run mvLDSC
-    p$mvLD$covstruct.mvLDSC.hm3<-ldsc.mod(
-      traits = p$sumstats.sel$mungedpath,
-      sample.prev =  p$sumstats.sel$samplePrevalence,
-      population.prev = p$sumstats.sel$populationPrevalence,
-      trait.names = p$sumstats.sel$code,
-      ld = p$folderpath.data.mvLDSC.ld.hm3,
-      wld = p$folderpath.data.mvLDSC.ld.hm3,
-      n.blocks = 200, #this was standard for the hm3 set of snps
-      #info.limp.filter = 0.5,
-      info.filter = 0.6,
-      maf.filter = 0.01,
-      region.filter_df = p$highld,
-      #mhc.filter = 37,
-      N = p$sumstats.sel$n_total,
-      #forceN = , p$sumstats.sel$forceN, # Consider this when some of the original N's may be untrustworthy (ANXI04!) - TODO - fix in supermunge
-      ldsc.log = p$setup.code.date
-      )
+  #run mvLDSC
+  # p$mvLD$covstruct.mvLDSC.hm3<-ldsc.mod(
+  #   #traits = p$sumstats.sel$imputedpath,
+  #   traits = p$sumstats.sel$mungedpath,
+  #   sample.prev =  p$sumstats.sel$samplePrevalence,
+  #   population.prev = p$sumstats.sel$populationPrevalence,
+  #   trait.names = p$sumstats.sel$code,
+  #   ld = p$folderpath.data.mvLDSC.ld.hm3,
+  #   wld = p$folderpath.data.mvLDSC.ld.hm3,
+  #   n.blocks = 200, #this was standard for the hm3 set of snps
+  #   #info.limp.filter = 0.5,
+  #   info.filter = 0.6,
+  #   maf.filter = 0.01,
+  #   region.filter_df = p$highld,
+  #   #mhc.filter = 37,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # 
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  # 
+  # p$mvLD$covstruct.mvLDSC.1kg.noimp<-ldsc.mod(
+  #   traits = p$sumstats.sel$mungedpath,
+  #   sample.prev =  p$sumstats.sel$samplePrevalence,
+  #   population.prev = p$sumstats.sel$populationPrevalence,
+  #   trait.names = p$sumstats.sel$code,
+  #   ld = p$folderpath.data.mvLDSC.ld.1kg,
+  #   wld = p$folderpath.data.mvLDSC.ld.1kg,
+  #   n.blocks = 200,
+  #   #info.limp.filter = 0.5,
+  #   info.filter = 0.6,
+  #   maf.filter = 0.01,
+  #   region.filter_df = p$highld,
+  #   #mhc.filter = 37,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
 
-    p$mvLD$covstruct.mvLDSC.1kg<-ldsc.mod(
-      traits = p$sumstats.sel$mungedpath,
-      sample.prev =  p$sumstats.sel$samplePrevalence,
-      population.prev = p$sumstats.sel$populationPrevalence,
-      trait.names = p$sumstats.sel$code,
-      ld = p$folderpath.data.mvLDSC.ld.1kg,
-      wld = p$folderpath.data.mvLDSC.ld.1kg,
-      n.blocks = 600, #a bit more here if it can support the larger reference panel used
-      #info.limp.filter = 0.5,
-      info.filter = 0.6,
-      maf.filter = 0.01,
-      region.filter_df = p$highld,
-      #mhc.filter = 37,
-      N = p$sumstats.sel$n_total,
-      #forceN = T, # Consider this when some of the original N's may be untrustworthy (ANXI04!) - TODO - fix in supermunge
-      ldsc.log = p$setup.code.date
-      )
-    
-    p$mvLD$covstruct.mvLDSC.1kg_limpfilter<-ldsc.mod(
-      traits = p$sumstats.sel$mungedpath,
-      sample.prev =  p$sumstats.sel$samplePrevalence,
-      population.prev = p$sumstats.sel$populationPrevalence,
-      trait.names = p$sumstats.sel$code,
-      ld = p$folderpath.data.mvLDSC.ld.1kg,
-      wld = p$folderpath.data.mvLDSC.ld.1kg,
-      n.blocks = 600, #a bit more here if it can support the larger reference panel used
-      info.limp.filter = 0.5,
-      info.filter = 0.6,
-      maf.filter = 0.01,
-      region.filter_df = p$highld,
-      #mhc.filter = 37,
-      N = p$sumstats.sel$n_total,
-      ldsc.log = paste0(p$setup.code,"_temp")
-      )
-    
-    #pairwise ldsc - genomic SEM mvldsc - imputed! - DOES NOT WORK YET!!! WIP!
-    p$mvLD$covstruct.mvLDSC.1kg.pairwise <- list()
-    p$mvLD$covstruct.mvLDSC.1kg.pairwise$S<-matrix(data=NA,nrow = nrow(p$sumstats.sel),ncol = nrow(p$sumstats.sel))
-    colnames(p$mvLD$covstruct.mvLDSC.1kg.pairwise$S)<-p$sumstats.sel$code
-    rownames(p$mvLD$covstruct.mvLDSC.1kg.pairwise$S)<-p$sumstats.sel$code
-     p$mvLD$covstruct.mvLDSC.1kg.pairwise$S.SE<-matrix(data=NA,nrow = nrow(p$sumstats.sel),ncol = nrow(p$sumstats.sel))
-    colnames(p$mvLD$covstruct.mvLDSC.1kg.pairwise$S.SE)<-p$sumstats.sel$code
-    rownames(p$mvLD$covstruct.mvLDSC.1kg.pairwise$S.SE)<-p$sumstats.sel$code
-    p$mvLD$covstruct.mvLDSC.1kg.pairwise$S_Stand<-matrix(data=NA,nrow = nrow(p$sumstats.sel),ncol = nrow(p$sumstats.sel))
-    colnames(p$mvLD$covstruct.mvLDSC.1kg.pairwise$S_Stand)<-p$sumstats.sel$code
-    rownames(p$mvLD$covstruct.mvLDSC.1kg.pairwise$S_Stand)<-p$sumstats.sel$code
-     p$mvLD$covstruct.mvLDSC.1kg.pairwise$S_Stand.SE<-matrix(data=NA,nrow = nrow(p$sumstats.sel),ncol = nrow(p$sumstats.sel))
-    colnames(p$mvLD$covstruct.mvLDSC.1kg.pairwise$S_Stand.SE)<-p$sumstats.sel$code
-    rownames(p$mvLD$covstruct.mvLDSC.1kg.pairwise$S_Stand.SE)<-p$sumstats.sel$code
-    
-    p$mvLD$covstruct.mvLDSC.1kg.pairwise$mgc<-list()
-    
-    for(iTrait in 1:length(p$sumstats.sel$code)){
-      #iTrait<-1
-      for(jTrait in (iTrait+1):length(p$sumstats.sel$code)){
-        #jTrait<-2
-        if(jTrait>length(p$sumstats.sel$code)) break
-        cldsc <- ldsc.mod(
-          traits = p$sumstats.sel$mungedpath[c(iTrait,jTrait)],
-          sample.prev =  p$sumstats.sel$samplePrevalence[c(iTrait,jTrait)],
-          population.prev = p$sumstats.sel$populationPrevalence[c(iTrait,jTrait)],
-          trait.names = p$sumstats.sel$code[c(iTrait,jTrait)],
-          ld = p$folderpath.data.mvLDSC.ld.1kg,
-          wld = p$folderpath.data.mvLDSC.ld.1kg,
-          n.blocks = 600, #a bit more here if it can support the larger reference panel used
-          info.filter = 0.6,
-          maf.filter = 0.01,
-          region.filter_df = p$highld,
-          #mhc.filter = 37,
-          N = p$sumstats.sel$n_total[c(iTrait,jTrait)],
-          ldsc.log = paste0(p$setup.code,"_temp")
-          )
-        p$mvLD$covstruct.mvLDSC.1kg.pairwise$S[[iTrait,iTrait]]<-cldsc$S[1,1]
-        p$mvLD$covstruct.mvLDSC.1kg.pairwise$S[[iTrait,jTrait]]<-cldsc$S[1,2]
-        p$mvLD$covstruct.mvLDSC.1kg.pairwise$S[[jTrait,iTrait]]<-cldsc$S[1,2]
-        
-        p$mvLD$covstruct.mvLDSC.1kg.pairwise$S.SE[[iTrait,iTrait]]<-cldsc$S.SE[1,1]
-        p$mvLD$covstruct.mvLDSC.1kg.pairwise$S.SE[[iTrait,jTrait]]<-cldsc$S.SE[1,2]
-        p$mvLD$covstruct.mvLDSC.1kg.pairwise$S.SE[[jTrait,iTrait]]<-cldsc$S.SE[1,2]
-        
-        p$mvLD$covstruct.mvLDSC.1kg.pairwise$S_Stand[[iTrait,iTrait]]<-cldsc$S_Stand[1,1]
-        p$mvLD$covstruct.mvLDSC.1kg.pairwise$S_Stand[[iTrait,jTrait]]<-cldsc$S_Stand[1,2]
-        p$mvLD$covstruct.mvLDSC.1kg.pairwise$S_Stand[[jTrait,iTrait]]<-cldsc$S_Stand[1,2]
-        
-        p$mvLD$covstruct.mvLDSC.1kg.pairwise$S_Stand.SE[[iTrait,iTrait]]<-cldsc$S_Stand.SE[1,1]
-        p$mvLD$covstruct.mvLDSC.1kg.pairwise$S_Stand.SE[[iTrait,jTrait]]<-cldsc$S_Stand.SE[1,2]
-        p$mvLD$covstruct.mvLDSC.1kg.pairwise$S_Stand.SE[[jTrait,iTrait]]<-cldsc$S_Stand.SE[1,2]
-        
-        p$mvLD$covstruct.mvLDSC.1kg.pairwise$mgc[[iTrait]]<-cldsc$mgc
-        
-      }
-    
-    }
-    
-    
-    #pairwise ldsc - genomic SEM mvldsc - non-imputed!
-    p$mvLD$covstruct.mvLDSC.1kg.pairwise.unimp <- list()
-    p$mvLD$covstruct.mvLDSC.1kg.pairwise.unimp$S<-matrix(data=NA,nrow = nrow(p$sumstats.sel),ncol = nrow(p$sumstats.sel))
-    colnames(p$mvLD$covstruct.mvLDSC.1kg.pairwise.unimp$S)<-p$sumstats.sel$code
-    rownames(p$mvLD$covstruct.mvLDSC.1kg.pairwise.unimp$S)<-p$sumstats.sel$code
-     p$mvLD$covstruct.mvLDSC.1kg.pairwise.unimp$S.SE<-matrix(data=NA,nrow = nrow(p$sumstats.sel),ncol = nrow(p$sumstats.sel))
-    colnames(p$mvLD$covstruct.mvLDSC.1kg.pairwise.unimp$S.SE)<-p$sumstats.sel$code
-    rownames(p$mvLD$covstruct.mvLDSC.1kg.pairwise.unimp$S.SE)<-p$sumstats.sel$code
-    p$mvLD$covstruct.mvLDSC.1kg.pairwise.unim$S_Stand<-matrix(data=NA,nrow = nrow(p$sumstats.sel),ncol = nrow(p$sumstats.sel))
-    colnames(p$mvLD$covstruct.mvLDSC.1kg.pairwise.unimp$S_Stand)<-p$sumstats.sel$code
-    rownames(p$mvLD$covstruct.mvLDSC.1kg.pairwise.unimp$S_Stand)<-p$sumstats.sel$code
-     p$mvLD$covstruct.mvLDSC.1kg.pairwise.unimp$S_Stand.SE<-matrix(data=NA,nrow = nrow(p$sumstats.sel),ncol = nrow(p$sumstats.sel))
-    colnames(p$mvLD$covstruct.mvLDSC.1kg.pairwise.unimp$S_Stand.SE)<-p$sumstats.sel$code
-    rownames(p$mvLD$covstruct.mvLDSC.1kg.pairwise.unimp$S_Stand.SE)<-p$sumstats.sel$code
-    
-    p$mvLD$covstruct.mvLDSC.1kg.pairwise.unimp$mgc<-list()
-    
-    for(iTrait in 1:length(p$sumstats.sel$code)){
-      #iTrait<-1
-      for(jTrait in (iTrait+1):length(p$sumstats.sel$code)){
-        #jTrait<-2
-        if(jTrait>length(p$sumstats.sel$code)) break
-        cldsc <- ldsc.mod(
-          traits = p$sumstats.sel$mungedpath[c(iTrait,jTrait)],
-          sample.prev =  p$sumstats.sel$samplePrevalence[c(iTrait,jTrait)],
-          population.prev = p$sumstats.sel$populationPrevalence[c(iTrait,jTrait)],
-          trait.names = p$sumstats.sel$code[c(iTrait,jTrait)],
-          ld = p$folderpath.data.mvLDSC.ld.1kg,
-          wld = p$folderpath.data.mvLDSC.ld.1kg,
-          n.blocks = 600, #a bit more here if it can support the larger reference panel used
-          info.limp.filter = 10000, #large value to filter away all imputed variants
-          info.filter = 0.6,
-          maf.filter = 0.01,
-          region.filter_df = p$highld,
-          #mhc.filter = 37,
-          N = p$sumstats.sel$n_total[c(iTrait,jTrait)],
-          ldsc.log = paste0(p$setup.code,"_temp")
-          )
-        p$mvLD$covstruct.mvLDSC.1kg.pairwise.unimp$S[[iTrait,iTrait]]<-cldsc$S[1,1]
-        p$mvLD$covstruct.mvLDSC.1kg.pairwise.unimp$S[[iTrait,jTrait]]<-cldsc$S[1,2]
-        p$mvLD$covstruct.mvLDSC.1kg.pairwise.unimp$S[[jTrait,iTrait]]<-cldsc$S[1,2]
-        
-        p$mvLD$covstruct.mvLDSC.1kg.pairwise.unimp$S.SE[[iTrait,iTrait]]<-cldsc$S.SE[1,1]
-        p$mvLD$covstruct.mvLDSC.1kg.pairwise.unimp$S.SE[[iTrait,jTrait]]<-cldsc$S.SE[1,2]
-        p$mvLD$covstruct.mvLDSC.1kg.pairwise.unimp$S.SE[[jTrait,iTrait]]<-cldsc$S.SE[1,2]
-        
-        p$mvLD$covstruct.mvLDSC.1kg.pairwise.unimp$S_Stand[[iTrait,iTrait]]<-cldsc$S_Stand[1,1]
-        p$mvLD$covstruct.mvLDSC.1kg.pairwise.unimp$S_Stand[[iTrait,jTrait]]<-cldsc$S_Stand[1,2]
-        p$mvLD$covstruct.mvLDSC.1kg.pairwise.unimp$S_Stand[[jTrait,iTrait]]<-cldsc$S_Stand[1,2]
-        
-        p$mvLD$covstruct.mvLDSC.1kg.pairwise.unimp$S_Stand.SE[[iTrait,iTrait]]<-cldsc$S_Stand.SE[1,1]
-        p$mvLD$covstruct.mvLDSC.1kg.pairwise.unimp$S_Stand.SE[[iTrait,jTrait]]<-cldsc$S_Stand.SE[1,2]
-        p$mvLD$covstruct.mvLDSC.1kg.pairwise.unimp$S_Stand.SE[[jTrait,iTrait]]<-cldsc$S_Stand.SE[1,2]
-        
-        p$mvLD$covstruct.mvLDSC.1kg.pairwise.unimp$mgc[[iTrait]]<-cldsc$mgc
-        
-      }
-    
-    }
-    
+  # p$mvLD$covstruct.mvLDSC.1kg.10<-ldsc.mod(
+  #   traits = p$sumstats.sel$imputedpath.10,
+  #   sample.prev =  p$sumstats.sel$samplePrevalence,
+  #   population.prev = p$sumstats.sel$populationPrevalence,
+  #   trait.names = p$sumstats.sel$code,
+  #   ld = p$folderpath.data.mvLDSC.ld.1kg,
+  #   wld = p$folderpath.data.mvLDSC.ld.1kg,
+  #   n.blocks = 200,
+  #   #info.limp.filter = 0.5,
+  #   info.filter = 0.6,
+  #   maf.filter = 0.01,
+  #   ldimp.adjustN = T,
+  #   region.filter_df = p$highld,
+  #   #mhc.filter = 37,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
 
+  # p$mvLD$covstruct.mvLDSC.1kg.500<-ldsc.mod(
+  #   traits = p$sumstats.sel$imputedpath.500,
+  #   sample.prev =  p$sumstats.sel$samplePrevalence,
+  #   population.prev = p$sumstats.sel$populationPrevalence,
+  #   trait.names = p$sumstats.sel$code,
+  #   ld = p$folderpath.data.mvLDSC.ld.1kg,
+  #   wld = p$folderpath.data.mvLDSC.ld.1kg,
+  #   n.blocks = 200,
+  #   #info.limp.filter = 0.5,
+  #   info.filter = 0.6,
+  #   maf.filter = 0.01,
+  #   ldimp.adjustN = T,
+  #   region.filter_df = p$highld,
+  #   #mhc.filter = 37,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  
+  # p$mvLD$covstruct.mvLDSC.1kg.500.2<-ldsc.mod(
+  #   traits = p$sumstats.sel$imputedpath.500,
+  #   sample.prev =  p$sumstats.sel$samplePrevalence,
+  #   population.prev = p$sumstats.sel$populationPrevalence,
+  #   trait.names = p$sumstats.sel$code,
+  #   ld = p$folderpath.data.mvLDSC.ld.1kg,
+  #   wld = p$folderpath.data.mvLDSC.ld.1kg,
+  #   n.blocks = 200,
+  #   #info.limp.filter = 0.5,
+  #   info.filter = 0.6,
+  #   maf.filter = 0.01,
+  #   ldimp.adjustN = T,
+  #   #ldimp.ldimp2 = T,
+  #   region.filter_df = p$highld,
+  #   #mhc.filter = 37,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  
+
+  # p$mvLD$covstruct.mvLDSC.1kg.ssimp<-ldsc.mod(
+  #   traits = p$sumstats.sel$imputedpath.ssimp,
+  #   sample.prev =  p$sumstats.sel$samplePrevalence,
+  #   population.prev = p$sumstats.sel$populationPrevalence,
+  #   trait.names = p$sumstats.sel$code,
+  #   ld = p$folderpath.data.mvLDSC.ld.1kg,
+  #   wld = p$folderpath.data.mvLDSC.ld.1kg,
+  #   n.blocks = 200,
+  #   #info.limp.filter = 0.5,
+  #   info.filter = 0.6,
+  #   maf.filter = 0.01,
+  #   #ldimp.filter = 0.3,
+  #   #ldimp.k.filter = 10,
+  #   region.filter_df = p$highld,
+  #   #mhc.filter = 37,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # 
+  
+  
+  #run original ldsc per dataset to get heritabilities
+  p$mvLD$h2.munged<-c()
+  for(cTrait in p$sumstats.sel$code){
+    p$mvLD$h2.munged[cTrait] <- list(
+      ldsc.orig(trait_codes = list(cTrait),trait_filepaths = p$sumstats.sel[cTrait,]$mungedpath, ldsc_filepath = "/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/software/ldsc/ldsc.py", ld_filepath = file.path(p$folderpath.data.mvLDSC.ld.1kg,"hc1kgp3.b38.eur.1cm.400blocks"),samp_prev = p$sumstats.sel$samplePrevalence[cTrait], pop_prev = p$sumstats.sel$populationPrevalence[cTrait])
+      )
   }
-    
-  # #Sys.sleep(time = 5)
-  # #flip effect direction of trait
-  # SModifier<-matrix(nrow = nrow(p$mvLD$covstruct.mvLDSC.1kg$S), ncol = ncol(p$mvLD$covstruct.mvLDSC.1kg$S), dimnames = list(
-  #   colnames(p$mvLD$covstruct.mvLDSC.1kg$S),
-  #   colnames(p$mvLD$covstruct.mvLDSC.1kg$S)
-  #   )
-  #   )
-  # 
-  # SModifier["ANXI04",]<--1
-  # SModifier[,"ANXI04"]<--1
-  # SModifier["ANXI04","ANXI04"]<-NA
-  # # View(SModifier)
-  # 
-  # p$mvLD$covstruct.mvLDSC.1kg$S[!is.na(SModifier)]<-p$mvLD$covstruct.mvLDSC.1kg$S[!is.na(SModifier)]*SModifier[!is.na(SModifier)]
+  
+  p$mvLD$h2.500<-c()
+  for(cTrait in p$sumstats.sel$code){
+    p$mvLD$h2.500[cTrait] <- list(
+      ldsc.orig(trait_codes = list(cTrait),trait_filepaths = p$sumstats.sel[cTrait,]$imputedpath.500, ldsc_filepath = "/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/software/ldsc/ldsc.py", ld_filepath = file.path(p$folderpath.data.mvLDSC.ld.1kg,"hc1kgp3.b38.eur.1cm.400blocks"),samp_prev = p$sumstats.sel$samplePrevalence[cTrait], pop_prev = p$sumstats.sel$populationPrevalence[cTrait])
+      )
+  }
+  
+  p$mvLD$h2.ssimp<-c()
+  for(cTrait in p$sumstats.sel$code){
+    p$mvLD$h2.ssimp[cTrait] <- list(
+      ldsc.orig(trait_codes = list(cTrait),trait_filepaths = p$sumstats.sel[cTrait,]$imputedpath.ssimp, ldsc_filepath = "/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/software/ldsc/ldsc.py", ld_filepath = file.path(p$folderpath.data.mvLDSC.ld.1kg,"hc1kgp3.b38.eur.1cm.400blocks"),samp_prev = p$sumstats.sel$samplePrevalence[cTrait], pop_prev = p$sumstats.sel$populationPrevalence[cTrait])
+      )
+  }
+  
   
   #set the default mvLDSC object to use
-  p$mvLD$covstruct.mvLDSC<-p$mvLD$covstruct.mvLDSC.1kg
+  p$mvLD$covstruct.mvLDSC<-p$mvLD$covstruct.mvLDSC.1kg.500
   
   #Additional computations
   #saving the original S in case of smoothing experiments later stored in S
@@ -1412,13 +1502,16 @@ if(p$clOptions$task=="mvLD"){
 # p$mvLD$covstruct.mvLDSC$S_Stand.SE[lower.tri(p$mvLD$covstruct.mvLDSC$S_Stand.SE,diag=TRUE)] <-sqrt(diag(p$mvLD$covstruct.mvLDSC$V_Stand))
 # p$mvLD$covstruct.mvLDSC$S_Stand.SE[upper.tri(p$mvLD$covstruct.mvLDSC$S_Stand.SE)]<-t(p$mvLD$covstruct.mvLDSC$S_Stand.SE)[upper.tri(p$mvLD$covstruct.mvLDSC$S_Stand.SE)]
 
-
   
 #add newly computed heritabilities to the selected summary statistics table
-p$sumstats.sel$h2.liability_mvLDSC.1kg<-diag(p$mvLD$covstruct.mvLDSC.1kg$S[p$sumstats.sel$code,p$sumstats.sel$code])
-p$sumstats.sel$h2.se.liability_mvLDSC.1kg<-diag(p$mvLD$covstruct.mvLDSC.1kg$S.SE[p$sumstats.sel$code,p$sumstats.sel$code])
 p$sumstats.sel$h2.liability_mvLDSC.hm3<-diag(p$mvLD$covstruct.mvLDSC.hm3$S[p$sumstats.sel$code,p$sumstats.sel$code])
 p$sumstats.sel$h2.se.liability_mvLDSC.hm3<-diag(p$mvLD$covstruct.mvLDSC.hm3$S.SE[p$sumstats.sel$code,p$sumstats.sel$code])
+p$sumstats.sel$h2.liability_mvLDSC.1kg.noimp<-diag(p$mvLD$covstruct.mvLDSC.1kg.noimp$S[p$sumstats.sel$code,p$sumstats.sel$code])
+p$sumstats.sel$h2.se.liability_mvLDSC.1kg.noimp<-diag(p$mvLD$covstruct.mvLDSC.1kg.noimp$S.SE[p$sumstats.sel$code,p$sumstats.sel$code])
+p$sumstats.sel$h2.liability_mvLDSC.1kg.ldimp<-diag(p$mvLD$covstruct.mvLDSC.1kg.500$S[p$sumstats.sel$code,p$sumstats.sel$code])
+p$sumstats.sel$h2.se.liability_mvLDSC.1kg.ldimp<-diag(p$mvLD$covstruct.mvLDSC.1kg.500$S.SE[p$sumstats.sel$code,p$sumstats.sel$code])
+p$sumstats.sel$h2.liability_mvLDSC.1kg.ssimp<-diag(p$mvLD$covstruct.mvLDSC.1kg.ssimp$S[p$sumstats.sel$code,p$sumstats.sel$code])
+p$sumstats.sel$h2.se.liability_mvLDSC.1kg.ssimp<-diag(p$mvLD$covstruct.mvLDSC.1kg.ssimp$S.SE[p$sumstats.sel$code,p$sumstats.sel$code])
 
 
 #View(p$sumstats.sel)
@@ -1429,25 +1522,33 @@ p$sumstats.sel$h2.se.liability_mvLDSC.hm3<-diag(p$mvLD$covstruct.mvLDSC.hm3$S.SE
 # Overview of rg between selected traits
 ```{r overview pairwise rg, fig.width=9, fig.height=6, out.width="1600px", out.height="1000px", eval=FALSE, purl=FALSE}
 
-p$mvLD$covstruct.mvLDSC.1kg$S_Stand.forPlot<-p$mvLD$covstruct.mvLDSC.1kg$S_Stand[p$sumstats.sel$code,p$sumstats.sel$code]
-rownames(p$mvLD$covstruct.mvLDSC.1kg$S_Stand.forPlot)<-p$sumstats.sel$name.nice.and_code
-colnames(p$mvLD$covstruct.mvLDSC.1kg$S_Stand.forPlot)<-p$sumstats.sel$code
-
-p$mvLD$covstruct.mvLDSC.1kg$S_Stand_diff.forPlot<-p$mvLD$covstruct.mvLDSC.1kg$S_Stand - p$mvLD$covstruct.mvLDSC.hm3$S_Stand
-
-p$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE_diff.forPlot<-p$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE - p$mvLD$covstruct.mvLDSC.hm3$S_Stand.SE
-
-p$mvLD$covstruct.mvLDSC.1kg$S_Stand_diff2.forPlot<-p$mvLD$covstruct.mvLDSC.1kg$S_Stand - p$mvLD$covstruct.mvLDSC.1kg_limpfilter$S_Stand
-
-p$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE_diff2.forPlot<-p$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE - p$mvLD$covstruct.mvLDSC.1kg_limpfilter$S_Stand.SE
+# p$mvLD$covstruct.mvLDSC$S_Stand.forPlot<-p$mvLD$covstruct.mvLDSC$S_Stand
+# rownames(p$mvLD$covstruct.mvLDSC$S_Stand.forPlot)<-p$sumstats.sel$name.nice.and_code
+# colnames(p$mvLD$covstruct.mvLDSC$S_Stand.forPlot)<-p$sumstats.sel$code
+# 
+# #deltapanel
+# p$mvLD$covstruct.mvLDSC$S_Stand.deltapanel <- 100*(p$mvLD$covstruct.mvLDSC.1kg.noimp$S_Stand - p$mvLD$covstruct.mvLDSC.hm3$S_Stand)/abs(p$mvLD$covstruct.mvLDSC.hm3$S_Stand)
+# p$mvLD$covstruct.mvLDSC$S_Stand.SE.deltapanel <- 100*(p$mvLD$covstruct.mvLDSC.1kg.noimp$S_Stand.SE - p$mvLD$covstruct.mvLDSC.hm3$S_Stand.SE)/abs(p$mvLD$covstruct.mvLDSC.hm3$S_Stand.SE)
+# 
+# #deltaimp 500
+# p$mvLD$covstruct.mvLDSC$S_Stand.deltaimp.500 <- 100*(p$mvLD$covstruct.mvLDSC.1kg.500$S_Stand - p$mvLD$covstruct.mvLDSC.1kg.ssimp$S_Stand)/abs(p$mvLD$covstruct.mvLDSC.1kg.ssimp$S_Stand)
+# p$mvLD$covstruct.mvLDSC$S_Stand.SE.deltaimp.500 <- 100*(p$mvLD$covstruct.mvLDSC.1kg.500$S_Stand.SE - p$mvLD$covstruct.mvLDSC.1kg.ssimp$S_Stand.SE)/abs(p$mvLD$covstruct.mvLDSC.1kg.ssimp$S_Stand.SE)
+# 
+# #deltaimpnoimp 500
+# p$mvLD$covstruct.mvLDSC$S_Stand.deltaimpnoimp.500 <- 100*(p$mvLD$covstruct.mvLDSC.1kg.500$S_Stand - p$mvLD$covstruct.mvLDSC.1kg.noimp$S_Stand)/abs(p$mvLD$covstruct.mvLDSC.1kg.noimp$S_Stand)
+# p$mvLD$covstruct.mvLDSC$S_Stand.SE.deltaimpnoimp.500 <- 100*(p$mvLD$covstruct.mvLDSC.1kg.500$S_Stand.SE - p$mvLD$covstruct.mvLDSC.1kg.noimp$S_Stand.SE)/abs(p$mvLD$covstruct.mvLDSC.1kg.noimp$S_Stand.SE)
+# 
+# #deltaimpnoimp ssimp
+# p$mvLD$covstruct.mvLDSC$S_Stand.deltaimpnoimp.ssimp <- 100*(p$mvLD$covstruct.mvLDSC.1kg.ssimp$S_Stand - p$mvLD$covstruct.mvLDSC.1kg.noimp$S_Stand)/abs(p$mvLD$covstruct.mvLDSC.1kg.noimp$S_Stand)
+# p$mvLD$covstruct.mvLDSC$S_Stand.SE.deltaimpnoimp.ssimp <- 100*(p$mvLD$covstruct.mvLDSC.1kg.ssimp$S_Stand.SE - p$mvLD$covstruct.mvLDSC.1kg.noimp$S_Stand.SE)/abs(p$mvLD$covstruct.mvLDSC.1kg.noimp$S_Stand.SE)
 
 
 library(heatmaply)
 #ggheatmap() #static version
 #heatmaply()
 heatmaply(
-    clipValues(p$mvLD$covstruct.mvLDSC.1kg$S_Stand.forPlot,-1,1),
-    cellnote = round(clipValues(p$mvLD$covstruct.mvLDSC.1kg$S_Stand,-1,1),digits = 2),
+    clipValues(p$mvLD$covstruct.mvLDSC$S_Stand,-1,1),
+    cellnote = round(clipValues(p$mvLD$covstruct.mvLDSC$S_Stand,-1,1),digits = 2),
     cellnote_size = 9,
     cellnote_textposition = "middle center",
     show_dendrogram = c(T,F),
@@ -1460,50 +1561,205 @@ heatmaply(
         high = theme.color$contrastLight3,
         breaks = c(-1,0,1)
       ),
-    file=file.path(p$folderpath.plots,paste0("rg_cluster.indicator.1kg.png")),
+    file=file.path(p$folderpath.plots,paste0("rg_cluster.indicator.png")),
+    width = 1200, height = 1200,
+    hclust_method = "ward.D2"
+    #scale = "row"
+  )
+
+heatmaply(
+    clipValues(p$mvLD$covstruct.mvLDSC.1kg.ssimp$S_Stand,-1,1),
+    cellnote = round(clipValues(p$mvLD$covstruct.mvLDSC.1kg.ssimp$S_Stand,-1,1),digits = 2),
+    cellnote_size = 9,
+    cellnote_textposition = "middle center",
+    show_dendrogram = c(T,F),
+    xlab = "Trait GWAS",
+    ylab = "Trait GWAS",
+    main = "r<sub>g</sub>",
+    scale_fill_gradient_fun = ggplot2::scale_fill_gradient2(
+        low = theme.color$contrastDark3, 
+        mid = "black",
+        high = theme.color$contrastLight3,
+        breaks = c(-1,0,1)
+      ),
+    file=file.path(p$folderpath.plots,paste0("rg_cluster.indicator.ssimp.png")),
     width = 1200, height = 1200,
     hclust_method = "ward.D2"
     #scale = "row"
   )
 
 
-p$printCorrSimplified(
-  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg$S_Stand.forPlot,-1,1),
-  #SE = p$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE,
-  filename = file.path(p$folderpath.plots,"rg_simple.indicator.1kg.png"),
-  is.corr = T
-  )
+# p$printCorrSimplified(
+#   corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg$S_Stand.forPlot,-1,1),
+#   #SE = p$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE,
+#   filename = file.path(p$folderpath.plots,"rg_simple.indicator.png"),
+#   is.corr = T
+#   )
 
-p$printCorrSimplified(
-  corr = clipValues(abs(p$mvLD$covstruct.mvLDSC.1kg$S_Stand.forPlot),-1,1),
-  #SE = p$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE,
-  filename = file.path(p$folderpath.plots,"rg_abs_simple.indicator.1kg.png"),
-  is.corr = F,
-  absScale=T
-  )
+# p$printCorrSimplified(
+#   corr = clipValues(abs(p$mvLD$covstruct.mvLDSC$S_Stand.forPlot),-1,1),
+#   #SE = p$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE,
+#   filename = file.path(p$folderpath.plots,"rg_abs_simple.indicator.png"),
+#   is.corr = F,
+#   absScale=T
+#   )
 
 p$printCorr(
-  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg$S_Stand.forPlot,-1,1),
-  SE = p$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE[p$sumstats.sel$code,p$sumstats.sel$code],
-  filename = file.path(p$folderpath.plots,"rg.indicator.1kg.png"),
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.noimp$S_Stand,-1,1),
+  SE = p$mvLD$covstruct.mvLDSC.1kg.noimp$S_Stand.SE,
+  filename = file.path(p$folderpath.plots,"rg.indicator.noimp.png"),
   is.corr = T,
   addrect = NULL
   )
 
 p$printCorr(
-  corr = p$mvLD$covstruct.mvLDSC.1kg$S_Stand_diff.forPlot,
+  corr = clipValues(p$mvLD$covstruct.mvLDSC$S_Stand,-1,1),
+  SE = p$mvLD$covstruct.mvLDSC$S_Stand.SE,
+  filename = file.path(p$folderpath.plots,"rg.indicator.png"),
+  is.corr = T,
+  addrect = NULL
+  )
+
+# p$printCorr(
+#   corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg$S_Stand,-1,1),
+#   SE = p$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE,
+#   filename = file.path(p$folderpath.plots,"rg.indicator.10.png"),
+#   is.corr = T,
+#   addrect = NULL
+#   )
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.500$S_Stand,-1,1),
+  SE = p$mvLD$covstruct.mvLDSC.1kg.500$S_Stand.SE,
+  filename = file.path(p$folderpath.plots,"rg.indicator.500.png"),
+  is.corr = T,
+  addrect = NULL
+  )
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.ssimp$S_Stand,-1,1),
+  SE = p$mvLD$covstruct.mvLDSC.1kg.ssimp$S_Stand.SE,
+  filename = file.path(p$folderpath.plots,"rg.indicator.ssimp.png"),
+  is.corr = T,
+  addrect = NULL
+  )
+
+p$printCorr(
+  corr = p$mvLD$covstruct.mvLDSC.1kg.noimp$S_Stand - p$mvLD$covstruct.mvLDSC.hm3$S_Stand,
   SE = NULL,
-  filename = file.path(p$folderpath.plots,"rg_diff_ld.indicator.1kg_hm3.png"),
+  filename = file.path(p$folderpath.plots,"rg.indicator.deltapanel.png"),
+  addrect =NULL,
+  is.corr = F,
+  number.cex = 1.1,
+  number.digits = 2
+  )
+
+p$printCorr(
+  corr = p$mvLD$covstruct.mvLDSC.1kg.noimp$S_Stand.SE - p$mvLD$covstruct.mvLDSC.hm3$S_Stand.SE,
+  SE = NULL,
+  filename = file.path(p$folderpath.plots,"rgse.indicator.deltapanel.png"),
   addrect =NULL,
   is.corr = F,
   number.cex = 1.1,
   number.digits = 3
   )
+
+p$printCorr(
+  corr = 100*(p$mvLD$covstruct.mvLDSC.1kg.noimp$S_Stand.SE - p$mvLD$covstruct.mvLDSC.hm3$S_Stand.SE)/median(p$mvLD$covstruct.mvLDSC.hm3$S_Stand.SE),
+  SE = NULL,
+  filename = file.path(p$folderpath.plots,"rgse.rel.indicator.deltapanel.png"),
+  addrect =NULL,
+  is.corr = F,
+  number.cex = 1.1,
+  number.digits = 0
+  )
+
+p$printCorr(
+  corr = 100*(p$mvLD$covstruct.mvLDSC.1kg.noimp$S_Stand.SE/median(p$mvLD$covstruct.mvLDSC.1kg.noimp$S_Stand.SE) - p$mvLD$covstruct.mvLDSC.hm3$S_Stand.SE/median(p$mvLD$covstruct.mvLDSC.hm3$S_Stand.SE)),
+  SE = NULL,
+  filename = file.path(p$folderpath.plots,"rgse.corr.indicator.deltapanel.png"),
+  addrect =NULL,
+  is.corr = F,
+  number.cex = 1.1,
+  number.digits = 0
+  )
+
+p$printCorr(
+  corr = p$mvLD$covstruct.mvLDSC.1kg.noimp$S - p$mvLD$covstruct.mvLDSC.hm3$S,
+  SE = NULL,
+  filename = file.path(p$folderpath.plots,"covg.indicator.deltapanel.png"),
+  addrect =NULL,
+  is.corr = F,
+  number.cex = 1.1,
+  number.digits = 2
+  )
+
+p$printCorr(
+  corr = p$mvLD$covstruct.mvLDSC.1kg.noimp$S.SE - p$mvLD$covstruct.mvLDSC.hm3$S.SE,
+  SE = NULL,
+  filename = file.path(p$folderpath.plots,"covgse.indicator.deltapanel.png"),
+  addrect =NULL,
+  is.corr = F,
+  number.cex = 1.1,
+  number.digits = 3
+  )
+
+p$printCorr(
+  corr = 100*(p$mvLD$covstruct.mvLDSC.1kg.noimp$S.SE - p$mvLD$covstruct.mvLDSC.hm3$S.SE)/median(p$mvLD$covstruct.mvLDSC.hm3$S.SE),
+  SE = NULL,
+  filename = file.path(p$folderpath.plots,"covgse.rel.indicator.deltapanel.png"),
+  addrect =NULL,
+  is.corr = F,
+  number.cex = 1.1,
+  number.digits = 0
+  )
+
+p$printCorr(
+  corr = 100*(p$mvLD$covstruct.mvLDSC.1kg.noimp$S.SE/median(p$mvLD$covstruct.mvLDSC.1kg.noimp$S.SE) - p$mvLD$covstruct.mvLDSC.hm3$S.SE/median(p$mvLD$covstruct.mvLDSC.hm3$S.SE)),
+  SE = NULL,
+  filename = file.path(p$folderpath.plots,"covgse.corr.indicator.deltapanel.png"),
+  addrect =NULL,
+  is.corr = F,
+  number.cex = 1.1,
+  number.digits = 0
+  )
+
+
+
+# p$printCorr(
+#   corr = p$mvLD$covstruct.mvLDSC.1kg.500$S_Stand - p$mvLD$covstruct.mvLDSC.1kg.ssimp$S_Stand,
+#   SE = NULL,
+#   filename = file.path(p$folderpath.plots,"rg.indicator.deltaimp.500.png"),
+#   addrect =NULL,
+#   is.corr = F,
+#   number.cex = 1.1,
+#   number.digits = 2
+#   )
 # 
+# p$printCorr(
+#   corr = p$mvLD$covstruct.mvLDSC.1kg.500$S_Stand.SE - p$mvLD$covstruct.mvLDSC.1kg.ssimp$S_Stand.SE,
+#   SE = NULL,
+#   filename = file.path(p$folderpath.plots,"rgse.indicator.deltaimp.500.png"),
+#   addrect =NULL,
+#   is.corr = F,
+#   number.cex = 1.1,
+#   number.digits = 2
+#   )
+
 p$printCorr(
-  corr = p$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE_diff.forPlot,
+  corr = p$mvLD$covstruct.mvLDSC.1kg.500$S - p$mvLD$covstruct.mvLDSC.1kg.ssimp$S,
   SE = NULL,
-  filename = file.path(p$folderpath.plots,"rg_diff_ld_se.indicator.1kg_hm3.png"),
+  filename = file.path(p$folderpath.plots,"covg.indicator.deltaimp.500.png"),
+  addrect =NULL,
+  is.corr = F,
+  number.cex = 1.1,
+  number.digits = 2
+  )
+
+p$printCorr(
+  corr = p$mvLD$covstruct.mvLDSC.1kg.500$S.SE - p$mvLD$covstruct.mvLDSC.1kg.ssimp$S.SE,
+  SE = NULL,
+  filename = file.path(p$folderpath.plots,"covgse.indicator.deltaimp.500.png"),
   addrect =NULL,
   is.corr = F,
   number.cex = 1.1,
@@ -1511,48 +1767,118 @@ p$printCorr(
   )
 
 p$printCorr(
-  corr = p$mvLD$covstruct.mvLDSC.1kg$S_Stand_diff2.forPlot,
+  corr = 100* (p$mvLD$covstruct.mvLDSC.1kg.500$S.SE - p$mvLD$covstruct.mvLDSC.1kg.ssimp$S.SE)/median(p$mvLD$covstruct.mvLDSC.1kg.ssimp$S.SE),
   SE = NULL,
-  filename = file.path(p$folderpath.plots,"rg_diff_impf.indicator.1kg.png"),
+  filename = file.path(p$folderpath.plots,"covgse.rel.indicator.deltaimp.500.png"),
+  addrect =NULL,
+  is.corr = F,
+  number.cex = 1.1,
+  number.digits = 0
+  )
+
+p$printCorr(
+  corr = p$mvLD$covstruct.mvLDSC.1kg.500$S - p$mvLD$covstruct.mvLDSC.1kg.noimp$S,
+  SE = NULL,
+  filename = file.path(p$folderpath.plots,"covg.indicator.deltaimpnoimp.500.png"),
+  addrect =NULL,
+  is.corr = F,
+  number.cex = 1.1,
+  number.digits = 2
+  )
+
+p$printCorr(
+  corr = p$mvLD$covstruct.mvLDSC.1kg.500$S.SE - p$mvLD$covstruct.mvLDSC.1kg.noimp$S.SE,
+  SE = NULL,
+  filename = file.path(p$folderpath.plots,"covgse.indicator.deltaimpnoimp.500.png"),
   addrect =NULL,
   is.corr = F,
   number.cex = 1.1,
   number.digits = 3
   )
+
+p$printCorr(
+  corr = 100*(p$mvLD$covstruct.mvLDSC.1kg.500$S.SE - p$mvLD$covstruct.mvLDSC.1kg.noimp$S.SE)/median(p$mvLD$covstruct.mvLDSC.1kg.noimp$S.SE),
+  SE = NULL,
+  filename = file.path(p$folderpath.plots,"covgse.rel.indicator.deltaimpnoimp.500.png"),
+  addrect =NULL,
+  is.corr = F,
+  number.cex = 1.1,
+  number.digits = 0
+  )
+
+p$printCorr(
+  corr = p$mvLD$covstruct.mvLDSC.1kg.ssimp$S - p$mvLD$covstruct.mvLDSC.1kg.noimp$S,
+  SE = NULL,
+  filename = file.path(p$folderpath.plots,"covg.indicator.deltaimpnoimp.ssimp.png"),
+  addrect =NULL,
+  is.corr = F,
+  number.cex = 1.1,
+  number.digits = 2
+  )
+
+p$printCorr(
+  corr = p$mvLD$covstruct.mvLDSC.1kg.ssimp$S.SE - p$mvLD$covstruct.mvLDSC.1kg.noimp$S.SE,
+  SE = NULL,
+  filename = file.path(p$folderpath.plots,"covgse.indicator.deltaimpnoimp.ssimp.png"),
+  addrect =NULL,
+  is.corr = F,
+  number.cex = 1.1,
+  number.digits = 3
+  )
+
+p$printCorr(
+  corr = 100 * (p$mvLD$covstruct.mvLDSC.1kg.ssimp$S.SE - p$mvLD$covstruct.mvLDSC.1kg.noimp$S.SE)/p$mvLD$covstruct.mvLDSC.1kg.noimp$S.SE ,
+  SE = NULL,
+  filename = file.path(p$folderpath.plots,"covgse.rel.indicator.deltaimpnoimp.ssimp.png"),
+  addrect =NULL,
+  is.corr = F,
+  number.cex = 1.1,
+  number.digits = 0
+  )
+
+
+cat("\nLDSC stats - LD-IMP")
+print(p$mvLD$covstruct.mvLDSC.1kg$impstats)
+
+cat("\nLDSC stats - SSIMP")
+print(p$mvLD$covstruct.mvLDSC.1kg.ssimp$impstats)
+
+cat("\nDifference statistics")
+cat("\ndeltapanel\n")
+mean(abs(p$mvLD$covstruct.mvLDSC$S_Stand.deltapanel))
+median(abs(p$mvLD$covstruct.mvLDSC$S_Stand.deltapanel))
+max(abs(p$mvLD$covstruct.mvLDSC$S_Stand.deltapanel))
+min(abs(p$mvLD$covstruct.mvLDSC$S_Stand.deltapanel))
+
+cat("\ndeltapanel (S.E.)\n")
+mean(p$mvLD$covstruct.mvLDSC$S_Stand.SE.deltapanel)
+median(p$mvLD$covstruct.mvLDSC$S_Stand.SE.deltapanel)
+max(p$mvLD$covstruct.mvLDSC$S_Stand.SE.deltapanel)
+min(p$mvLD$covstruct.mvLDSC$S_Stand.SE.deltapanel)
+
+# cat("\ndeltaimp\n")
+# mean(abs(p$mvLD$covstruct.mvLDSC$S_Stand.deltaimp))
+# median(abs(p$mvLD$covstruct.mvLDSC$S_Stand.deltaimp))
+# max(abs(p$mvLD$covstruct.mvLDSC$S_Stand.deltaimp))
+# min(abs(p$mvLD$covstruct.mvLDSC$S_Stand.deltaimp))
 # 
-p$printCorr(
-  corr = p$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE_diff2.forPlot,
-  SE = NULL,
-  filename = file.path(p$folderpath.plots,"rg_diff_impf_se.indicator.1kg.png"),
-  addrect =NULL,
-  is.corr = F,
-  number.cex = 1.1,
-  number.digits = 3
-  )
+# cat("\ndeltaimp (S.E.)\n")
+# mean(p$mvLD$covstruct.mvLDSC$S_Stand.SE.deltaimp)
+# median(p$mvLD$covstruct.mvLDSC$S_Stand.SE.deltaimp)
+# max(p$mvLD$covstruct.mvLDSC$S_Stand.SE.deltaimp)
+# min(p$mvLD$covstruct.mvLDSC$S_Stand.SE.deltaimp)
 
-cat("\nrg (LD)\n")
-mean(abs(p$mvLD$covstruct.mvLDSC.1kg$S_Stand_diff.forPlot))
-median(abs(p$mvLD$covstruct.mvLDSC.1kg$S_Stand_diff.forPlot))
-max(abs(p$mvLD$covstruct.mvLDSC.1kg$S_Stand_diff.forPlot))
-min(abs(p$mvLD$covstruct.mvLDSC.1kg$S_Stand_diff.forPlot))
+cat("\ndeltaimp 500\n")
+mean(abs(p$mvLD$covstruct.mvLDSC$S_Stand.deltaimp.500))
+median(abs(p$mvLD$covstruct.mvLDSC$S_Stand.deltaimp.500))
+max(abs(p$mvLD$covstruct.mvLDSC$S_Stand.deltaimp.500))
+min(abs(p$mvLD$covstruct.mvLDSC$S_Stand.deltaimp.500))
 
-cat("\nrg.SE (LD)\n")
-mean(p$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE_diff.forPlot)
-median(p$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE_diff.forPlot)
-max(p$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE_diff.forPlot)
-min(p$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE_diff.forPlot)
-
-cat("\nrg (imputation filter)\n")
-mean(abs(p$mvLD$covstruct.mvLDSC.1kg$S_Stand_diff2.forPlot))
-median(abs(p$mvLD$covstruct.mvLDSC.1kg$S_Stand_diff2.forPlot))
-max(abs(p$mvLD$covstruct.mvLDSC.1kg$S_Stand_diff2.forPlot))
-min(abs(p$mvLD$covstruct.mvLDSC.1kg$S_Stand_diff2.forPlot))
-
-cat("\nrg.SE (imputation filter)\n")
-mean(p$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE_diff2.forPlot)
-median(p$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE_diff2.forPlot)
-max(p$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE_diff2.forPlot)
-min(p$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE_diff2.forPlot)
+cat("\ndeltaimp 500 (S.E.)\n")
+mean(p$mvLD$covstruct.mvLDSC$S_Stand.SE.deltaimp.500)
+median(p$mvLD$covstruct.mvLDSC$S_Stand.SE.deltaimp.500)
+max(p$mvLD$covstruct.mvLDSC$S_Stand.SE.deltaimp.500)
+min(p$mvLD$covstruct.mvLDSC$S_Stand.SE.deltaimp.500)
 
 ```
 
@@ -1562,12 +1888,18 @@ min(p$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE_diff2.forPlot)
 ```{r improved annotation of chosen datasets, fig.width=10, fig.height=6, out.width="1600px", out.height="1000px", eval=FALSE, purl=FALSE}
 #View(p$sumstats.sel)
 
-p$sumstats.sel.table<-p$sumstats.sel[,c("name.nice","code","year","n_case_total","n_control", "samplePrevalence","populationPrevalence","h2.liability_mvLDSC.1kg","h2.se.liability_mvLDSC.1kg","h2.liability_mvLDSC.hm3","h2.se.liability_mvLDSC.hm3")]
+p$sumstats.sel.table<-p$sumstats.sel[,c("name.nice","code","reference.nice","year","n_case_total","n_control", "samplePrevalence","populationPrevalence","h2.liability_mvLDSC.hm3","h2.se.liability_mvLDSC.hm3","h2.liability_mvLDSC.1kg.noimp","h2.se.liability_mvLDSC.1kg.noimp","h2.liability_mvLDSC.1kg.ldimp","h2.se.liability_mvLDSC.1kg.ldimp","h2.liability_mvLDSC.1kg.ssimp","h2.se.liability_mvLDSC.1kg.ssimp")]
 
-p$sumstats.sel.table$h2.liability_mvLDSC.1kg.table<-paste0(round( p$sumstats.sel.table$h2.liability_mvLDSC.1kg,digits = 3)," (",round(p$sumstats.sel.table$h2.se.liability_mvLDSC.1kg,digits = 4),")")
 p$sumstats.sel.table$h2.liability_mvLDSC.hm3.table<-paste0(round( p$sumstats.sel.table$h2.liability_mvLDSC.hm3,digits = 3)," (",round(p$sumstats.sel.table$h2.se.liability_mvLDSC.hm3,digits = 4),")")
 
-p$sumstats.sel.table<-p$sumstats.sel.table[,c("name.nice","code","year","n_case_total","n_control", "samplePrevalence","populationPrevalence","h2.liability_mvLDSC.1kg.table","h2.liability_mvLDSC.hm3.table")]
+p$sumstats.sel.table$h2.liability_mvLDSC.1kg.noimp.table<-paste0(round( p$sumstats.sel.table$h2.liability_mvLDSC.1kg.noimp,digits = 3)," (",round(p$sumstats.sel.table$h2.se.liability_mvLDSC.1kg.noimp,digits = 4),")")
+
+p$sumstats.sel.table$h2.liability_mvLDSC.1kg.ldimp.table<-paste0(round( p$sumstats.sel.table$h2.liability_mvLDSC.1kg.ldimp,digits = 3)," (",round(p$sumstats.sel.table$h2.se.liability_mvLDSC.1kg.ldimp,digits = 4),")")
+
+p$sumstats.sel.table$h2.liability_mvLDSC.1kg.ssimp.table<-paste0(round( p$sumstats.sel.table$h2.liability_mvLDSC.1kg.ssimp,digits = 3)," (",round(p$sumstats.sel.table$h2.se.liability_mvLDSC.1kg.ssimp,digits = 4),")")
+
+
+p$sumstats.sel.table<-p$sumstats.sel.table[,c("name.nice","code","reference.nice","year","n_case_total","n_control", "samplePrevalence","populationPrevalence","h2.liability_mvLDSC.hm3.table","h2.liability_mvLDSC.1kg.noimp.table","h2.liability_mvLDSC.1kg.ssimp.table","h2.liability_mvLDSC.1kg.ldimp.table")]
 #View(p$sumstats.sel.table)
 #p$sumstats.sel.table
 
@@ -1581,15 +1913,19 @@ p$plots.sumstats.sel.table<-p$sumstats.sel.table %>%
   ) %>% cols_label(
     name.nice  = "Trait",
     code = "Code",
+    reference.nice = "Reference",
+    year = "Year",
     #ancestry = "Ancestry",
     #sex = "Sex",
     n_case_total = "N case or total",
     n_control = "N control",
-    year = "Year",
+    
     samplePrevalence = html("Prev<sub>sample</sub>"),
     populationPrevalence = html("Prev<sub>population</sub>"),
-    h2.liability_mvLDSC.1kg.table = html("h<sup>2</sup><sub>mvLDSC,1kg</sub> (S.E.)"),
-    h2.liability_mvLDSC.hm3.table = html("h<sup>2</sup><sub>mvLDSC,hm3</sub> (S.E.)")
+    h2.liability_mvLDSC.hm3.table = html("h<sup>2</sup><sub>hm3</sub> (S.E.)"),
+    h2.liability_mvLDSC.1kg.noimp.table = html("h<sup>2</sup><sub>1kg</sub> (S.E.)"),
+    h2.liability_mvLDSC.1kg.ldimp.table = html("h<sup>2</sup><sub>1kg & LD-IMP</sub> (S.E.)"),
+    h2.liability_mvLDSC.1kg.ssimp.table = html("h<sup>2</sup><sub>1kg & SSIMP</sub> (S.E.)")
   ) %>%
   tab_style(
     style = cell_text(size = px(12)),
