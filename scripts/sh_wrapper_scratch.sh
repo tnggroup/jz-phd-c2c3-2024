@@ -3,10 +3,6 @@
 module add apps/R/3.6.0
 #module add apps/R/3.6.3
 
-#ok for smaller work
-srun -p brc,shared --ntasks 1 --cpus-per-task 3 --mem 8G --pty /bin/bash
-#ok for ldsc munge using 1KG
-srun -p brc,shared --ntasks 1 --cpus-per-task 3 --mem 16G --pty /bin/bash
 srun -p cpu --ntasks 1 --cpus-per-task 5 --mem 32G --pty /bin/bash
 
 #misc
@@ -18,7 +14,7 @@ rsync -avzhpt --progress /mnt/lustre/groups/ukbiobank/sumstats/ /scratch/groups/
 #This command may have added duplicate subfolders under each folder
 ls /mnt/lustre/groups/ukbiobank/sumstats | xargs -n 1 -P 4 -I % rsync -avzhpt /mnt/lustre/groups/ukbiobank/sumstats/% /scratch/groups/gwas_sumstats/%
 rsync -avzhpt --progress /rosalind_ro/scratch/groups/gwas_sumstats/ /scratch/prj/gwas_sumstats/
-sbatch --time 2-00:00:00 --partition cpu --job-name="rsync" --ntasks 1 --cpus-per-task 2 --mem 16G --wrap="rsync -avzhpt /rosalind_ro/scratch/groups/gwas_sumstats/ /scratch/prj/gwas_sumstats/" --output "rsync.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition cpu --job-name="rsync" --ntasks 1 --cpus-per-task 3 --mem 16G --wrap="rsync -avzhpt /rosalind_ro/scratch/groups/gwas_sumstats/ /scratch/prj/gwas_sumstats/" --output "rsync.$(date +%Y%m%d).out.txt"
 
 #Thibault's gcta command
 ../../JZ_GED_PHD_ADMIN_GENERAL/software/gcta/gcta_v1.94.0Beta_linux_kernel_3_x86_64/gcta --bfile ../data/reference_panel/1KG_eur.plink/g1000_eur --mtcojo-file mtcojo_summary_data.list --ref-ld-chr ../data/ld_scores/eur_w_ld_chr.1KG_Phase3/ --w-ld-chr ../data/ld_scores/eur_w_ld_chr.1KG_Phase3/ --out test_mtcojo_result
@@ -284,6 +280,8 @@ sbatch --time 2-00:00:00 --partition cpu --job-name="ld-imp" --ntasks 1 --cpus-p
 #ssimp imputation
 sbatch --time 2-00:00:00 --partition cpu --job-name="ssimpformat" --ntasks 1 --cpus-per-task 5 --mem 8G --wrap="Rscript setup8.R -t ssimpformat -l cluster" --output "setup8.ssimpformat.$(date +%Y%m%d).out.txt"
 
+#visualise gwas distributions
+sbatch --time 2:00:00 --partition cpu --job-name="plotdistributions" --ntasks 1 --cpus-per-task 5 --mem 20G --wrap="Rscript setup8.R -t plotdistributions -l cluster" --output "setup8.plotdistributions.$(date +%Y%m%d).out.txt"
 
 /scratch/prj/gwas_sumstats/ssimp_software-master/ssimp --download.build.db
 #test
@@ -310,11 +308,14 @@ for chr in 1 2 3 4 5 6 7 8 9 10 11 "12-14" "15-17" "18-23"; do sbatch --time 2-0
 
 for chr in 1 2 3 4 5 6 7 8 9 10 11 "12-14" "15-17" "18-23"; do sbatch --time 2-00:00:00 --partition cpu --job-name="ssimp" --ntasks 1 --cpus-per-task 4 --mem 20G --wrap="export LC_ALL=C; date; /scratch/prj/gwas_sumstats/ssimp_software-master/ssimp --gwas ../data/gwas_sumstats/munged_1kg_eur_supermunge.4ssimp/BVOL01.gz --ref ../data/reference_panel/hc1kgp3.b38.plink/hc1kgp3.b38.eur.jz2022.vcf.gz --out ../data/gwas_sumstats/imputed_1kg_eur_ssimp/BVOL01.$chr --impute.maf 0.001 --tag.maf 0.01 --impute.range $chr; date;" --output "setup8.ssimp.BVOL01.$chr.$(date +%Y%m%d).out.txt"; done
 
-sbatch --time 2-00:00:00 --partition cpu --job-name="merge" --ntasks 1 --cpus-per-task 5 --mem 32G --wrap="Rscript setup8.R -t merge -l cluster" --output "setup8.merge.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition cpu --job-name="merge" --ntasks 1 --cpus-per-task 5 --mem 64G --wrap="Rscript setup8.R -t merge -l cluster" --output "setup8.merge.$(date +%Y%m%d).out.txt"
+
+#extra munge to produce exported files for original ldsc - Imputed BODY11 needs lots of memory
+sbatch --time 24:00:00 --partition cpu --job-name="smunge" --ntasks 1 --cpus-per-task 5 --mem 64G --wrap="Rscript setup8.R -t munge2 -l cluster" --output "setup8.munge2.$(date +%Y%m%d).out.txt"
 
 sbatch --time 2-00:00:00 --partition cpu --job-name="mvLD" --ntasks 1 --cpus-per-task 5 --mem 64G --wrap="Rscript setup8.R -t mvLD -l cluster" --output "setup8.mvLD.$(date +%Y%m%d).out.txt"
-#for running original ldsc
-sbatch --time 2-00:00:00 --partition cpu --job-name="mvLD" --ntasks 1 --cpus-per-task 5 --mem 64G --wrap="source /users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/software/ldsc-venv/bin/activate; Rscript setup8.R -t mvLD -l cluster;" --output "setup8.mvLD.$(date +%Y%m%d).out.txt"
+#for running original ldsc - using the . sh equivalent to bash source to activate the virtual python envoronment
+sbatch --time 2-00:00:00 --partition cpu --job-name="mvLD" --ntasks 1 --cpus-per-task 5 --mem 64G --wrap=". /users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/software/ldsc-venv/bin/activate; Rscript setup8.R -t mvLD -l cluster;" --output "setup8.mvLD.$(date +%Y%m%d).out.txt"
 Rscript setup8.R -t mvLD -l cluster > "setup8.mvLD.$(date +%Y%m%d).out.txt" #if needed to run on interactive node beacuase of python venv activation issues
 
 

@@ -10,7 +10,8 @@ ldsc.orig <- function(
   ld_folderpath=NA_character_, #Path to a folder containing LD-scores as used by ldsc.
   output_file_path=NA_character_, #Path to the log file where you want the mandatory ldsc log output to be saved. Defaults to the main trait code and the file suffix 'ldsc' in the current folder.
   samp_prev=NA, #list of sample prevalences with one element for each trait in the list of filepaths
-  pop_prev=NA #list of population prevalences with one element for each trait in the list of filepaths
+  pop_prev=NA, #list of population prevalences with one element for each trait in the list of filepaths,
+  blocks=200 #number of blocks to use in ldsc
 ){
   
   #Set the trait codes if not specified in the argument.
@@ -18,10 +19,14 @@ ldsc.orig <- function(
     trait_codes <- basename(trait_filepaths)
   }
   
-  #Add a second instance of a signle dataset if only one is provided, to calculate its h2
+  #Add a second instance of a single dataset if only one is provided, to calculate its h2
   if(length(trait_filepaths<2)){
     trait_filepaths<-c(trait_filepaths,trait_filepaths[1])
     trait_codes<-c(trait_codes,trait_codes[1])
+    if(!is.na(samp_prev) & !is.na(pop_prev)){
+      samp_prev<-c(samp_prev,samp_prev[1])
+      pop_prev<-c(pop_prev,pop_prev[1])
+    }
   }
   
   #Errors when not providing paths to ldsc or to ld-score folder
@@ -37,7 +42,7 @@ ldsc.orig <- function(
   }
   #Set up arguments for ldsc in a list.
 	args <- c(
-			paste0("--n-blocks 200"),
+			paste0("--n-blocks ",blocks),
 			paste0("--rg ", paste(trait_filepaths,collapse = ",",sep = ",")),
 			ifelse(!is.na(ld_filepath),paste0("--ref-ld ",ld_filepath),paste0("--ref-ld-chr ",ld_folderpath)),
 			ifelse(!is.na(ld_filepath),paste0("--w-ld ",ld_filepath),paste0("--w-ld-chr ",ld_folderpath)),
@@ -45,6 +50,10 @@ ldsc.orig <- function(
 			paste0("--no-check-alleles")
 	)
 	
+	print("Samp prev:")
+	print(samp_prev)
+	print("Pop prev:")
+	print(pop_prev)
 	if(!is.na(samp_prev) & !is.na(pop_prev)){
 	  
 	  samp_prev[is.na(samp_prev)]<-"nan" #see the ldsc github
