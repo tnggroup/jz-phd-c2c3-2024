@@ -156,11 +156,11 @@ p$folderpath.data.sumstats.munged.4ssimp<-normalizePath(file.path(p$folderpath.d
 
 ##imputed sumstats folder
 #p$folderpath.data.sumstats.imputed<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","imputed_1kg_eur_supermunge"))
-p$folderpath.data.sumstats.imputed<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","imputed_1kg_eur_supermunge.500Kwin"))
+p$folderpath.data.sumstats.imputed<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","imputed_1kg_eur_supermunge.500Kwin.validated"))
 
 p$folderpath.data.sumstats.imputed.10<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","imputed_1kg_eur_supermunge.10Kwin"))
 
-p$folderpath.data.sumstats.imputed.500<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","imputed_1kg_eur_supermunge.500Kwin"))
+p$folderpath.data.sumstats.imputed.500<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","imputed_1kg_eur_supermunge.500Kwin.validated"))
 
 ##imputed sumstats folder, SSIMP
 p$folderpath.data.sumstats.imputed.ssimp<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","imputed_1kg_eur_ssimp"))
@@ -2259,76 +2259,76 @@ if(p$clOptions$task=="mvLD" || (!file.exists(p$filepath.mvLD) & p$clOptions$task
   #   )
   
   # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg ***\n")
-  p$mvLD$covstruct.mvLDSC.1kg<-ldscpp(
-    traits = p$sumstats.sel$mungedpath,
-    sample.prev =  p$sumstats.sel$samplePrevalence,
-    population.prev = p$sumstats.sel$populationPrevalence,
-    trait.names = p$sumstats.sel$code,
-    filepathLD = p$filepath.SNPReference.1kg,
-    filter.info = 0.6,
-    filter.maf = 0.01,
-    filter.chisq.min = 0.01579077, #qchisq(p = 0.1,df = 1)
-    filter.zz.min = 1,
-    filter.region.df = p$highld_b38,
-    N = p$sumstats.sel$n_total,
-    ldsc.log = p$setup.code.date
-    )
-  saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-
-  cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.uncorrected ***\n")
-  p$mvLD$covstruct.mvLDSC.1kg.uncorrected<-ldscpp(
-    traits = p$sumstats.sel$mungedpath,
-    sample.prev =  p$sumstats.sel$samplePrevalence,
-    population.prev = p$sumstats.sel$populationPrevalence,
-    trait.names = p$sumstats.sel$code,
-    filepathLD = p$filepath.SNPReference.1kg,
-    filter.info = 0.6,
-    filter.maf = 0.01,
-    filter.chisq.min = 0.01579077, #qchisq(p = 0.1,df = 1)
-    filter.zz.min = 1,
-    correctAttenuationBias = F,
-    filter.region.df = p$highld_b38,
-    N = p$sumstats.sel$n_total,
-    ldsc.log = p$setup.code.date
-    )
-  saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-
-  cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.small ***\n")
-  p$mvLD$covstruct.mvLDSC.1kg.small<-ldscpp(
-    traits = p$sumstats.sel.ssimp$mungedpath,
-    sample.prev =  p$sumstats.sel.ssimp$samplePrevalence,
-    population.prev = p$sumstats.sel.ssimp$populationPrevalence,
-    trait.names = p$sumstats.sel.ssimp$code,
-    filepathLD = p$filepath.SNPReference.1kg,
-    leave.chr = list(1,2,6,7,9,11),
-    filter.info = 0.6,
-    filter.maf = 0.01,
-    filter.chisq.min = 0.01579077, #qchisq(p = 0.1,df = 1)
-    filter.zz.min = 1,
-    filter.region.df = p$highld_b38,
-    N = p$sumstats.sel.ssimp$n_total,
-    ldsc.log = p$setup.code.date
-    )
-  saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-
-  cat("\n\n*** LDSC: covstruct.mvLDSC.hm3 ***\n")
-  p$mvLD$covstruct.mvLDSC.hm3<-ldscpp(
-    #traits = p$sumstats.sel$imputedpath,
-    traits = p$sumstats.sel$mungedpath,
-    sample.prev =  p$sumstats.sel$samplePrevalence,
-    population.prev = p$sumstats.sel$populationPrevalence,
-    trait.names = p$sumstats.sel$code,
-    ld = p$folderpath.data.mvLDSC.ld.hm3,
-    minBlocksizeCM = NA, #because we use the hm3 LD-scores without cM measures
-    filter.info = 0.6,
-    filter.maf = 0.01,
-    filter.chisq.min = 0.01579077, #qchisq(p = 0.1,df = 1)
-    filter.zz.min = 1,
-    filter.region.df = p$highld_b38,
-    N = p$sumstats.sel$n_total,
-    ldsc.log = p$setup.code.date
-    )
-  saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  # p$mvLD$covstruct.mvLDSC.1kg<-ldscpp(
+  #   traits = p$sumstats.sel$mungedpath,
+  #   sample.prev =  p$sumstats.sel$samplePrevalence,
+  #   population.prev = p$sumstats.sel$populationPrevalence,
+  #   trait.names = p$sumstats.sel$code,
+  #   filepathLD = p$filepath.SNPReference.1kg,
+  #   filter.info = 0.6,
+  #   filter.maf = 0.01,
+  #   filter.chisq.min = 0.01579077, #qchisq(p = 0.1,df = 1)
+  #   filter.zz.min = 1,
+  #   filter.region.df = p$highld_b38,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  # 
+  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.uncorrected ***\n")
+  # p$mvLD$covstruct.mvLDSC.1kg.uncorrected<-ldscpp(
+  #   traits = p$sumstats.sel$mungedpath,
+  #   sample.prev =  p$sumstats.sel$samplePrevalence,
+  #   population.prev = p$sumstats.sel$populationPrevalence,
+  #   trait.names = p$sumstats.sel$code,
+  #   filepathLD = p$filepath.SNPReference.1kg,
+  #   filter.info = 0.6,
+  #   filter.maf = 0.01,
+  #   filter.chisq.min = 0.01579077, #qchisq(p = 0.1,df = 1)
+  #   filter.zz.min = 1,
+  #   correctAttenuationBias = F,
+  #   filter.region.df = p$highld_b38,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  # 
+  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.small ***\n")
+  # p$mvLD$covstruct.mvLDSC.1kg.small<-ldscpp(
+  #   traits = p$sumstats.sel.ssimp$mungedpath,
+  #   sample.prev =  p$sumstats.sel.ssimp$samplePrevalence,
+  #   population.prev = p$sumstats.sel.ssimp$populationPrevalence,
+  #   trait.names = p$sumstats.sel.ssimp$code,
+  #   filepathLD = p$filepath.SNPReference.1kg,
+  #   leave.chr = list(1,2,6,7,9,11),
+  #   filter.info = 0.6,
+  #   filter.maf = 0.01,
+  #   filter.chisq.min = 0.01579077, #qchisq(p = 0.1,df = 1)
+  #   filter.zz.min = 1,
+  #   filter.region.df = p$highld_b38,
+  #   N = p$sumstats.sel.ssimp$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  # 
+  # cat("\n\n*** LDSC: covstruct.mvLDSC.hm3 ***\n")
+  # p$mvLD$covstruct.mvLDSC.hm3<-ldscpp(
+  #   #traits = p$sumstats.sel$imputedpath,
+  #   traits = p$sumstats.sel$mungedpath,
+  #   sample.prev =  p$sumstats.sel$samplePrevalence,
+  #   population.prev = p$sumstats.sel$populationPrevalence,
+  #   trait.names = p$sumstats.sel$code,
+  #   ld = p$folderpath.data.mvLDSC.ld.hm3,
+  #   minBlocksizeCM = NA, #because we use the hm3 LD-scores without cM measures
+  #   filter.info = 0.6,
+  #   filter.maf = 0.01,
+  #   filter.chisq.min = 0.01579077, #qchisq(p = 0.1,df = 1)
+  #   filter.zz.min = 1,
+  #   filter.region.df = p$highld_b38,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
 
   cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.500 ***\n")
   p$mvLD$covstruct.mvLDSC.1kg.500<-ldscpp(

@@ -24,9 +24,9 @@ sbatch --time 1-00:00:00 --partition brc,shared --job-name="cmorgan" --ntasks 1 
 #dbSNP
 sbatch --time 12:00:00 --partition brc,shared --job-name="wget" --ntasks 1 --cpus-per-task 4 --mem 8G --wrap="wget -r –level=0 -E –ignore-length -x -k -p -erobots=off -np -N https://ftp.ncbi.nih.gov/snp/organisms/human_9606_b151_GRCh38p7/VCF/00-All.vcf.gz" --output "wget.dbsnp.human_9606_b151_GRCh38p7.$(date +%Y%m%d).out.txt"
 wget -r –level=0 -E –ignore-length -x -k -p -erobots=off -np -N https://ftp.ncbi.nih.gov/snp/organisms/human_9606_b151_GRCh38p7/VCF/00-All.vcf.gz.tbi
-sbatch --time 2-00:00:00 --partition brc,shared --job-name="rsids" --ntasks 1 --cpus-per-task 6 --mem 160G --wrap="Rscript ../../../../JZ_GED_PHD_C1/scripts/edit_reference_panel.R" --output "edit_reference_panel.$(date +%Y%m%d).out.txt"
-
-
+#there was potentially some indexing done here also
+#gunzip the dbSNP file before running this
+sbatch --time 2-00:00:00 --partition cpu --job-name="rsids" --ntasks 1 --cpus-per-task 7 --mem 160G --wrap="Rscript /users/k19049801/project/JZ_GED_PHD_C1/scripts/edit_reference_panel.R" --output "edit_reference_panel.$(date +%Y%m%d).out.txt"
 
 
 #set new names and genomic position in cM

@@ -1,6 +1,6 @@
 #!/bin/bash
 #Load the R module
-module add apps/R/3.6.0
+#module add apps/R/3.6.0
 #module add apps/R/3.6.3
 
 srun -p cpu --ntasks 1 --cpus-per-task 5 --mem 32G --pty /bin/bash
