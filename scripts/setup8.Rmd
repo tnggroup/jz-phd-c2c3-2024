@@ -77,7 +77,7 @@ library(gt)
 library(psych)
 library(Matrix)
 library(stats)
-library(tidyverse)
+#library(tidyverse)
 #library(HDL)
 #library(MungeSumstats)
 library(shru)
@@ -111,6 +111,8 @@ p$setup.code.date<-paste0(p$setup.code,"_",p$date.run)
 p$filename.rmd<-paste0(p$setup.code,".Rmd")
 p$filename.r<-paste0(p$setup.code,".R")
 p$functions<-c()
+p$nThread=6
+setDTthreads(p$nThreads) #configure DT threads accordingly
 
 
 p$host<-p$clOptions$location #this is the place where the code is run [local,cluster] read from command line - default local
@@ -156,11 +158,13 @@ p$folderpath.data.sumstats.munged.4ssimp<-normalizePath(file.path(p$folderpath.d
 
 ##imputed sumstats folder
 #p$folderpath.data.sumstats.imputed<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","imputed_1kg_eur_supermunge"))
-p$folderpath.data.sumstats.imputed<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","imputed_1kg_eur_supermunge.500Kwin.validated"))
+p$folderpath.data.sumstats.imputed<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","imputed_1kg_eur_supermunge.500Kwin.validation"))
 
-p$folderpath.data.sumstats.imputed.10<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","imputed_1kg_eur_supermunge.10Kwin"))
+p$folderpath.data.sumstats.imputed.05cm<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","imputed_1kg_eur_supermunge.0.5cMwin.validation"))
 
-p$folderpath.data.sumstats.imputed.500<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","imputed_1kg_eur_supermunge.500Kwin.validated"))
+# p$folderpath.data.sumstats.imputed.10<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","imputed_1kg_eur_supermunge.10Kwin"))
+# 
+# p$folderpath.data.sumstats.imputed.500<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","imputed_1kg_eur_supermunge.500Kwin.validated"))
 
 ##imputed sumstats folder, SSIMP
 p$folderpath.data.sumstats.imputed.ssimp<-normalizePath(file.path(p$folderpath.data,"gwas_sumstats","imputed_1kg_eur_ssimp"))
@@ -197,7 +201,7 @@ p$filepath.SNPReference.hm3<-normalizePath(file.path(p$folderpath.data.variantLi
 ## Used in the preparation step for performing latent factor GWAS as reference for calculating SNP variance across traits.
 #p$filepath.SNPReference<-normalizePath(paste0(p$folderpath.data,"/","reference.1000G.maf.0.005.txt")) #1000 genomes phase 3
 
-p$filepath.SNPReference.1kg<-normalizePath(file.path(p$folderpath.data.variantLists,"hc1kgp3.b38.eur.l2.jz2022.gz")) #Based on the high coverage 1kgp3 panel in b38
+p$filepath.SNPReference.1kg<-normalizePath(file.path(p$folderpath.data.variantLists,"hc1kgp3.b38.eur.l2.jz2023.gz")) #Based on the high coverage 1kgp3 panel in b38
 
 #p$filepath.SNPReference.1kg<-normalizePath(file.path(p$folderpath.data.variantLists,"combined.hm3_1kg.snplist.vanilla.jz2020.txt")) #custom hm3 + 1kg SNPs, based on individual level data in /users/k1204688/brc_scratch/Public/1KG_Phase3
 
@@ -213,7 +217,7 @@ p$folderpath.data.sumstatImp.genomeReference<-file.path(p$folderpath.data.refere
 #p$folderpath.data.sumstatImp.genomeReference<-"/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/data/reference.panel.1KG_Phase3.CLEANED.EUR.cM" #source /users/k1204688/brc_scratch/Public/1KG_Phase3
 
 ##LD scores datasets folders (these strings need to have a trailing slash for the GSEM LDSC to work)
-p$folderpath.data.mvLDSC.ld.1kg <- file.path(p$folderpath.data,"ld_scores","hc1kgp3.b38.eur.l2.jz2022")
+p$folderpath.data.mvLDSC.ld.1kg <- file.path(p$folderpath.data,"ld_scores","hc1kgp3.b38.eur.l2.jz2023")
 p$folderpath.data.mvLDSC.ld.hm3 <- file.path(p$folderpath.data,"ld_scores","eur_w_ld_chr")
 #Weights, if different from LD-scores
 #Set weights to the same folder as ldscores
@@ -385,7 +389,7 @@ knitr::purl(p$filepath.rmd)
 
 ```{r additional source setup, echo=FALSE, warning=F}
 
-source(normalizePath(file.path(p$folderpath.scripts,"include","ldsc.orig.R")))
+#source(normalizePath(file.path(p$folderpath.scripts,"include","ldsc.orig.R")))
 #source(file.path(p$folderpath.scripts,"include","fastman.R"))
 #source(file.path(p$folderpath.scripts,"include","fastqq.R"))
 
@@ -621,6 +625,17 @@ p$sumstats[nrow(p$sumstats)+1,c("code","name", "n_case","n_control","n_total","p
   )
 
 p$sumstats[nrow(p$sumstats)+1,c("code","name", "n_case","n_control","n_total","phenotype_id","reference_id","reference_doi")]=list(
+  code="BODY14",
+  name="2018 BMI",
+  n_case=806834,
+  n_control=NA_integer_,
+  n_total=806834,
+  phenotype_id=NA_integer_,
+  reference_id=NA_integer_,
+  reference_doi=c("https://doi.org/10.1093/hmg/ddy327")
+  )
+
+p$sumstats[nrow(p$sumstats)+1,c("code","name", "n_case","n_control","n_total","phenotype_id","reference_id","reference_doi")]=list(
   code="BODYTF",
   name="2013 BMI, female",
   n_case=73137,
@@ -681,9 +696,7 @@ p$sumstats$mungedpath<-file.path(p$folderpath.data.sumstats.munged,paste0(p$sums
 
 p$sumstats$imputedpath<-file.path(p$folderpath.data.sumstats.imputed,paste0(p$sumstats$code,p$filename.suffix.data.sumstats.munged))
 
-p$sumstats$imputedpath.10<-file.path(p$folderpath.data.sumstats.imputed.10,paste0(p$sumstats$code,p$filename.suffix.data.sumstats.munged))
-
-p$sumstats$imputedpath.500<-file.path(p$folderpath.data.sumstats.imputed.500,paste0(p$sumstats$code,p$filename.suffix.data.sumstats.munged))
+p$sumstats$imputedpath.05cm<-file.path(p$folderpath.data.sumstats.imputed.05cm,paste0(p$sumstats$code,p$filename.suffix.data.sumstats.munged))
 
 p$sumstats$imputedpath.ssimp<-file.path(p$folderpath.data.sumstats.imputed.ssimp,paste0(p$sumstats$code,p$filename.suffix.data.sumstats.munged))
 
@@ -702,9 +715,9 @@ if(p$host=="local"){
 }
 
 if(p$host=="local"){
-  p$sumstats["BODY11",]$cleanedpath<-"/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/raw/bmi.giant-ukbb.meta-analysis.combined.23May2018.txt.gz"
+  p$sumstats["BODY14",]$cleanedpath<-"/Users/jakz/Documents/local_db/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/raw/bmi.giant-ukbb.meta-analysis.combined.23May2018.txt.gz"
 } else {
-  p$sumstats["BODY11",]$cleanedpath<-"/users/k19049801/project/JZ_GED_PHD_C1/data/gwas_sumstats/raw/bmi.giant-ukbb.meta-analysis.combined.23May2018.txt.gz"
+  p$sumstats["BODY14",]$cleanedpath<-"/users/k19049801/project/JZ_GED_PHD_C1/data/gwas_sumstats/raw/bmi.giant-ukbb.meta-analysis.combined.23May2018.txt.gz"
 }
 
 if(p$host=="local"){
@@ -780,6 +793,7 @@ if(p$host=="local"){
 p$sumstats["ANXI03",]$year=2019
 p$sumstats["ANXI04",]$year=2019
 p$sumstats["BVOL01",]$year=2020
+p$sumstats["BODY14",]$year=2019
 p$sumstats["BODYTM",]$year=2013
 p$sumstats["DEPR05",]$year=2018
 p$sumstats["DEPR5B",]$year=2018
@@ -871,6 +885,7 @@ p$sumstats["ANXI03",]$code.nice<-"ANXD"
 p$sumstats["ANXI04",]$code.nice<-"ANXS"
 p$sumstats["AUTI07",]$code.nice<-"AUTI"
 p$sumstats["BODY11",]$code.nice<-"BMI2018"
+p$sumstats["BODY14",]$code.nice<-"BMI2018"
 p$sumstats["BODYTM",]$code.nice<-"BMI2013"
 p$sumstats["BIPO02",]$code.nice<-"BIPO"
 p$sumstats["DEPR05",]$code.nice<-"MDD"
@@ -894,6 +909,21 @@ p$sumstats["TIRE01",]$code.nice<-"TIRE"
 p$sumstats["WEIG04F",]$code.nice<-"WF"
 p$sumstats["WEIG04M",]$code.nice<-"WM"
 
+#INFO (genotype imputation) metadata
+p$sumstats$hasinfo<-NA
+p$sumstats["ANXI03",]$hasinfo<-T
+p$sumstats["BIPO02",]$hasinfo<-T
+p$sumstats["BODY14",]$hasinfo<-T
+p$sumstats["BODYTM",]$hasinfo<-F
+p$sumstats["DEPR05",]$hasinfo<-T
+p$sumstats["DEPR5B",]$hasinfo<-T
+p$sumstats["DEPR09",]$hasinfo<-F
+p$sumstats["EDUC03",]$hasinfo<-F
+p$sumstats["GWISI",]$hasinfo<-F
+p$sumstats["INSO02",]$hasinfo<-T
+p$sumstats["NEUR02",]$hasinfo<-T
+p$sumstats["SCHI04",]$hasinfo<-F
+
 
 ##Add a combined nice name plus code label
 p$sumstats$name.nice.and_code<-paste0(p$sumstats$name.nice," (",p$sumstats$code.nice,")")
@@ -907,6 +937,7 @@ p$sumstats["ANXI03",]$reference.nice <- "Purves et al."
 p$sumstats["ANXI04",]$reference.nice <- "Purves et al."
 p$sumstats["AUTI07",]$reference.nice <- "Grove et al."
 p$sumstats["BODY11",]$reference.nice <- "Yengo et al."
+p$sumstats["BODY14",]$reference.nice <- "Pulit et al."
 p$sumstats["BODYTM",]$reference.nice <- "Randall et al."
 p$sumstats["BIPO02",]$reference.nice <- "Stahl et al."
 p$sumstats["BVOL01",]$reference.nice <- "Jansen et al."
@@ -946,6 +977,7 @@ p$sumstats$dependent_variable.OLS[which(p$sumstats$code=="ANXI03")]=F
 p$sumstats$dependent_variable.OLS[which(p$sumstats$code=="ANXI04")]=F
 p$sumstats$dependent_variable.OLS[which(p$sumstats$code=="AUTI07")]=F
 p$sumstats$dependent_variable.OLS[which(p$sumstats$code=="BODY11")]=T
+p$sumstats$dependent_variable.OLS[which(p$sumstats$code=="BODY14")]=T
 p$sumstats$dependent_variable.OLS[which(p$sumstats$code=="BIPO02")]=F
 p$sumstats$dependent_variable.OLS[which(p$sumstats$code=="DEPR05")]=F
 p$sumstats$dependent_variable.OLS[which(p$sumstats$code=="DEPR5B")]=F #check this!
@@ -982,6 +1014,7 @@ p$sumstats$dependent_variable.linprob[which(p$sumstats$code=="ANXI03")]=F
 p$sumstats$dependent_variable.linprob[which(p$sumstats$code=="ANXI04")]=T #bgenie uses a linear estimator
 p$sumstats$dependent_variable.linprob[which(p$sumstats$code=="AUTI07")]=F
 p$sumstats$dependent_variable.linprob[which(p$sumstats$code=="BODY11")]=F
+p$sumstats$dependent_variable.linprob[which(p$sumstats$code=="BODY14")]=F
 p$sumstats$dependent_variable.linprob[which(p$sumstats$code=="BIPO02")]=F
 p$sumstats$dependent_variable.linprob[which(p$sumstats$code=="DEPR05")]=F
 p$sumstats$dependent_variable.linprob[which(p$sumstats$code=="DEPR5B")]=F #check this!
@@ -1019,6 +1052,7 @@ p$sumstats$se.logit[which(p$sumstats$code=="ANXI03")]=T #Tested
 p$sumstats$se.logit[which(p$sumstats$code=="ANXI04")]=F #Tested
 p$sumstats$se.logit[which(p$sumstats$code=="AUTI07")]=T #Tested
 p$sumstats$se.logit[which(p$sumstats$code=="BODY11")]=F #NOT Tested!!!!!
+p$sumstats$se.logit[which(p$sumstats$code=="BODY14")]=F #NOT Tested!!!!!
 p$sumstats$se.logit[which(p$sumstats$code=="BIPO02")]=T #Tested
 p$sumstats$se.logit[which(p$sumstats$code=="DEPR05")]=T #Tested
 p$sumstats$se.logit[which(p$sumstats$code=="DEPR5B")]=T #NOT Tested!!!!!
@@ -1125,7 +1159,7 @@ p$sumstats.sel.bmigwas.code<-c("HEIG09","WEIG04F","WEIG04M")
 
 #p$sumstats.sel.gwis.code<-c("GWISI","BODYTM","BODY11") #TESTING!
 #p$sumstats.sel.gwis.code<-c("GWISM","BODY11")
-p$sumstats.sel.gwis.code<-c("ANXI03","BODYTM","BODY11","BIPO02","DEPR05","DEPR5B","DEPR09","EDUC03","GWISI","INSO02","NEUR02","SCHI04")
+p$sumstats.sel.gwis.code<-c("ANXI03","BODYTM","BODY11","BIPO02","DEPR05","DEPR5B","DEPR09","EDUC03","GWISI","INSO02","NEUR02","SCHI04") #change to BODY14!
 
 p$sumstats.sel.code <- p$sumstats.sel.gwis.code
 
@@ -1255,6 +1289,187 @@ setkeyv(p$highld_b38, cols = c("CHR","BP","BP2"))
 ```
 
 
+## Simulate GWAS
+```{r Simulate GWAS }
+# if(p$clOptions$task=="hap") { 
+#   
+# 
+#   
+# }
+
+
+if(p$clOptions$task=="sim") {
+#devtools::install_github("chr1swallace/simGWAS")
+#install.packages('hapsim')
+
+#simulate haplotypes test  -from https://chr1swallace.github.io/simGWAS/articles/intro.html
+set.seed(42)
+nsnps <- 100
+nhaps <- 1000
+lag <- 5 # genotypes are correlated between neighbouring variants
+maf <- runif(nsnps+lag,0.05,0.5) # common SNPs
+laghaps <- do.call("cbind", lapply(maf, function(f) rbinom(nhaps,1,f)))
+haps <- laghaps[,1:nsnps]
+for(j in 1:lag) 
+    haps <- haps + laghaps[,(1:nsnps)+j]
+haps <- round(haps/matrix(apply(haps,2,max),nhaps,nsnps,byrow=TRUE))
+
+snps <- colnames(haps) <- paste0("s",1:nsnps)
+freq <- as.data.frame(haps+1)
+freq$Probability <- 1/nrow(freq)
+sum(freq$Probability)
+
+#specify causal vriants
+##Next, we need to specify the causal variants, and their effects on disease, as odds ratios. We create a vector CV with snp names that are a subset of column names in freq and a vector of odds ratios. In our simulated data, we pick two causal variants at random, with odds ratios of 1.4 and 1.2.
+nExposed <- colSums(haps) #d1+h1
+nNonexposed <- nhaps-nExposed #d0+h0
+
+CV=sample(snps[which(colMeans(haps)>0.1)],2)
+g1 <- c(1.4,1.2)
+
+varLogOR <- ((1/g1)+1)/nExposed[CV] + (g1+1)/nExposed[CV] + 4/nNonexposed[CV]
+
+#heritability is
+sum(varLogOR) #variance formulas for sum of random variables
+
+#using d0/h0=1:
+#OR=d1/h1, n1=d1+h1 => d1 = n1/(1/OR+1)
+#OR=d1/h1, n1=d1+h1 => h1 = n1/(OR+1)
+#OR=d1/h1, n0=d0+h0, d0/h0=1 => d0=h0=n0/2
+#var(log(OR))=1/d1+1/h1+1/d0+1/h0 = ((1/OR)+1)/n1 + (OR+1)/n1 + 4/n0
+
+
+##Now we simulate the results of a GWAS. There are two key functions, makeGenoProbList calculates genotype probabilities at each SNP conditional on genotypes at the causal variants, then est_statistic generates the vector of Z scores across all SNPs, conditional on the causal variants and their odds ratios.
+FP <- simGWAS::make_GenoProbList(snps=snps,W=CV,freq=freq)
+zexp <- simGWAS::expected_z_score(N0=10000, # number of controls
+              N1=10000, # number of cases
+              snps=snps, # column names in freq of SNPs for which Z scores should be generated
+              W=CV, # causal variants, subset of snps
+              gamma.W=log(g1), # odds ratios
+              freq=freq, # reference haplotypes
+              GenoProbList=FP) # FP above
+
+
+#new routine - simulate random variant effects from a specified trait heritability measure
+
+#p$nThread<-6
+#test - generate haplotypes with hapsim
+filepath.varlist <- normalizePath(file.path(p$folderpath.data.variantLists,"hc1kgp3.b38.eur.l2.jz2023.gz")) #use the new version here rather than the old
+varlist<-readFile(filepath.varlist)
+gwasColumns<-stdGwasColumnNames(colnames(varlist), ancestrySetting = "EUR")
+gwasColumns$orig
+gwasColumns$std
+colnames(varlist)<-gwasColumns$std
+varlist<-varlist[FRQ>0,]
+randomTraitWeightsTot<-sqrt(rchisq(n=nrow(varlist), ncp = 1, df = 1))
+names(randomTraitWeightsTot)<-varlist$SNP
+
+heritabilityPopulationM <- nrow(varlist) #nrow(varlist[FRQ>0.05,]) #improve this value a bit, what is the reference value to use here? nr of non-rare variants in a reference population?
+
+th<-0.2 #target heritability
+ratioCausal <- 0.2
+initialMeanOR<-1.000001
+targetMeanHeritabilityPerCausalVariant <- th/(heritabilityPopulationM*ratioCausal)
+targetMeanHeritabilityPerVariant <- th/(heritabilityPopulationM)
+nSimCas<-500000
+nSimCon<-500000
+nSimTot<-nSimCas+nSimCon
+
+#test and adjust the mean OR for target heritability
+exposedRatio<-0.5
+nonexposedRatio<-(1-exposedRatio)
+tVariance<-((1/initialMeanOR)+1)/(exposedRatio*nSimTot) + (initialMeanOR+1)/(exposedRatio*nSimTot) + 4/(nonexposedRatio*nSimTot)
+
+targetMeanHeritabilityPerVariant/tVariance
+
+
+#genome-wide OR-table
+ORtable<-data.frame(SNP=varlist$SNP,initialMeanOR=initialMeanOR,w=randomTraitWeightsTot)
+setDT(ORtable)
+setkeyv(ORtable, cols = c("SNP"))
+ORtable[sample(.N, ratioCausal*nrow(ORtable)),causal:=T]
+
+filepath.individuals <- file.path(p$folderpath.data,"data","reference_panel","hc1kgp3.b38.plink","hc1kgp3.b38.eur.jz2023.vcf.gz")
+filepath.test.individuals <- file.path(p$folderpath.workingDirectory,"test.individuals.Rds")  #test
+individuals.all <- fread(file = filepath.individuals, na.strings =c(".",NA,"NA",""), encoding = "UTF-8", header = T, fill = T, blank.lines.skip = T, data.table = T, nThread = p$nThread, showProgress = T, skip =  31, nrows = 10000) #test
+individuals.all <- readRDS(file=filepath.test.individuals) #test
+rownames(individuals.all)<-individuals.all$ID #does this do anything when DT?
+setkeyv(individuals.all, cols = c("ID"))
+
+n.individuals<-ncol(individuals.all)-9
+m.blockVariants<-nrow(individuals.all)
+
+#freq <- as.data.frame(matrix(data=NA,nrow = n.individuals, ncol = m.blockVariants))
+freq<-t(individuals.all[,10:ncol(individuals.all)][,ifelse(.SD=="0/0",0,ifelse(.SD=="1/1",2,1))])
+colnames(freq)<-individuals.all$ID
+#rownames(freq)<-colnames(individuals.all)[10:ncol(individuals.all)]
+#setDT(freq)
+
+#saveRDS(object = individuals.all, file = filepath.test.individuals)
+
+
+randomTraitWeights<-randomTraitWeightsTot[colnames(freq)]
+
+
+
+nExposed<-colSums(freq) #this is an approximation, counting the homozygous alt allele twice
+nNonexposed<-n.individuals-nExposed
+exposedRatio<-nExposed/n.individuals
+nonexposedRatio<-nNonexposed/n.individuals
+
+
+#ORtable.chunk<- ORtable[SNP %in% individuals.all$ID,]
+freq.sum<-data.frame(SNP=individuals.all$ID,nExposed=colSums(freq),nNonexposed=n.individuals-nExposed,exposedRatio=nExposed/n.individuals,
+nonexposedRatio=nNonexposed/n.individuals)
+setDT(freq.sum)
+setkeyv(freq.sum, cols = c("SNP"))
+ORtable.chunk <- merge(x = ORtable, y = freq.sum, by = "SNP", all = F)
+
+ORtable.chunk[,OR:=NA_real_]
+#ORtable<-head(ORtable[order(-w, SNP),],ratioCausal*nrow(ORtable)) 
+ORtable.chunk[,OR:=initialMeanOR*w]
+
+
+#hypothetical variance in the target simulation using the same proportions of exposed and non-exposed individuals as in the haplotype sample
+#cVariance<-((1/initialMeanOR)+1)/(exposedRatio*nSimTot) + (initialMeanOR+1)/(exposedRatio*nSimTot) + 4/(nonexposedRatio*nSimTot)
+
+ORtable.chunk[,variance:=((1/OR)+1)/(exposedRatio*eval(nSimTot)) + (OR+1)/(exposedRatio*eval(nSimTot)) + 4/(nonexposedRatio*eval(nSimTot))]
+
+sum(cVariance[is.finite(cVariance)])
+mean(cVariance[is.finite(cVariance)])
+
+
+names(varLogOR)<-snps
+#check obtained heritability mean
+mean(varLogOR)*heritabilityPopulationM
+
+#roots  #does not work
+# a <- varLogOR[CV]
+# b <-  (4*(nExposed[CV]-1)/nNonexposed[CV])-varLogOR[CV]*nExposed[CV]
+# c <- nExposed[CV]
+# 
+# d1r1 <- abs(((-b)+sqrt(b^2-4*a*c))/(2*a))
+# d1r2 <- abs(((-b)-sqrt(b^2-4*a*c))/(2*a))
+# 
+# g1 <- abs(d1r1/(nExposed[CV]-d1r1))
+#test
+#((1/g1)+1)/nExposed[CV] + (g1+1)/nExposed[CV] + 4/nNonexposed[CV] 
+
+
+#run manually
+
+# Create SNP-list for simulated GWAS - not used as the GCTA simulation does not seem to work using the list
+
+# p$simTemplate <- shru::readFile(filePath = file.path(p$folderpath.data.sumstats.munged,"NEUR02.gz"),nThreads = p$nThread) #based on NEUR02
+# 
+# fwrite(x = p$simTemplate[P<1e-2,c("SNP")], file = file.path(p$folderpath.workingDirectory,"neuro02.sim.varlist.gz"), sep = "\t",append = F, na = ".",nThread = p$nThread, col.names = F)
+  
+}
+
+if(p$clOptions$task=="hap" | p$clOptions$task=="sim") quit(save = "no")
+
+```
+
 
 ## GWAS summary statistics munge - if needed
 Munging of GWAS sumstat datasets. The summary statistics is also prepared for latent factor GWAS (previously, the sumstats()-function of the GSEM package). Here reference alleles are standardised across all datasets, and SNP effects and their s.e. are scaled to match unit-variance phenotypes.
@@ -1354,13 +1569,13 @@ if(p$clOptions$task=="impute"
             refFilePath = p$filepath.SNPReference.1kg,
             traitNames = p$munge$traitNamesToUse,
             imputeFromLD=T,
-            imputeFrameLenBp = 500000,
-            imputeFrameLenCM=NULL,
+            #imputeFrameLenBp = 500000, #use default setting of 0.5 CM
+            #imputeFrameLenCM=NULL,
             filter.region.imputation.df=p$highld_b38, #provide the high-ld regions to not use for imputation
             N = p$munge$NToUse,
             #test = T, #REMOVE THIS!
             imputeFromLD.validate.q=1.0, #validate with all of the original dataset
-            pathDirOutput = p$folderpath.data.sumstats.imputed.500
+            pathDirOutput = p$folderpath.data.sumstats.imputed.05cm
               )
 }
 
@@ -2258,7 +2473,320 @@ if(p$clOptions$task=="mvLD" || (!file.exists(p$filepath.mvLD) & p$clOptions$task
   #   ldsc.log = p$setup.code.date
   #   )
   
+  
+  
+  # 
+  # readyMergedTraitsF<-ldscpp(
+  #   traits = p$sumstats.sel$mungedpath,
+  #   sample.prev =  p$sumstats.sel$samplePrevalence,
+  #   population.prev = p$sumstats.sel$populationPrevalence,
+  #   trait.names = p$sumstats.sel$code,
+  #   filepathLD = p$filepath.SNPReference.1kg,
+  #   ancestrySetting = "EUR",
+  #   M.mode = 'maf',
+  #   filter.info = 0.6,
+  #   filter.maf = 0.01,
+  #   #filter.chisq.min = NA,
+  #   filter.region.df = p$highld_b38,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date,
+  #   exportReadyMergedTraits = T
+  #   )
+  # 
+  # readyMergedTraits<-ldscpp(
+  #   traits = p$sumstats.sel$mungedpath,
+  #   sample.prev =  p$sumstats.sel$samplePrevalence,
+  #   population.prev = p$sumstats.sel$populationPrevalence,
+  #   trait.names = p$sumstats.sel$code,
+  #   filepathLD = p$filepath.SNPReference.1kg,
+  #   ancestrySetting = "EUR",
+  #   M.mode = 'maf',
+  #   #filter.info = 0.6,
+  #   filter.maf = 0.01,
+  #   #filter.chisq.min = NA,
+  #   filter.region.df = p$highld_b38,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date,
+  #   exportReadyMergedTraits = T
+  #   )
+  # 
+  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.original.mafm ***\n")
+  # p$mvLD$covstruct.mvLDSC.1kg.original.mafm<-ldscpp(
+  #   traits = p$sumstats.sel$mungedpath,
+  #   readyMergedTraits = readyMergedTraitsF,
+  #   sample.prev =  p$sumstats.sel$samplePrevalence,
+  #   population.prev = p$sumstats.sel$populationPrevalence,
+  #   trait.names = p$sumstats.sel$code,
+  #   filepathLD = p$filepath.SNPReference.1kg,
+  #   ancestrySetting = "EUR",
+  #   M.mode = 'maf', #maf mode is default now
+  #   preweight.ChiSquare = F,
+  #   correctAttenuationBias = F,
+  #   doubleRegressionCorrectionOfIntercept = F,
+  #   preweight.INFO=F,
+  #   resamplingMethod="jn",
+  #   filter.region.df = p$highld_b38,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  # 
+  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.original (real M mode now)***\n")
+  # p$mvLD$covstruct.mvLDSC.1kg.original<-ldscpp(
+  #   traits = p$sumstats.sel$mungedpath,
+  #   readyMergedTraits = readyMergedTraitsF,
+  #   sample.prev =  p$sumstats.sel$samplePrevalence,
+  #   population.prev = p$sumstats.sel$populationPrevalence,
+  #   trait.names = p$sumstats.sel$code,
+  #   filepathLD = p$filepath.SNPReference.1kg,
+  #   ancestrySetting = "EUR",
+  #   M.mode = 'real',
+  #   preweight.ChiSquare = F,
+  #   correctAttenuationBias = F,
+  #   doubleRegressionCorrectionOfIntercept = F,
+  #   preweight.INFO=F,
+  #   resamplingMethod="jn",
+  #   filter.region.df = p$highld_b38,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  # 
+  # 
+  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs ***\n")
+  # p$mvLD$covstruct.mvLDSC.1kg.vbcs<-ldscpp(
+  #   traits = p$sumstats.sel$mungedpath,
+  #   readyMergedTraits = readyMergedTraitsF,
+  #   sample.prev =  p$sumstats.sel$samplePrevalence,
+  #   population.prev = p$sumstats.sel$populationPrevalence,
+  #   trait.names = p$sumstats.sel$code,
+  #   filepathLD = p$filepath.SNPReference.1kg,
+  #   ancestrySetting = "EUR",
+  #   preweight.ChiSquare = F,
+  #   correctAttenuationBias = F,
+  #   doubleRegressionCorrectionOfIntercept = F,
+  #   preweight.INFO=F,
+  #   filter.region.df = p$highld_b38,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  # 
+  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.rm ***\n")
+  # p$mvLD$covstruct.mvLDSC.1kg.vbcs.rm<-ldscpp(
+  #   traits = p$sumstats.sel$mungedpath,
+  #   readyMergedTraits = readyMergedTraitsF,
+  #   sample.prev =  p$sumstats.sel$samplePrevalence,
+  #   population.prev = p$sumstats.sel$populationPrevalence,
+  #   trait.names = p$sumstats.sel$code,
+  #   filepathLD = p$filepath.SNPReference.1kg,
+  #   ancestrySetting = "EUR",
+  #   M.mode = 'real',
+  #   preweight.ChiSquare = F,
+  #   correctAttenuationBias = F,
+  #   doubleRegressionCorrectionOfIntercept = F,
+  #   preweight.INFO=F,
+  #   filter.region.df = p$highld_b38,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  # 
+  # 
+  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.winfo ***\n")
+  # p$mvLD$covstruct.mvLDSC.1kg.vbcs.winfo<-ldscpp(
+  #   traits = p$sumstats.sel$mungedpath,
+  #   readyMergedTraits = readyMergedTraits,
+  #   sample.prev =  p$sumstats.sel$samplePrevalence,
+  #   population.prev = p$sumstats.sel$populationPrevalence,
+  #   trait.names = p$sumstats.sel$code,
+  #   filepathLD = p$filepath.SNPReference.1kg,
+  #   ancestrySetting = "EUR",
+  #   preweight.ChiSquare = F,
+  #   correctAttenuationBias = F,
+  #   doubleRegressionCorrectionOfIntercept = F,
+  #   preweight.INFO=T,
+  #   filter.region.df = p$highld_b38,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  # 
+  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.wass ***\n")
+  # p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass<-ldscpp(
+  #   traits = p$sumstats.sel$mungedpath,
+  #   readyMergedTraits = readyMergedTraitsF,
+  #   sample.prev =  p$sumstats.sel$samplePrevalence,
+  #   population.prev = p$sumstats.sel$populationPrevalence,
+  #   trait.names = p$sumstats.sel$code,
+  #   filepathLD = p$filepath.SNPReference.1kg,
+  #   ancestrySetting = "EUR",
+  #   preweight.ChiSquare = T,
+  #   correctAttenuationBias = F,
+  #   doubleRegressionCorrectionOfIntercept = F,
+  #   preweight.INFO=F,
+  #   filter.region.df = p$highld_b38,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  # 
+  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.drc ***\n")
+  # p$mvLD$covstruct.mvLDSC.1kg.vbcs.drc<-ldscpp(
+  #   traits = p$sumstats.sel$mungedpath,
+  #   readyMergedTraits = readyMergedTraitsF,
+  #   sample.prev =  p$sumstats.sel$samplePrevalence,
+  #   population.prev = p$sumstats.sel$populationPrevalence,
+  #   trait.names = p$sumstats.sel$code,
+  #   filepathLD = p$filepath.SNPReference.1kg,
+  #   ancestrySetting = "EUR",
+  #   preweight.ChiSquare = F,
+  #   correctAttenuationBias = F,
+  #   doubleRegressionCorrectionOfIntercept = T,
+  #   preweight.INFO=F,
+  #   filter.region.df = p$highld_b38,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  # 
+  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.abcor ***\n")
+  # p$mvLD$covstruct.mvLDSC.1kg.vbcs.abcor<-ldscpp(
+  #   traits = p$sumstats.sel$mungedpath,
+  #   readyMergedTraits = readyMergedTraitsF,
+  #   sample.prev =  p$sumstats.sel$samplePrevalence,
+  #   population.prev = p$sumstats.sel$populationPrevalence,
+  #   trait.names = p$sumstats.sel$code,
+  #   filepathLD = p$filepath.SNPReference.1kg,
+  #   ancestrySetting = "EUR",
+  #   preweight.ChiSquare = F,
+  #   correctAttenuationBias = T,
+  #   doubleRegressionCorrectionOfIntercept = F,
+  #   preweight.INFO=F,
+  #   filter.region.df = p$highld_b38,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  # 
+  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.wass.rm ***\n")
+  # p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.rm<-ldscpp(
+  #   traits = p$sumstats.sel$mungedpath,
+  #   readyMergedTraits = readyMergedTraitsF,
+  #   sample.prev =  p$sumstats.sel$samplePrevalence,
+  #   population.prev = p$sumstats.sel$populationPrevalence,
+  #   trait.names = p$sumstats.sel$code,
+  #   filepathLD = p$filepath.SNPReference.1kg,
+  #   ancestrySetting = "EUR",
+  #   M.mode = 'real',
+  #   preweight.ChiSquare = T,
+  #   correctAttenuationBias = F,
+  #   doubleRegressionCorrectionOfIntercept = T,
+  #   preweight.INFO=F,
+  #   filter.region.df = p$highld_b38,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  # 
+  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.wass.drc ***\n")
+  # p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.drc<-ldscpp(
+  #   traits = p$sumstats.sel$mungedpath,
+  #   readyMergedTraits = readyMergedTraitsF,
+  #   sample.prev =  p$sumstats.sel$samplePrevalence,
+  #   population.prev = p$sumstats.sel$populationPrevalence,
+  #   trait.names = p$sumstats.sel$code,
+  #   filepathLD = p$filepath.SNPReference.1kg,
+  #   ancestrySetting = "EUR",
+  #   preweight.ChiSquare = T,
+  #   correctAttenuationBias = F,
+  #   doubleRegressionCorrectionOfIntercept = T,
+  #   preweight.INFO=F,
+  #   filter.region.df = p$highld_b38,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  # 
+  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.wass.abcor ***\n")
+  # p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.abcor<-ldscpp(
+  #   traits = p$sumstats.sel$mungedpath,
+  #   readyMergedTraits = readyMergedTraitsF,
+  #   sample.prev =  p$sumstats.sel$samplePrevalence,
+  #   population.prev = p$sumstats.sel$populationPrevalence,
+  #   trait.names = p$sumstats.sel$code,
+  #   filepathLD = p$filepath.SNPReference.1kg,
+  #   ancestrySetting = "EUR",
+  #   preweight.ChiSquare = T,
+  #   correctAttenuationBias = T,
+  #   doubleRegressionCorrectionOfIntercept = F,
+  #   preweight.INFO=F,
+  #   filter.region.df = p$highld_b38,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  # 
+  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.wass.winfo ***\n")
+  # p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.winfo<-ldscpp(
+  #   traits = p$sumstats.sel$mungedpath,
+  #   readyMergedTraits = readyMergedTraits,
+  #   sample.prev =  p$sumstats.sel$samplePrevalence,
+  #   population.prev = p$sumstats.sel$populationPrevalence,
+  #   trait.names = p$sumstats.sel$code,
+  #   filepathLD = p$filepath.SNPReference.1kg,
+  #   ancestrySetting = "EUR",
+  #   preweight.ChiSquare = T,
+  #   correctAttenuationBias = T,
+  #   doubleRegressionCorrectionOfIntercept = F,
+  #   preweight.INFO=T,
+  #   filter.region.df = p$highld_b38,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  # 
+  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.wass.drc.abcor ***\n")
+  # p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.drc.abcor<-ldscpp(
+  #   traits = p$sumstats.sel$mungedpath,
+  #   readyMergedTraits = readyMergedTraitsF,
+  #   sample.prev =  p$sumstats.sel$samplePrevalence,
+  #   population.prev = p$sumstats.sel$populationPrevalence,
+  #   trait.names = p$sumstats.sel$code,
+  #   filepathLD = p$filepath.SNPReference.1kg,
+  #   ancestrySetting = "EUR",
+  #   preweight.ChiSquare = T,
+  #   correctAttenuationBias = T,
+  #   doubleRegressionCorrectionOfIntercept = T,
+  #   preweight.INFO=T,
+  #   filter.region.df = p$highld_b38,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  # 
   # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg ***\n")
+  # p$mvLD$covstruct.mvLDSC.1kg<-ldscpp(
+  #   traits = p$sumstats.sel$mungedpath,
+  #   readyMergedTraits = readyMergedTraits,
+  #   sample.prev =  p$sumstats.sel$samplePrevalence,
+  #   population.prev = p$sumstats.sel$populationPrevalence,
+  #   trait.names = p$sumstats.sel$code,
+  #   filepathLD = p$filepath.SNPReference.1kg,
+  #   ancestrySetting = "EUR",
+  #   filter.maf = 0.01,
+  #   preweight.ChiSquare = F,
+  #   correctAttenuationBias = F,
+  #   filter.region.df = p$highld_b38,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  
+  
+  
+  
+  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg ***\n") #full standard settings - 
   # p$mvLD$covstruct.mvLDSC.1kg<-ldscpp(
   #   traits = p$sumstats.sel$mungedpath,
   #   sample.prev =  p$sumstats.sel$samplePrevalence,
@@ -2267,9 +2795,40 @@ if(p$clOptions$task=="mvLD" || (!file.exists(p$filepath.mvLD) & p$clOptions$task
   #   filepathLD = p$filepath.SNPReference.1kg,
   #   filter.info = 0.6,
   #   filter.maf = 0.01,
-  #   filter.chisq.min = 0.01579077, #qchisq(p = 0.1,df = 1)
-  #   filter.zz.min = 1,
+  #   minBlocksizeCM = 5, #double check this
   #   filter.region.df = p$highld_b38,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  # 
+  # cat("\n\n*** LDSC, no min ZZ: covstruct.mvLDSC.1kg.nozz ***\n")
+  # p$mvLD$covstruct.mvLDSC.1kg.nozz<-ldsc.mod(
+  #   traits = p$sumstats.sel$mungedpath,
+  #   sample.prev =  p$sumstats.sel$samplePrevalence,
+  #   population.prev = p$sumstats.sel$populationPrevalence,
+  #   trait.names = p$sumstats.sel$code,
+  #   ld = p$folderpath.data.mvLDSC.ld.1kg,
+  #   filter.info = 0.6,
+  #   filter.maf = 0.01,
+  #   filter.chisq.min = NA, #qchisq(p = 0.1,df = 1)
+  #   filter.zz.min = NA,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  # 
+  # cat("\n\n*** LDSC, no min ZZ: covstruct.mvLDSC.1kg.nozz ***\n")
+  # p$mvLD$covstruct.mvLDSC.1kg.nozz<-ldsc.mod(
+  #   traits = p$sumstats.sel$mungedpath,
+  #   sample.prev =  p$sumstats.sel$samplePrevalence,
+  #   population.prev = p$sumstats.sel$populationPrevalence,
+  #   trait.names = p$sumstats.sel$code,
+  #   ld = p$folderpath.data.mvLDSC.ld.1kg,
+  #   filter.info = 0.6,
+  #   filter.maf = 0.01,
+  #   filter.chisq.min = NA, #qchisq(p = 0.1,df = 1)
+  #   filter.zz.min = NA,
   #   N = p$sumstats.sel$n_total,
   #   ldsc.log = p$setup.code.date
   #   )
@@ -2329,81 +2888,91 @@ if(p$clOptions$task=="mvLD" || (!file.exists(p$filepath.mvLD) & p$clOptions$task
   #   ldsc.log = p$setup.code.date
   #   )
   # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-
-  cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.500 ***\n")
-  p$mvLD$covstruct.mvLDSC.1kg.500<-ldscpp(
-    traits = p$sumstats.sel$imputedpath.500,
-    sample.prev =  p$sumstats.sel$samplePrevalence,
-    population.prev = p$sumstats.sel$populationPrevalence,
-    trait.names = p$sumstats.sel$code,
-    filepathLD = p$filepath.SNPReference.1kg,
-    filter.info = 0.6,
-    filter.maf = 0.01,
-    filter.chisq.min = 0.01579077, #qchisq(p = 0.1,df = 1)
-    filter.zz.min = 1,
-    filter.region.df = p$highld_b38,
-    N = p$sumstats.sel$n_total,
-    ldsc.log = p$setup.code.date
-    )
-  saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-
-  cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.500.uncorrected ***\n")
-  p$mvLD$covstruct.mvLDSC.1kg.500.uncorrected<-ldscpp(
-    traits = p$sumstats.sel$imputedpath.500,
-    sample.prev =  p$sumstats.sel$samplePrevalence,
-    population.prev = p$sumstats.sel$populationPrevalence,
-    trait.names = p$sumstats.sel$code,
-    filepathLD = p$filepath.SNPReference.1kg,
-    filter.info = 0.6,
-    filter.maf = 0.01,
-    filter.chisq.min = 0.01579077, #qchisq(p = 0.1,df = 1)
-    filter.zz.min = 1,
-    correctAttenuationBias = F,
-    filter.region.df = p$highld_b38,
-    N = p$sumstats.sel$n_total,
-    ldsc.log = p$setup.code.date
-    )
-  saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-
-  cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.500.small ***\n")
-  p$mvLD$covstruct.mvLDSC.1kg.500.small<-ldscpp(
-    traits = p$sumstats.sel.ssimp$imputedpath.500,
-    sample.prev =  p$sumstats.sel.ssimp$samplePrevalence,
-    population.prev = p$sumstats.sel.ssimp$populationPrevalence,
-    trait.names = p$sumstats.sel.ssimp$code,
-    filepathLD = p$filepath.SNPReference.1kg,
-    #M.mode = "real",
-    leave.chr = list(1,2,6,7,9,11),
-    filter.info = 0.6,
-    filter.maf = 0.01,
-    filter.simpute.fraction = 0.10, #10% to compare between the two methods
-    filter.chisq.min = 0.01579077, #qchisq(p = 0.1,df = 1)
-    filter.zz.min = 1,
-    filter.region.df = p$highld_b38,
-    N = p$sumstats.sel$n_total,
-    ldsc.log = p$setup.code.date
-    )
-  saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-
-  cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.ssimp.small ***\n")
-  p$mvLD$covstruct.mvLDSC.1kg.ssimp.small<-ldscpp(
-    traits = p$sumstats.sel.ssimp$imputedpath2.ssimp,
-    sample.prev =  p$sumstats.sel.ssimp$samplePrevalence,
-    population.prev = p$sumstats.sel.ssimp$populationPrevalence,
-    trait.names = p$sumstats.sel.ssimp$code,
-    filepathLD = p$filepath.SNPReference.1kg,
-    resetImputedN = T, #Because SSimp sets N according to imputation quality
-    #M.mode = "real",
-    leave.chr = list(1,2,6,7,9,11),
-    filter.info = 0.6,
-    filter.maf = 0.01,
-    filter.simpute.fraction = 0.10, #10% to compare between the two methods
-    filter.chisq.min = 0.01579077, #qchisq(p = 0.1,df = 1)
-    filter.zz.min = 1,
-    filter.region.df = p$highld_b38,
-    N = p$sumstats.sel$n_total,
-    ldsc.log = p$setup.code.date
-    )
+  # 
+  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.500 ***\n")
+  # p$mvLD$covstruct.mvLDSC.1kg.500<-ldscpp(
+  #   traits = p$sumstats.sel$imputedpath.500,
+  #   sample.prev =  p$sumstats.sel$samplePrevalence,
+  #   population.prev = p$sumstats.sel$populationPrevalence,
+  #   trait.names = p$sumstats.sel$code,
+  #   filepathLD = p$filepath.SNPReference.1kg,
+  #   filter.info = 0.6,
+  #   filter.maf = 0.01,
+  #   filter.chisq.min = 0.01579077, #qchisq(p = 0.1,df = 1)
+  #   filter.zz.min = 1,
+  #   filter.region.df = p$highld_b38,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  # 
+  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.500.uncorrected ***\n")
+  # p$mvLD$covstruct.mvLDSC.1kg.500.uncorrected<-ldscpp(
+  #   traits = p$sumstats.sel$imputedpath.500,
+  #   sample.prev =  p$sumstats.sel$samplePrevalence,
+  #   population.prev = p$sumstats.sel$populationPrevalence,
+  #   trait.names = p$sumstats.sel$code,
+  #   filepathLD = p$filepath.SNPReference.1kg,
+  #   filter.info = 0.6,
+  #   filter.maf = 0.01,
+  #   filter.chisq.min = 0.01579077, #qchisq(p = 0.1,df = 1)
+  #   filter.zz.min = 1,
+  #   correctAttenuationBias = F,
+  #   filter.region.df = p$highld_b38,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  # 
+  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.500.small ***\n")
+  # p$mvLD$covstruct.mvLDSC.1kg.500.small<-ldscpp(
+  #   traits = p$sumstats.sel.ssimp$imputedpath.500,
+  #   sample.prev =  p$sumstats.sel.ssimp$samplePrevalence,
+  #   population.prev = p$sumstats.sel.ssimp$populationPrevalence,
+  #   trait.names = p$sumstats.sel.ssimp$code,
+  #   filepathLD = p$filepath.SNPReference.1kg,
+  #   #M.mode = "real",
+  #   leave.chr = list(1,2,6,7,9,11),
+  #   filter.info = 0.6,
+  #   filter.maf = 0.01,
+  #   filter.simpute.fraction = 0.10, #10% to compare between the two methods
+  #   filter.chisq.min = 0.01579077, #qchisq(p = 0.1,df = 1)
+  #   filter.zz.min = 1,
+  #   filter.region.df = p$highld_b38,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  # 
+  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.ssimp.small ***\n")
+  # p$mvLD$covstruct.mvLDSC.1kg.ssimp.small<-ldscpp(
+  #   traits = p$sumstats.sel.ssimp$imputedpath2.ssimp,
+  #   sample.prev =  p$sumstats.sel.ssimp$samplePrevalence,
+  #   population.prev = p$sumstats.sel.ssimp$populationPrevalence,
+  #   trait.names = p$sumstats.sel.ssimp$code,
+  #   filepathLD = p$filepath.SNPReference.1kg,
+  #   resetImputedN = T, #Because SSimp sets N according to imputation quality
+  #   #M.mode = "real",
+  #   leave.chr = list(1,2,6,7,9,11),
+  #   filter.info = 0.6,
+  #   filter.maf = 0.01,
+  #   filter.simpute.fraction = 0.10, #10% to compare between the two methods
+  #   filter.chisq.min = 0.01579077, #qchisq(p = 0.1,df = 1)
+  #   filter.zz.min = 1,
+  #   filter.region.df = p$highld_b38,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  
+  
+  #original ldsc test
+  p$mvLD$ldscTest<-c()
+  for(cTrait in p$sumstats.sel$code){
+    p$mvLD$ldscTest[cTrait] <- list(
+      ldsc.orig(trait_codes = list(cTrait),trait_filepaths = p$sumstats.sel[cTrait,]$mungedpath, ldsc_filepath = "/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/software/ldsc/ldsc.py", ld_filepath = file.path(p$folderpath.data.mvLDSC.ld.1kg,"hc1kgp3.b38.eur.jz2023.1cm.250blocks"),samp_prev = p$sumstats.sel[cTrait,]$samplePrevalence, pop_prev = p$sumstats.sel[cTrait,]$populationPrevalence,output_file_path = paste0(cTrait,"_h2munged.ldsc"), blocks = 200)
+      )
+  }
   saveRDS(object = p$mvLD,file = p$filepath.mvLD)
 
   
@@ -2442,6 +3011,8 @@ if(p$clOptions$task=="mvLD" || (!file.exists(p$filepath.mvLD) & p$clOptions$task
   #saving the original S in case of smoothing experiments later stored in S
   p$mvLD$covstruct.mvLDSC$S.orig<-p$mvLD$covstruct.mvLDSC$S
   p$mvLD$covstruct.mvLDSC$S.smooth<-as.matrix((nearPD(p$mvLD$covstruct.mvLDSC$S, corr = FALSE))$mat)
+  
+  rm(readyMergedTraits)
   
   #save the mvLD output
   saveRDS(object = p$mvLD,file = p$filepath.mvLD)
@@ -3019,27 +3590,27 @@ colnames(p$mvLD$covstruct.mvLDSC.1kg.ssimp.small$S_Stand.forPlot)<-p$sumstats.se
 
 
 
-#TODO Add mirroring of the p-matrix to ldsc
-p$mvLD$covstruct.mvLDSC.1kg$cov.p[upper.tri(p$mvLD$covstruct.mvLDSC.1kg$cov.p)] <- t(p$mvLD$covstruct.mvLDSC.1kg$cov.p)[upper.tri(p$mvLD$covstruct.mvLDSC.1kg$cov.p)]
-p$mvLD$covstruct.mvLDSC.1kg$cov.p<- matrix(data = as.numeric(p$mvLD$covstruct.mvLDSC.1kg$cov.p), nrow=nrow(p$mvLD$covstruct.mvLDSC.1kg$cov.p), ncol=ncol(p$mvLD$covstruct.mvLDSC.1kg$cov.p))
-
-p$mvLD$covstruct.mvLDSC.1kg.small$cov.p[upper.tri(p$mvLD$covstruct.mvLDSC.1kg.small$cov.p)] <- t(p$mvLD$covstruct.mvLDSC.1kg.small$cov.p)[upper.tri(p$mvLD$covstruct.mvLDSC.1kg.small$cov.p)]
-p$mvLD$covstruct.mvLDSC.1kg.small$cov.p<- matrix(data = as.numeric(p$mvLD$covstruct.mvLDSC.1kg.small$cov.p), nrow=nrow(p$mvLD$covstruct.mvLDSC.1kg.small$cov.p), ncol=ncol(p$mvLD$covstruct.mvLDSC.1kg.small$cov.p))
-
-p$mvLD$covstruct.mvLDSC.1kg.uncorrected$cov.p[upper.tri(p$mvLD$covstruct.mvLDSC.1kg.uncorrected$cov.p)] <- t(p$mvLD$covstruct.mvLDSC.1kg.uncorrected$cov.p)[upper.tri(p$mvLD$covstruct.mvLDSC.1kg.uncorrected$cov.p)]
-p$mvLD$covstruct.mvLDSC.1kg.uncorrected$cov.p<- matrix(data = as.numeric(p$mvLD$covstruct.mvLDSC.1kg.uncorrected$cov.p), nrow=nrow(p$mvLD$covstruct.mvLDSC.1kg.uncorrected$cov.p), ncol=ncol(p$mvLD$covstruct.mvLDSC.1kg.uncorrected$cov.p))
-
-p$mvLD$covstruct.mvLDSC.1kg.500$cov.p[upper.tri(p$mvLD$covstruct.mvLDSC.1kg.500$cov.p)] <- t(p$mvLD$covstruct.mvLDSC.1kg.500$cov.p)[upper.tri(p$mvLD$covstruct.mvLDSC.1kg.500$cov.p)]
-p$mvLD$covstruct.mvLDSC.1kg.500$cov.p<- matrix(data = as.numeric(p$mvLD$covstruct.mvLDSC.1kg.500$cov.p), nrow=nrow(p$mvLD$covstruct.mvLDSC.1kg.500$cov.p), ncol=ncol(p$mvLD$covstruct.mvLDSC.1kg.500$cov.p))
-
-p$mvLD$covstruct.mvLDSC.1kg.500.small$cov.p[upper.tri(p$mvLD$covstruct.mvLDSC.1kg.500.small$cov.p)] <- t(p$mvLD$covstruct.mvLDSC.1kg.500.small$cov.p)[upper.tri(p$mvLD$covstruct.mvLDSC.1kg.500.small$cov.p)]
-p$mvLD$covstruct.mvLDSC.1kg.500.small$cov.p<- matrix(data = as.numeric(p$mvLD$covstruct.mvLDSC.1kg.500.small$cov.p), nrow=nrow(p$mvLD$covstruct.mvLDSC.1kg.500.small$cov.p), ncol=ncol(p$mvLD$covstruct.mvLDSC.1kg.500.small$cov.p))
-
-p$mvLD$covstruct.mvLDSC.1kg.500.uncorrected$cov.p[upper.tri(p$mvLD$covstruct.mvLDSC.1kg.500.uncorrected$cov.p)] <- t(p$mvLD$covstruct.mvLDSC.1kg.500.uncorrected$cov.p)[upper.tri(p$mvLD$covstruct.mvLDSC.1kg.500.uncorrected$cov.p)]
-p$mvLD$covstruct.mvLDSC.1kg.500.uncorrected$cov.p<- matrix(data = as.numeric(p$mvLD$covstruct.mvLDSC.1kg.500.uncorrected$cov.p), nrow=nrow(p$mvLD$covstruct.mvLDSC.1kg.500.uncorrected$cov.p), ncol=ncol(p$mvLD$covstruct.mvLDSC.1kg.500.uncorrected$cov.p))
-
-p$mvLD$covstruct.mvLDSC.1kg.ssimp.small$cov.p[upper.tri(p$mvLD$covstruct.mvLDSC.1kg.ssimp.small$cov.p)] <- t(p$mvLD$covstruct.mvLDSC.1kg.ssimp.small$cov.p)[upper.tri(p$mvLD$covstruct.mvLDSC.1kg.ssimp.small$cov.p)]
-p$mvLD$covstruct.mvLDSC.1kg.ssimp.small$cov.p<- matrix(data = as.numeric(p$mvLD$covstruct.mvLDSC.1kg.ssimp.small$cov.p), nrow=nrow(p$mvLD$covstruct.mvLDSC.1kg.ssimp.small$cov.p), ncol=ncol(p$mvLD$covstruct.mvLDSC.1kg.ssimp.small$cov.p))
+#TODO Add mirroring of the p-matrix to ldsc -this should be implemented now
+# p$mvLD$covstruct.mvLDSC.1kg$cov.p[upper.tri(p$mvLD$covstruct.mvLDSC.1kg$cov.p)] <- t(p$mvLD$covstruct.mvLDSC.1kg$cov.p)[upper.tri(p$mvLD$covstruct.mvLDSC.1kg$cov.p)]
+# p$mvLD$covstruct.mvLDSC.1kg$cov.p<- matrix(data = as.numeric(p$mvLD$covstruct.mvLDSC.1kg$cov.p), nrow=nrow(p$mvLD$covstruct.mvLDSC.1kg$cov.p), ncol=ncol(p$mvLD$covstruct.mvLDSC.1kg$cov.p))
+# 
+# p$mvLD$covstruct.mvLDSC.1kg.small$cov.p[upper.tri(p$mvLD$covstruct.mvLDSC.1kg.small$cov.p)] <- t(p$mvLD$covstruct.mvLDSC.1kg.small$cov.p)[upper.tri(p$mvLD$covstruct.mvLDSC.1kg.small$cov.p)]
+# p$mvLD$covstruct.mvLDSC.1kg.small$cov.p<- matrix(data = as.numeric(p$mvLD$covstruct.mvLDSC.1kg.small$cov.p), nrow=nrow(p$mvLD$covstruct.mvLDSC.1kg.small$cov.p), ncol=ncol(p$mvLD$covstruct.mvLDSC.1kg.small$cov.p))
+# 
+# p$mvLD$covstruct.mvLDSC.1kg.uncorrected$cov.p[upper.tri(p$mvLD$covstruct.mvLDSC.1kg.uncorrected$cov.p)] <- t(p$mvLD$covstruct.mvLDSC.1kg.uncorrected$cov.p)[upper.tri(p$mvLD$covstruct.mvLDSC.1kg.uncorrected$cov.p)]
+# p$mvLD$covstruct.mvLDSC.1kg.uncorrected$cov.p<- matrix(data = as.numeric(p$mvLD$covstruct.mvLDSC.1kg.uncorrected$cov.p), nrow=nrow(p$mvLD$covstruct.mvLDSC.1kg.uncorrected$cov.p), ncol=ncol(p$mvLD$covstruct.mvLDSC.1kg.uncorrected$cov.p))
+# 
+# p$mvLD$covstruct.mvLDSC.1kg.500$cov.p[upper.tri(p$mvLD$covstruct.mvLDSC.1kg.500$cov.p)] <- t(p$mvLD$covstruct.mvLDSC.1kg.500$cov.p)[upper.tri(p$mvLD$covstruct.mvLDSC.1kg.500$cov.p)]
+# p$mvLD$covstruct.mvLDSC.1kg.500$cov.p<- matrix(data = as.numeric(p$mvLD$covstruct.mvLDSC.1kg.500$cov.p), nrow=nrow(p$mvLD$covstruct.mvLDSC.1kg.500$cov.p), ncol=ncol(p$mvLD$covstruct.mvLDSC.1kg.500$cov.p))
+# 
+# p$mvLD$covstruct.mvLDSC.1kg.500.small$cov.p[upper.tri(p$mvLD$covstruct.mvLDSC.1kg.500.small$cov.p)] <- t(p$mvLD$covstruct.mvLDSC.1kg.500.small$cov.p)[upper.tri(p$mvLD$covstruct.mvLDSC.1kg.500.small$cov.p)]
+# p$mvLD$covstruct.mvLDSC.1kg.500.small$cov.p<- matrix(data = as.numeric(p$mvLD$covstruct.mvLDSC.1kg.500.small$cov.p), nrow=nrow(p$mvLD$covstruct.mvLDSC.1kg.500.small$cov.p), ncol=ncol(p$mvLD$covstruct.mvLDSC.1kg.500.small$cov.p))
+# 
+# p$mvLD$covstruct.mvLDSC.1kg.500.uncorrected$cov.p[upper.tri(p$mvLD$covstruct.mvLDSC.1kg.500.uncorrected$cov.p)] <- t(p$mvLD$covstruct.mvLDSC.1kg.500.uncorrected$cov.p)[upper.tri(p$mvLD$covstruct.mvLDSC.1kg.500.uncorrected$cov.p)]
+# p$mvLD$covstruct.mvLDSC.1kg.500.uncorrected$cov.p<- matrix(data = as.numeric(p$mvLD$covstruct.mvLDSC.1kg.500.uncorrected$cov.p), nrow=nrow(p$mvLD$covstruct.mvLDSC.1kg.500.uncorrected$cov.p), ncol=ncol(p$mvLD$covstruct.mvLDSC.1kg.500.uncorrected$cov.p))
+# 
+# p$mvLD$covstruct.mvLDSC.1kg.ssimp.small$cov.p[upper.tri(p$mvLD$covstruct.mvLDSC.1kg.ssimp.small$cov.p)] <- t(p$mvLD$covstruct.mvLDSC.1kg.ssimp.small$cov.p)[upper.tri(p$mvLD$covstruct.mvLDSC.1kg.ssimp.small$cov.p)]
+# p$mvLD$covstruct.mvLDSC.1kg.ssimp.small$cov.p<- matrix(data = as.numeric(p$mvLD$covstruct.mvLDSC.1kg.ssimp.small$cov.p), nrow=nrow(p$mvLD$covstruct.mvLDSC.1kg.ssimp.small$cov.p), ncol=ncol(p$mvLD$covstruct.mvLDSC.1kg.ssimp.small$cov.p))
 
 #new main correlation plot 1A
 # cPlot<-ggcorr(data = NULL, cor_matrix = clipValues(p$mvLD$covstruct.mvLDSC.1kg$S_Stand,-1,1), geom = "tile")
@@ -3080,41 +3651,589 @@ p1$corr <- ifelse(0==-p1$y + ncol(corrForPlot)-p1$x + 1, NA_real_, p1$corr)
 text(p1$x, p1$y, round(p1$corr, 2))
 dev.off()
 
+
+#Comparisons of incrementally introduced additions to LDSC
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.original$I,-3,3),
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.original$cov.p,
+  filename = file.path(p$folderpath.plots,"i.indicator.original.png"),
+  is.corr = F,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "LDSC intercepts, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\noriginal LDSC (Genomic SEM), real M"
+  )
+
+p$printCorr(
+  corr = p$mvLD$covstruct.mvLDSC.1kg.original$S,
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.original$cov.p,
+  filename = file.path(p$folderpath.plots,"cov.indicator.original.png"),
+  is.corr = F,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic covariances, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\noriginal LDSC (Genomic SEM), real M"
+  )
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.original$S_Stand,-1,1),
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.original$cov.p,
+  filename = file.path(p$folderpath.plots,"rg.indicator.original.png"),
+  is.corr = T,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic correlations, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\noriginal LDSC (Genomic SEM), real M"
+  )
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.original$S.SE,-1,1),
+  #pmat = p$mvLD$covstruct.mvLDSC.1kg.original$cov.p,
+  filename = file.path(p$folderpath.plots,"covse.indicator.original.png"),
+  is.corr = F,
+  number.digits = 4,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic covariances standard error, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\noriginal LDSC (Genomic SEM), real M"
+  )
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.original.mafm$I,-3,3),
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.original.mafm$cov.p,
+  filename = file.path(p$folderpath.plots,"i.indicator.original.mafm.png"),
+  is.corr = F,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "LDSC intercepts, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\noriginal LDSC (Genomic SEM)"
+  )
+
+p$printCorr(
+  corr = p$mvLD$covstruct.mvLDSC.1kg.original.mafm$S,
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.original.mafm$cov.p,
+  filename = file.path(p$folderpath.plots,"cov.indicator.original.mafm.png"),
+  is.corr = F,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic covariances, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\noriginal LDSC (Genomic SEM)"
+  )
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.original.mafm$S_Stand,-1,1),
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.original.mafm$cov.p,
+  filename = file.path(p$folderpath.plots,"rg.indicator.original.mafm.png"),
+  is.corr = T,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic correlations, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\noriginal LDSC (Genomic SEM)"
+  )
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.original.mafm$S.SE,-1,1),
+  #pmat = p$mvLD$covstruct.mvLDSC.1kg.original$cov.p,
+  filename = file.path(p$folderpath.plots,"covse.indicator.original.mafm.png"),
+  is.corr = F,
+  number.digits = 4,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic covariances standard error, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\noriginal LDSC (Genomic SEM)"
+  )
+
+
+
+
+dS<-p$mvLD$covstruct.mvLDSC.1kg.vbcs$S_Stand-p$mvLD$covstruct.mvLDSC.1kg.original.mafm$S_Stand
+pS<-pchisq(abs(dS),df = 1, lower.tail = F) #this is pretending that the dist is chi-square
+bartlett.test.labels<-c(rep("vbcs",length(p$mvLD$covstruct.mvLDSC.1kg.vbcs$S)),rep("orig",length(p$mvLD$covstruct.mvLDSC.1kg.original.mafm$S)))
+bartlett.test(x = c(unlist(p$mvLD$covstruct.mvLDSC.1kg.vbcs$S_Stand),unlist(p$mvLD$covstruct.mvLDSC.1kg.original.mafm$S_Stand)), g =bartlett.test.labels)
+mean(abs(dS))
+mean(p$mvLD$covstruct.mvLDSC.1kg.vbcs$S.SE-p$mvLD$covstruct.mvLDSC.1kg.original.mafm$S.SE)
+bartlett.test(x = c(unlist(p$mvLD$covstruct.mvLDSC.1kg.vbcs$S.SE),unlist(p$mvLD$covstruct.mvLDSC.1kg.original.mafm$S.SE)), g = c(rep("vbcs",length(p$mvLD$covstruct.mvLDSC.1kg.vbcs$S)),rep("orig",length(p$mvLD$covstruct.mvLDSC.1kg.original.mafm$S))))
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.vbcs$I,-3,3),
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.vbcs$cov.p,
+  filename = file.path(p$folderpath.plots,"i.indicator.vbcs.png"),
+  is.corr = F,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "LDSC intercepts, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS"
+  )
+
+p$printCorr(
+  corr = p$mvLD$covstruct.mvLDSC.1kg.vbcs$S,
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.vbcs$cov.p,
+  filename = file.path(p$folderpath.plots,"cov.indicator.vbcs.png"),
+  is.corr = F,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic covariances, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS"
+  )
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.vbcs$S_Stand,-1,1),
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.vbcs$cov.p,
+  filename = file.path(p$folderpath.plots,"rg.indicator.vbcs.png"),
+  is.corr = T,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic correlations, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS"
+  )
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.vbcs$S.SE,-1,1),
+  #pmat = p$mvLD$covstruct.mvLDSC.1kg.original$cov.p,
+  filename = file.path(p$folderpath.plots,"covse.indicator.vbcs.png"),
+  is.corr = F,
+  number.digits = 4,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic covariances standard error, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS"
+  )
+
+infoTraits<-p$sumstats[which(p$sumstats$hasinfo==T),]$code
+infoTraits1<-p$mvLD$covstruct.mvLDSC.1kg.vbcs.winfo$S_Stand[which(colnames(p$mvLD$covstruct.mvLDSC.1kg.vbcs.winfo$S_Stand) %in% infoTraits),]
+infoTraits0<-p$mvLD$covstruct.mvLDSC.1kg.vbcs$S_Stand[which(colnames(p$mvLD$covstruct.mvLDSC.1kg.vbcs$S_Stand) %in% infoTraits),]
+dS<-infoTraits1-infoTraits0
+pS<-pchisq(abs(dS),df = 1, lower.tail = F) #this is pretending that the dist is chi-square
+bartlett.test(x = c((infoTraits1),unlist(infoTraits0)), g=c(rep("winfo",length(infoTraits1)),rep("orig",length(infoTraits0))))
+mean(abs(dS))
+infoTraits1<-p$mvLD$covstruct.mvLDSC.1kg.vbcs.winfo$S.SE[which(colnames(p$mvLD$covstruct.mvLDSC.1kg.vbcs.winfo$S.SE) %in% infoTraits),]
+infoTraits0<-p$mvLD$covstruct.mvLDSC.1kg.vbcs$S.SE[which(colnames(p$mvLD$covstruct.mvLDSC.1kg.vbcs$S.SE) %in% infoTraits),]
+mean(infoTraits1-infoTraits0)
+bartlett.test(x = c(unlist(infoTraits1),unlist(infoTraits0)), g=c(rep("winfo",length(infoTraits1)),rep("orig",length(infoTraits0))))
+pt(mean(infoTraits1-infoTraits0)*sqrt(length(infoTraits1))/sd(infoTraits1-infoTraits0),df=length(infoTraits1)-1)
+
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.vbcs.winfo$I,-3,3),
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.vbcs.winfo$cov.p,
+  filename = file.path(p$folderpath.plots,"i.indicator.vbcs.winfo.png"),
+  is.corr = F,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "LDSC intercepts, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + WINFO"
+  )
+
+p$printCorr(
+  corr = p$mvLD$covstruct.mvLDSC.1kg.vbcs.winfo$S,
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.vbcs.winfo$cov.p,
+  filename = file.path(p$folderpath.plots,"cov.indicator.vbcs.winfo.png"),
+  is.corr = F,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic covariances, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + WINFO"
+  )
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.vbcs.winfo$S_Stand,-1,1),
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.vbcs.winfo$cov.p,
+  filename = file.path(p$folderpath.plots,"rg.indicator.vbcs.winfo.png"),
+  is.corr = T,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic correlations, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + WINFO"
+  )
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.vbcs.winfo$S.SE,-1,1),
+  #pmat = p$mvLD$covstruct.mvLDSC.1kg.original$cov.p,
+  filename = file.path(p$folderpath.plots,"covse.indicator.vbcs.winfo.png"),
+  is.corr = F,
+  number.digits = 4,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic covariances standard error, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + WINFO"
+  )
+
+
+
+
+
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass$I,-3,3),
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass$cov.p,
+  filename = file.path(p$folderpath.plots,"i.indicator.vbcs.wass.png"),
+  is.corr = F,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "LDSC intercepts, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + WASS"
+  )
+
+p$printCorr(
+  corr = p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass$S,
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass$cov.p,
+  filename = file.path(p$folderpath.plots,"cov.indicator.vbcs.wass.png"),
+  is.corr = F,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic covariances, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + WASS"
+  )
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass$S_Stand,-1,1),
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass$cov.p,
+  filename = file.path(p$folderpath.plots,"rg.indicator.vbcs.wass.png"),
+  is.corr = T,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic correlations, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + WASS"
+  )
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass$S.SE,-1,1),
+  #pmat = p$mvLD$covstruct.mvLDSC.1kg.original$cov.p,
+  filename = file.path(p$folderpath.plots,"covse.indicator.vbcs.wass.png"),
+  is.corr = F,
+  number.digits = 4,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic covariances standard error, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + WASS"
+  )
+
+
+infoTraits1<-p$mvLD$covstruct.mvLDSC.1kg.vbcs.drc$S_Stand
+infoTraits0<-p$mvLD$covstruct.mvLDSC.1kg.vbcs$S_Stand
+diag(infoTraits1)<-NA
+diag(infoTraits0)<-NA
+
+dS<-infoTraits1-infoTraits0
+pS<-pchisq(abs(dS),df = 1, lower.tail = F) #this is pretending that the dist is chi-square
+bartlett.test(x = c(unlist(infoTraits1),unlist(infoTraits0)), g=bartlett.test.labels)
+mean(abs(dS),na.rm=T)
+infoTraits1<-p$mvLD$covstruct.mvLDSC.1kg.vbcs.drc$S.SE
+infoTraits0<-p$mvLD$covstruct.mvLDSC.1kg.vbcs$S.SE
+diag(infoTraits1)<-NA
+diag(infoTraits0)<-NA
+mean(infoTraits1-infoTraits0,na.rm=T)
+bartlett.test(x = c(unlist(infoTraits1),unlist(infoTraits0)), g=bartlett.test.labels)
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.vbcs.drc$I,-3,3),
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.vbcs.drc$cov.p,
+  filename = file.path(p$folderpath.plots,"i.indicator.vbcs.drc.png"),
+  is.corr = F,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "LDSC intercepts, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + DRC"
+  )
+
+p$printCorr(
+  corr = p$mvLD$covstruct.mvLDSC.1kg.vbcs.drc$S,
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.vbcs.drc$cov.p,
+  filename = file.path(p$folderpath.plots,"cov.indicator.vbcs.drc.png"),
+  is.corr = F,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic covariances, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + DRC"
+  )
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.vbcs.drc$S_Stand,-1,1),
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.vbcs.drc$cov.p,
+  filename = file.path(p$folderpath.plots,"rg.indicator.vbcs.drc.png"),
+  is.corr = T,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic correlations, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + DRC"
+  )
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.vbcs.drc$S.SE,-1,1),
+  #pmat = p$mvLD$covstruct.mvLDSC.1kg.original$cov.p,
+  filename = file.path(p$folderpath.plots,"covse.indicator.vbcs.drc.png"),
+  is.corr = F,
+  number.digits = 4,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic covariances standard error, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + DRC"
+  )
+
+
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.vbcs.abcor$I,-3,3),
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.vbcs.abcor$cov.p,
+  filename = file.path(p$folderpath.plots,"i.indicator.vbcs.abcor.png"),
+  is.corr = F,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "LDSC intercepts, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + ABCOR"
+  )
+
+p$printCorr(
+  corr = p$mvLD$covstruct.mvLDSC.1kg.vbcs.abcor$S,
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.vbcs.abcor$cov.p,
+  filename = file.path(p$folderpath.plots,"cov.indicator.vbcs.abcor.png"),
+  is.corr = F,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic covariances, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + ABCOR"
+  )
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.vbcs.abcor$S_Stand,-1,1),
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.vbcs.abcor$cov.p,
+  filename = file.path(p$folderpath.plots,"rg.indicator.vbcs.abcor.png"),
+  is.corr = T,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic correlations, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + ABCOR"
+  )
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.vbcs.abcor$S.SE,-1,1),
+  #pmat = p$mvLD$covstruct.mvLDSC.1kg.original$cov.p,
+  filename = file.path(p$folderpath.plots,"covse.indicator.vbcs.abcor.png"),
+  is.corr = F,
+  number.digits = 4,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic covariances standard error, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + ABCOR"
+  )
+
+
+
+
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.winfo$I,-3,3),
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.winfo$cov.p,
+  filename = file.path(p$folderpath.plots,"i.indicator.vbcs.wass.winfo.png"),
+  is.corr = F,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "LDSC intercepts, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + WASS + WINFO"
+  )
+
+p$printCorr(
+  corr = p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.winfo$S,
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.winfo$cov.p,
+  filename = file.path(p$folderpath.plots,"cov.indicator.vbcs.wass.winfo.png"),
+  is.corr = F,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic covariances, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + WASS + WINFO"
+  )
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.winfo$S_Stand,-1,1),
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.winfo$cov.p,
+  filename = file.path(p$folderpath.plots,"rg.indicator.vbcs.wass.winfo.png"),
+  is.corr = T,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic correlations, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + WASS + WINFO"
+  )
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.winfo$S.SE,-1,1),
+  #pmat = p$mvLD$covstruct.mvLDSC.1kg.original$cov.p,
+  filename = file.path(p$folderpath.plots,"covse.indicator.vbcs.wass.winfo.png"),
+  is.corr = F,
+  number.digits = 4,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic covariances standard error, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + WASS + WINFO"
+  )
+
+
+
+
+
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.drc$I,-3,3),
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.drc$cov.p,
+  filename = file.path(p$folderpath.plots,"i.indicator.vbcs.wass.drc.png"),
+  is.corr = F,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "LDSC intercepts, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + WASS + DRC"
+  )
+
+p$printCorr(
+  corr = p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.drc$S,
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.drc$cov.p,
+  filename = file.path(p$folderpath.plots,"cov.indicator.vbcs.wass.drc.png"),
+  is.corr = F,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic covariances, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + WASS + DRC"
+  )
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.drc$S_Stand,-1,1),
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.drc$cov.p,
+  filename = file.path(p$folderpath.plots,"rg.indicator.vbcs.wass.drc.png"),
+  is.corr = T,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic correlations, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + WASS + DRC"
+  )
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.drc$S.SE,-1,1),
+  #pmat = p$mvLD$covstruct.mvLDSC.1kg.original$cov.p,
+  filename = file.path(p$folderpath.plots,"covse.indicator.vbcs.wass.drc.png"),
+  is.corr = F,
+  number.digits = 4,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic covariances standard error, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + WASS + DRC"
+  )
+
+
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.abcor$I,-3,3),
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.abcor$cov.p,
+  filename = file.path(p$folderpath.plots,"i.indicator.vbcs.wass.abcor.png"),
+  is.corr = F,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "LDSC intercepts, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + WASS + ABCOR"
+  )
+
+p$printCorr(
+  corr = p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.abcor$S,
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.abcor$cov.p,
+  filename = file.path(p$folderpath.plots,"cov.indicator.vbcs.wass.abcor.png"),
+  is.corr = F,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic covariances, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + WASS + ABCOR"
+  )
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.abcor$S_Stand,-1,1),
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.abcor$cov.p,
+  filename = file.path(p$folderpath.plots,"rg.indicator.vbcs.wass.abcor.png"),
+  is.corr = T,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic correlations, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + WASS + ABCOR"
+  )
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.abcor$S.SE,-1,1),
+  #pmat = p$mvLD$covstruct.mvLDSC.1kg.original$cov.p,
+  filename = file.path(p$folderpath.plots,"covse.indicator.vbcs.wass.abcor.png"),
+  is.corr = F,
+  number.digits = 4,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic covariances standard error, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + WASS + ABCOR"
+  )
+
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.drc.abcor$I,-3,3),
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.drc.abcor$cov.p,
+  filename = file.path(p$folderpath.plots,"i.indicator.vbcs.wass.drc.abcor.png"),
+  is.corr = F,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "LDSC intercepts, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + WASS + DRC + ABCOR"
+  )
+
+p$printCorr(
+  corr = p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.drc.abcor$S,
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.drc.abcor$cov.p,
+  filename = file.path(p$folderpath.plots,"cov.indicator.vbcs.wass.drc.abcor.png"),
+  is.corr = F,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic covariances, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + WASS + DRC + ABCOR"
+  )
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.drc.abcor$S_Stand,-1,1),
+  pmat = p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.drc.abcor$cov.p,
+  filename = file.path(p$folderpath.plots,"rg.indicator.vbcs.wass.drc.abcor.png"),
+  is.corr = T,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic correlations, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + WASS + DRC + ABCOR"
+  )
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.vbcs.wass.drc.abcor$S.SE,-1,1),
+  #pmat = p$mvLD$covstruct.mvLDSC.1kg.original$cov.p,
+  filename = file.path(p$folderpath.plots,"covse.indicator.vbcs.wass.drc.abcor.png"),
+  is.corr = F,
+  number.digits = 4,
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic covariances standard error, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + WASS + DRC + ABCOR"
+  )
+
+
+
+p$printCorr(
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg$I,-3,3),
+  pmat = p$mvLD$covstruct.mvLDSC.1kg$cov.p,
+  filename = file.path(p$folderpath.plots,"i.indicator.png"),
+  is.corr = F,
+  number.digits = 3,
+  newnames = p$sumstats.sel$code.nice,
+  title = "LDSC intercepts, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + DRC + WINFO + ZZ>0.016"
+  )
+
 p$printCorr(
   corr = p$mvLD$covstruct.mvLDSC.1kg$S,
   pmat = p$mvLD$covstruct.mvLDSC.1kg$cov.p,
-  filename = file.path(p$folderpath.plots,"cov.indicator.noimp.png"),
+  filename = file.path(p$folderpath.plots,"cov.indicator.png"),
   is.corr = F,
   number.digits = 3,
-  newnames = p$sumstats.sel$code.nice
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic covariances, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + DRC + WINFO + ZZ>0.016"
   )
 
 p$printCorr(
   corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg$S_Stand,-1,1),
   pmat = p$mvLD$covstruct.mvLDSC.1kg$cov.p,
-  filename = file.path(p$folderpath.plots,"rg.indicator.noimp.png"),
+  filename = file.path(p$folderpath.plots,"rg.indicator.png"),
   is.corr = T,
-  newnames = p$sumstats.sel$code.nice,
-  title = "Genetic correlations, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight)"
-  )
-
-p$printCorr(
-  corr = p$mvLD$covstruct.mvLDSC.1kg.uncorrected$S,
-  pmat = p$mvLD$covstruct.mvLDSC.1kg.uncorrected$cov.p,
-  filename = file.path(p$folderpath.plots,"cov.indicator.noimp.uncorr.png"),
-  is.corr = F,
   number.digits = 3,
-  newnames = p$sumstats.sel$code.nice
+  newnames = p$sumstats.sel$code.nice,
+  title = "Genetic correlations, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + DRC + WINFO + ZZ>0.016"
   )
 
 p$printCorr(
-  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.uncorrected$S_Stand,-1,1),
-  pmat = p$mvLD$covstruct.mvLDSC.1kg.uncorrected$cov.p,
-  filename = file.path(p$folderpath.plots,"rg.indicator.noimp.uncorr.png"),
-  is.corr = T,
+  corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg$S.SE,-1,1),
+  #pmat = p$mvLD$covstruct.mvLDSC.1kg.original$cov.p,
+  filename = file.path(p$folderpath.plots,"covse.indicator..png"),
+  is.corr = F,
+  number.digits = 4,
   newnames = p$sumstats.sel$code.nice,
-  title = "Genetic correlations, HC1kG reference, no correlation bias correction,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight)"
+  title = "Genetic covariances standard error, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight),\nVBCS + DRC + WINFO + ZZ>0.016"
   )
+
+
+
+# p$printCorr(
+#   corr = p$mvLD$covstruct.mvLDSC.1kg$S,
+#   pmat = p$mvLD$covstruct.mvLDSC.1kg$cov.p,
+#   filename = file.path(p$folderpath.plots,"cov.indicator.noimp.png"),
+#   is.corr = F,
+#   number.digits = 3,
+#   newnames = p$sumstats.sel$code.nice
+#   )
+# 
+# p$printCorr(
+#   corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg$S_Stand,-1,1),
+#   pmat = p$mvLD$covstruct.mvLDSC.1kg$cov.p,
+#   filename = file.path(p$folderpath.plots,"rg.indicator.noimp.png"),
+#   is.corr = T,
+#   newnames = p$sumstats.sel$code.nice,
+#   title = "Genetic correlations, HC1kG reference,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight)"
+#   )
+
+# p$printCorr(
+#   corr = p$mvLD$covstruct.mvLDSC.1kg.uncorrected$S,
+#   pmat = p$mvLD$covstruct.mvLDSC.1kg.uncorrected$cov.p,
+#   filename = file.path(p$folderpath.plots,"cov.indicator.noimp.uncorr.png"),
+#   is.corr = F,
+#   number.digits = 3,
+#   newnames = p$sumstats.sel$code.nice
+#   )
+# 
+# p$printCorr(
+#   corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg.uncorrected$S_Stand,-1,1),
+#   pmat = p$mvLD$covstruct.mvLDSC.1kg.uncorrected$cov.p,
+#   filename = file.path(p$folderpath.plots,"rg.indicator.noimp.uncorr.png"),
+#   is.corr = T,
+#   newnames = p$sumstats.sel$code.nice,
+#   title = "Genetic correlations, HC1kG reference, no correlation bias correction,\nGWAS (non-imputed) + GWIS of male BMI (LDimp augmented height & weight)"
+#   )
 
 p$printCorr(
   corr = p$mvLD$covstruct.mvLDSC.1kg.500$S,

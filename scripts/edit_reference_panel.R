@@ -224,6 +224,6 @@ cat("\nSet back-stop names for names still missing\n")
 fwrite(x = bim[order(ORDER),c("CHR","SNP","CM","BP","A1","A2")], file = filepath.newbim,col.names = F, sep = "\t",nThread = nThreads, na = ".",quote = F)
 
 #output general variant list - still has the overall MAF values
-fwrite(x = bim[order(ORDER),c("SNP","BID","SNPR","BIDR","BP","A1","A2","MAF","NCHROBS")],file = filepath.varlist, append = F,quote = F,sep = "\t",col.names = T,nThread=nThreads)
+fwrite(x = bim[order(ORDER),c("SNP","BID","SNPR","BIDR","CHR","BP","A1","A2","MAF","NCHROBS")],file = filepath.varlist, append = F,quote = F,sep = "\t",col.names = T,nThread=nThreads) #added CHR also here - not included in the last run
 
 cat("\nTHE END\n")
