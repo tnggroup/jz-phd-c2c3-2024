@@ -43,6 +43,11 @@ bcftools view -Oz9 -o hc1kgp3.b38.eur.jz2023.vcf.gz 1kGP_high_coverage_Illumina.
 tabix -p vcf hc1kgp3.b38.eur.jz2023.vcf.gz
 
 
+#produce per-chromosome versions
+for chr in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23; do sbatch --time 12:00:00 --partition cpu --job-name="r$chr" --ntasks 1 --cpus-per-task 4 --mem 50G --wrap="plink --bfile 1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.frq.CM23 --chr $chr --make-bed --out 1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.frq.CM23.chr$chr" --output "1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.frq.CM23.chr$chr.plink.$(date +%Y%m%d).out.txt"; done
+for chr in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23; do sbatch --time 12:00:00 --partition cpu --job-name="r$chr" --ntasks 1 --cpus-per-task 4 --mem 80G --wrap="plink --bfile 1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.frq.CM.eur --chr $chr --make-bed --out 1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.frq.CM.eur.chr$chr" --output "1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.frq.CM.eur.chr$chr.plink.$(date +%Y%m%d).out.txt"; done
+
+
 #create LD score libraries
 #source ~/project/JZ_GED_PHD_ADMIN_GENERAL/software/ldsc-venv/bin/activate
 #run in the reference panel folder
@@ -50,6 +55,9 @@ tabix -p vcf hc1kgp3.b38.eur.jz2023.vcf.gz
 sbatch --time 1-00:00:00 --partition cpu --job-name="ldsc" --ntasks 1 --cpus-per-task 4 --mem 80G --wrap=". ~/project/JZ_GED_PHD_ADMIN_GENERAL/software/ldsc-venv/bin/activate; python3.9 ~/project/JZ_GED_PHD_ADMIN_GENERAL/software/ldsc/ldsc.py;" --output "1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.frq.CM.eur.1cm.250blocks.ldsc.$(date +%Y%m%d).out.txt" #test of working ldsc
 sbatch --time 1-00:00:00 --partition cpu --job-name="ldsc" --ntasks 1 --cpus-per-task 4 --mem 80G --wrap=". ~/project/JZ_GED_PHD_ADMIN_GENERAL/software/ldsc-venv/bin/activate; python3.9 ~/project/JZ_GED_PHD_ADMIN_GENERAL/software/ldsc/ldsc.py --bfile 1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.frq.CM.eur --l2 --ld-wind-cm 1 --out hc1kgp3.b38.eur.jz2023.1cm.250blocks --n-blocks 250;" --output "1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.frq.CM.eur.1cm.250blocks.ldsc.$(date +%Y%m%d).out.txt"
 sbatch --time 2-00:00:00 --partition cpu --job-name="ldsc" --ntasks 1 --cpus-per-task 4 --mem 180G --wrap=". ~/project/JZ_GED_PHD_ADMIN_GENERAL/software/ldsc-venv/bin/activate; python3.9 ~/project/JZ_GED_PHD_ADMIN_GENERAL/software/ldsc/ldsc.py --bfile 1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.frq.CM23 --l2 --ld-wind-cm 1 --out hc1kgp3.b38.mix.jz2023.1cm.250blocks --n-blocks 250;" --output "1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.frq.CM.mix.1cm.250blocks.ldsc.$(date +%Y%m%d).out.txt"
+
+for chr in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23; do sbatch --time 1-00:00:00 --partition cpu --job-name="ldsc" --ntasks 1 --cpus-per-task 4 --mem 50G --wrap=". ~/project/JZ_GED_PHD_ADMIN_GENERAL/software/ldsc-venv/bin/activate; python3.9 ~/project/JZ_GED_PHD_ADMIN_GENERAL/software/ldsc/ldsc.py --bfile 1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.frq.CM.eur.chr$chr --l2 --ld-wind-cm 1 --out $chr --n-blocks 250;" --output "1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.frq.CM.eur.1cm.250blocks.ldsc.chr$chr.$(date +%Y%m%d).out.txt"; done
+for chr in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23; do sbatch --time 1-00:00:00 --partition cpu --job-name="ldsc" --ntasks 1 --cpus-per-task 4 --mem 80G --wrap=". ~/project/JZ_GED_PHD_ADMIN_GENERAL/software/ldsc-venv/bin/activate; python3.9 ~/project/JZ_GED_PHD_ADMIN_GENERAL/software/ldsc/ldsc.py --bfile 1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.frq.CM23.chr$chr --l2 --ld-wind-cm 1 --out $chr --n-blocks 250;" --output "1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.frq.CM.mix.1cm.250blocks.ldsc.chr$chr.$(date +%Y%m%d).out.txt"; done
 
 sbatch --time 2:00:00 --partition cpu --job-name="varlist" --ntasks 1 --cpus-per-task 4 --mem 40G --wrap="Rscript ../../../../JZ_GED_PHD_C1/scripts/create_variant_list.R" --output "create_variant_list.$(date +%Y%m%d).out.txt"
 
