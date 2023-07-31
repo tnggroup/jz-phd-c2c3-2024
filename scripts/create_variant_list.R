@@ -13,7 +13,8 @@ filepath.bim.eur<-"1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_pane
 filepath.frq.eur<-"1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.frq.CM.eur.frq"
 filepath.l2.eur<-"/scratch/prj/gwas_sumstats/ld_scores/hc1kgp3.b38.eur.l2.jz2023/hc1kgp3.b38.eur.jz2023.1cm.250blocks.l2.ldscore.gz"
 folderpath.l2.mix<-"/scratch/prj/gwas_sumstats/ld_scores/hc1kgp3.b38.mix.l2.jz2023.chr" #not available because of computation limits
-filepath.newvarlist<-"hc1kgp3.b38.mix.l2.jz2023.gz"
+filepath.newvarlist.mix<-"hc1kgp3.b38.mix.l2.jz2023.gz"
+filepath.newvarlist.eur<-"hc1kgp3.b38.eur.l2.jz2023.gz"
 
 allvars<-fread(file = filepath.varlist, na.strings =c(".",NA,"NA",""), encoding = "UTF-8", header = T, fill = T, blank.lines.skip = T, data.table = F, nThread = nThreads, showProgress = T)
 setDT(allvars)
@@ -96,4 +97,5 @@ cat("\nN missing L2.EUR-values:",nrow(allvars[!is.finite(L2.EUR),]))
 #sum(grepl(pattern = ".",x = bim$SNP,fixed = T)) #should be 0
 allvars<-allvars[,c("SNP","BID","SNPR","BIDR","CHR","BP","A1","A2","CM","MAF.MIX","NCHROBS.MIX","L2.MIX","MAF.EUR","NCHROBS.EUR","L2.EUR")]
 setkeyv(allvars, cols = c("SNP"))
-fwrite(x = allvars, file = filepath.newvarlist,col.names = T, sep = "\t",nThread = nThreads, na = ".",quote = F)
+fwrite(x = allvars, file = filepath.newvarlist.mix,col.names = T, sep = "\t",nThread = nThreads, na = ".",quote = F)
+fwrite(x = allvars[,.(SNP,BID,SNPR,BIDR,CHR,BP,A1,A2,CM,MAF=MAF.EUR, NCHROBS=NCHROBS.EUR,L2=L2.EUR)], file = filepath.newvarlist.eur,col.names = T, sep = "\t",nThread = nThreads, na = ".",quote = F)

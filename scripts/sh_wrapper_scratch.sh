@@ -273,6 +273,9 @@ sbatch --time 2-00:00:00 --partition cpu --job-name="iSCHI04" --ntasks 1 --cpus-
 sbatch --time 2-00:00:00 --partition cpu --job-name="iWEIG04M" --ntasks 1 --cpus-per-task 6 --mem 80G --wrap="Rscript setup8.R -t impute -a WEIG04M -l cluster" --output "setup8.ldimp.WEIG04M.$(date +%Y%m%d).out.txt"
 sbatch --time 2-00:00:00 --partition cpu --job-name="iWEIG04F" --ntasks 1 --cpus-per-task 6 --mem 80G --wrap="Rscript setup8.R -t impute -a WEIG04F -l cluster" --output "setup8.ldimp.WEIG04F.$(date +%Y%m%d).out.txt"
 
+#per dataset stats
+sbatch --time 8:00:00 --partition cpu --job-name="dstat" --ntasks 1 --cpus-per-task 6 --mem 32G --wrap="Rscript setup8.R -t stat -l cluster" --output "setup8.stat.$(date +%Y%m%d).out.txt"
+
 #GWIS
 sbatch --time 2-00:00:00 --partition cpu --job-name="GWIS" --ntasks 1 --cpus-per-task 5 --mem 32G --wrap="Rscript setup8.R -t gwis -l cluster" --output "setup8.gwis.$(date +%Y%m%d).out.txt"
 sbatch --time 2-00:00:00 --partition cpu --job-name="mvLD.gwis" --ntasks 1 --cpus-per-task 5 --mem 32G --wrap="Rscript setup8.R -t mvLD.gwis -l cluster" --output "setup8.mvLD.gwis.$(date +%Y%m%d).out.txt"
