@@ -373,67 +373,6 @@ dev.off()
   
 }
 
-p.adjust2 <- function (p, method = p.adjust.methods, n = length(p)) 
-{
-    method <- match.arg(method)
-    if (method == "fdr") 
-        method <- "BH"
-    nm <- names(p)
-    p <- as.numeric(p)
-    p0 <- setNames(p, nm)
-    if (all(nna <- !is.na(p))) 
-        nna <- TRUE
-    else p <- p[nna]
-    lp <- length(p)
-    #stopifnot(n >= lp) #+++JZ: Now we can run with n < lp !!!! Thank you Stack Overflow!
-    if (n <= 1) 
-        return(p0)
-    if (n == 2 && method == "hommel") 
-        method <- "hochberg"
-    p0[nna] <- switch(method, bonferroni = pmin(1, n * p), holm = {
-        i <- seq_len(lp)
-        o <- order(p)
-        ro <- order(o)
-        pmin(1, cummax((n + 1L - i) * p[o]))[ro]
-    }, hommel = {
-        if (n > lp) p <- c(p, rep.int(1, n - lp))
-        i <- seq_len(n)
-        o <- order(p)
-        p <- p[o]
-        ro <- order(o)
-        q <- pa <- rep.int(min(n * p/i), n)
-        for (j in (n - 1L):2L) {
-            ij <- seq_len(n - j + 1L)
-            i2 <- (n - j + 2L):n
-            q1 <- min(j * p[i2]/(2L:j))
-            q[ij] <- pmin(j * p[ij], q1)
-            q[i2] <- q[n - j + 1L]
-            pa <- pmax(pa, q)
-        }
-        pmax(pa, p)[if (lp < n) ro[1L:lp] else ro]
-    }, hochberg = {
-        i <- lp:1L
-        o <- order(p, decreasing = TRUE)
-        ro <- order(o)
-        pmin(1, cummin((n + 1L - i) * p[o]))[ro]
-    }, BH = {
-        i <- lp:1L
-        o <- order(p, decreasing = TRUE)
-        ro <- order(o)
-        pmin(1, cummin(n/i * p[o]))[ro]
-    }, BY = {
-        i <- lp:1L
-        o <- order(p, decreasing = TRUE)
-        ro <- order(o)
-        q <- sum(1/(1L:n))
-        pmin(1, cummin(q * n/i * p[o]))[ro]
-    }, none = p)
-    
-    p0 <- ifelse(p0 < p, p, p0) #+++JZ: Added this to avoid any p0 < p when using small n
-    
-    p0
-}
-
 p$plotAndTestBatteryForMVLDSC <- function(
     mvldsc,
     code,
@@ -445,7 +384,7 @@ p$plotAndTestBatteryForMVLDSC <- function(
   
   traitCodes<-colnames(mvldsc$S)
   
-  cv.S_StandLimit <- 0.05 #0.05
+  cv.S_StandLimit <- 0.05 #0.05, or 0.1, 0.2 were suggested
   
   pcaRes <- eigen(mvldsc$V_Stand,symmetric = T)
   eigenSum<-sum(abs(pcaRes$values))
@@ -528,7 +467,7 @@ p$printCorr(
   is.corr = T,
   number.digits = 3,
   newnames = p$sumstats.sel[traitCodes,]$code.nice,
-  title = paste0("Genetic correlations, ",titleTemplate,titleAddition)
+  title = paste0("Genetic correlations (rg), ",titleTemplate,titleAddition)
   )
 
 p$printCorr(
@@ -538,7 +477,7 @@ p$printCorr(
   is.corr = F,
   number.digits = 4,
   newnames = p$sumstats.sel[traitCodes,]$code.nice,
-  title = paste0("Genetic correlations S.E., ",titleTemplate,titleAddition)
+  title = paste0("Genetic correlations (rg) S.E., ",titleTemplate,titleAddition)
   )
 
 
@@ -551,7 +490,7 @@ p$printCorr(
   is.corr = F,
   number.digits = 4,
   newnames = p$sumstats.sel[traitCodes,]$code.nice,
-  title = paste0("Genetic correlations Coefficient of Variation (CV), ",titleTemplate,titleAddition)
+  title = paste0("Genetic correlations (rg) Coefficient of Variation (CV), ",titleTemplate,titleAddition)
   )
 
 # mvldsc<-p$mvLD$covstruct.mvLDSC.1kg.vbcs.drc.winfo
@@ -684,7 +623,7 @@ if(!is.null(mvldscComparison)){
     is.corr = F,
     number.digits = 3,
     newnames = p$sumstats.sel[traitCodes,]$code.nice,
-    title = paste0("Difference in genetic correlations, ",titleTemplate,titleAddition,titleAdditionComparison," [abs(mean)=",round(mean(abs(dS_Stand[testOnlyTraitNameCodes,testOnlyTraitNameCodes])),digits = 2),"]")
+    title = paste0("Difference in rg, ",titleTemplate,titleAddition,titleAdditionComparison," [abs(mean)=",round(mean(abs(dS_Stand[testOnlyTraitNameCodes,testOnlyTraitNameCodes])),digits = 2),"]")
   )
   
   #relative, in percent
@@ -696,7 +635,7 @@ if(!is.null(mvldscComparison)){
     is.corr = F,
     number.digits = 1,
     newnames = p$sumstats.sel[traitCodes,]$code.nice,
-    title = paste0("Relative (%) difference in genetic correlations, ",titleTemplate,titleAddition,titleAdditionComparison," [mean=",round(mean(abs(dS_Stand[testOnlyTraitNameCodes,testOnlyTraitNameCodes])),digits = 1),"]")
+    title = paste0("Relative (%) difference in rg, ",titleTemplate,titleAddition,titleAdditionComparison," [mean=",round(mean(abs(dS_Stand[testOnlyTraitNameCodes,testOnlyTraitNameCodes])),digits = 1),"]")
   )
   
   dS.S_Stand.SE<-mvldsc$S_Stand.SE-mvldscComparison$S_Stand.SE
@@ -707,7 +646,7 @@ if(!is.null(mvldscComparison)){
     is.corr = F,
     number.digits = 4,
     newnames = p$sumstats.sel[traitCodes,]$code.nice,
-    title = paste0("Difference in genetic correlations S.E., ",titleTemplate,titleAddition,titleAdditionComparison," [mean=",round(mean(dS.S_Stand.SE[testOnlyTraitNameCodes,testOnlyTraitNameCodes]),digits = 4),"]")
+    title = paste0("Difference in rg S.E., ",titleTemplate,titleAddition,titleAdditionComparison," [mean=",round(mean(dS.S_Stand.SE[testOnlyTraitNameCodes,testOnlyTraitNameCodes]),digits = 4),"]")
   )
   
   #relative, in percent
@@ -719,7 +658,7 @@ if(!is.null(mvldscComparison)){
     is.corr = F,
     number.digits = 1,
     newnames = p$sumstats.sel[traitCodes,]$code.nice,
-    title = paste0("Relative (%) difference in genetic correlations S.E., ",titleTemplate,titleAddition,titleAdditionComparison," [mean=",round(mean(dS.S_Stand.SE[testOnlyTraitNameCodes,testOnlyTraitNameCodes]),digits = 1),"]")
+    title = paste0("Relative (%) difference in rg S.E., ",titleTemplate,titleAddition,titleAdditionComparison," [mean=",round(mean(dS.S_Stand.SE[testOnlyTraitNameCodes,testOnlyTraitNameCodes]),digits = 1),"]")
   )
   
   #CV, standardised
@@ -731,7 +670,7 @@ if(!is.null(mvldscComparison)){
     is.corr = F,
     number.digits = 3,
     newnames = p$sumstats.sel[traitCodes,]$code.nice,
-    title = paste0("Difference in genetic correlations Coefficient of Variation (CV), ",titleTemplate,titleAddition,titleAdditionComparison," [mean=",round(mean(dCV[testOnlyTraitNameCodes,testOnlyTraitNameCodes]),digits = 3),"]")
+    title = paste0("Difference in rg Coefficient of Variation (CV), ",titleTemplate,titleAddition,titleAdditionComparison," [mean=",round(mean(dCV[testOnlyTraitNameCodes,testOnlyTraitNameCodes]),digits = 3),"]")
   )
   
   #p-values for the difference
@@ -742,7 +681,7 @@ if(!is.null(mvldscComparison)){
     is.corr = F,
     number.digits = 3,
     newnames = p$sumstats.sel[traitCodes,]$code.nice,
-    title = paste0("Significance as p-values (FDR corrected, ",iEV," effective tests)\nfor difference in genetic correlations Coefficient of Variation (CV), ",titleTemplate,titleAddition,titleAdditionComparison)
+    title = paste0("rg dCV significance (FDR corrected, ",iEV," effective tests), ",titleTemplate,titleAddition,titleAdditionComparison)
   )
   
   #this does not work bc of wrong p
@@ -847,7 +786,7 @@ p$trait<-data.frame(phenotype_id=c())
 
 #ADHD
 p$trait[nrow(p$trait)+1,c("phenotype_id")]<-139
-p$trait[nrow(p$trait),c("populationPrevalence")]<-.00529 #Worldwide-pooled
+p$trait[nrow(p$trait),c("populationPrevalence")]<-.0529 #Worldwide-pooled - THIS WAS WRONG IN THE ANALYSIS THOUGH: .00529
 p$trait[nrow(p$trait),c("referenceDOI")]<-"https://doi.org/10.1176/ajp.2007.164.6.942"
 
 #ALCD
@@ -870,10 +809,12 @@ p$trait[nrow(p$trait)+1,c("phenotype_id")]<-145
 p$trait[nrow(p$trait),c("populationPrevalence")]<-.0122
 p$trait[nrow(p$trait),c("referenceDOI")]<-"https://doi.org/10.1186/s12874-016-0280-6"
 
-#BIPO
+#BIPO - also wrong in the analysis
 p$trait[nrow(p$trait)+1,c("phenotype_id")]<-146
-p$trait[nrow(p$trait),c("populationPrevalence")]<- .007 #mean of male and female global prevalence rate (2013) from https://doi.org/10.1111/bdi.12423 (2016)
-p$trait[nrow(p$trait),c("referenceDOI")]<-"https://doi.org/10.1111/bdi.12423"
+p$trait[nrow(p$trait),c("populationPrevalence")]<- .025 #LT
+p$trait[nrow(p$trait),c("referenceDOI")]<-"https://doi.org/10.1002/mpr.1359"
+# p$trait[nrow(p$trait),c("populationPrevalence")]<- (40 * 0.007)/2 #mean of male and female global prevalence rate (2013) from https://doi.org/10.1111/bdi.12423 (2016), assuming sample mean age of 40y. THIS IS PROBABLY WRONG - TOO HIGH?
+# p$trait[nrow(p$trait),c("referenceDOI")]<-"https://doi.org/10.1111/bdi.12423"
 
 #DEPR
 p$trait[nrow(p$trait)+1,c("phenotype_id")]<-149
@@ -892,8 +833,11 @@ p$trait[nrow(p$trait),c("referenceDOI")]<-"https://doi.org/10.1093/sleep/30.3.27
 
 #PTSD
 p$trait[nrow(p$trait)+1,c("phenotype_id")]<-140
-p$trait[nrow(p$trait),c("populationPrevalence")]<-.3 #using the moderate estimate of lifetime prevalence after trauma as used in ref
-p$trait[nrow(p$trait),c("referenceDOI")]<-"10.1038/s41467-019-12576-w"
+# p$trait[nrow(p$trait),c("populationPrevalence")]<-.3 #using the moderate estimate of lifetime prevalence GIVEN TRAUMA HAD TAKEN PLACE as used in ref
+# p$trait[nrow(p$trait),c("referenceDOI")]<-"https://doi.org/10.1038/s41467-019-12576-w"
+# #alt without given trauma
+p$trait[nrow(p$trait),c("populationPrevalence")]<-.057 #LT
+p$trait[nrow(p$trait),c("referenceDOI")]<-"https://doi.org/10.1002/mpr.1359"
 
 #SCHI
 p$trait[nrow(p$trait)+1,c("phenotype_id")]<-151
@@ -3011,40 +2955,117 @@ if(p$clOptions$task=="stat") {
   
   #hard coded
   cat("\n1kg")
-  tgp.old <- shru::readFile(filePath = file.path("/scratch/prj/gwas_sumstats/1kg_bed","1KG_Phase3.WG.CLEANED.EUR_MAF001.CM23.bim"), nThreads = p$nThread)
-  colnames(tgp.old)<-c("CHR","SNP","CM","BP","A1","A2")
-  tgp.old.frq <- shru::readFile(filePath = file.path("/scratch/prj/gwas_sumstats/1kg_bed","1KG_Phase3.WG.CLEANED.EUR_MAF001.CM23.frq.frq"), nThreads = p$nThread)
-  setkeyv(tgp.old,cols = c("SNP"))
-  setkeyv(tgp.old.frq,cols = c("SNP"))
-  tgp.old[tgp.old.frq,on=c("SNP"),c("MAF"):=i.MAF]
+  if(file.exists(file.path(p$folderpath.workingDirectory,"1kg.frq.l2.Rds"))) {
+    print("Using existing 1kg dataset")
+    tgp.old<-readRDS(file=file.path(p$folderpath.workingDirectory,"1kg.frq.l2.Rds"))
+  } else {
+    tgp.old <- shru::readFile(filePath = file.path("/scratch/prj/gwas_sumstats/1kg_bed","1KG_Phase3.WG.CLEANED.EUR_MAF001.CM23.bim"), nThreads = p$nThread)
+    colnames(tgp.old)<-c("CHR","SNP","CM","BP","A1","A2")
+    tgp.old.frq <- shru::readFile(filePath = file.path("/scratch/prj/gwas_sumstats/1kg_bed","1KG_Phase3.WG.CLEANED.EUR_MAF001.CM23.frq.frq"), nThreads = p$nThread)
+    setkeyv(tgp.old,cols = c("SNP"))
+    setkeyv(tgp.old.frq,cols = c("SNP"))
+    tgp.old[tgp.old.frq,on=c("SNP"),c("MAF"):=i.MAF]
+    tgp.old.l2 <- shru::readFile(filePath = file.path("/scratch/prj/gwas_sumstats/ld_scores/1KG_Phase3.WG.CLEANED.EUR_MAF001.1cm.250blocks","1KG_Phase3.WG.CLEANED.EUR_MAF001.1cm.250blocks.l2.ldscore.gz"), nThreads = p$nThread)
+    setkeyv(tgp.old.l2,cols = c("SNP"))
+    tgp.old[tgp.old.l2,on=c("SNP"),c("L2"):=i.L2]
+    saveRDS(object = tgp.old,file = file.path(p$folderpath.workingDirectory,"1kg.frq.l2.Rds"))
+  }
+  
+  tgp.old[,g:="1kg"]
   
   p$dsStat$panel.meta[code=="1kg",c("m")]<-nrow(tgp.old)
   p$dsStat$panel.meta[code=="1kg",c("m.0_01")]<-nrow(tgp.old[is.finite(MAF) & MAF<0.01,])
   p$dsStat$panel.meta[code=="1kg",c("m.01_05")]<-nrow(tgp.old[is.finite(MAF) & MAF>0.01 & MAF <0.05,])
   p$dsStat$panel.meta[code=="1kg",c("m.05_50")]<-nrow(tgp.old[is.finite(MAF) & MAF>0.05 & MAF <0.5,])
-  rm(tgp.old)
+  #rm(tgp.old)
   
   cat("\nhm3")
-  hm3 <- shru::readFile(filePath = p$dsStat$panel.meta[code=="hm3",]$path, nThreads = p$nThread)
-  setkeyv(hm3,cols = c("SNP"))
-  hm3[tgp.old.frq,on=c("SNP"),c("MAF"):=i.MAF]
+  if(file.exists(file.path(p$folderpath.workingDirectory,"hm3.frq.l2.Rds"))) {
+    print("Using existing hm3 dataset")
+    hm3<-readRDS(file=file.path(p$folderpath.workingDirectory,"hm3.frq.l2.Rds"))
+  } else {
+    hm3 <- shru::readFile(filePath = p$dsStat$panel.meta[code=="hm3",]$path, nThreads = p$nThread)
+    setkeyv(hm3,cols = c("SNP"))
+    hm3[tgp.old.frq,on=c("SNP"),c("MAF"):=i.MAF]
+    hm3.l2 <- do.call("rbind", lapply(list.files(path = "/scratch/prj/gwas_sumstats/ld_scores/eur_w_ld_chr", pattern = "\\.l2\\.ldscore\\.gz$"), function(i) {
+          suppressMessages(fread(file = file.path("/scratch/prj/gwas_sumstats/ld_scores/eur_w_ld_chr", i), na.strings =c(".",NA,"NA",""), encoding = "UTF-8",check.names = T, fill = T, blank.lines.skip = T, showProgress = F, nThread = 6, data.table=T))
+        }))
+    setkeyv(hm3.l2,cols = c("SNP"))
+    hm3[hm3.l2,on=c("SNP"),c("MAF"):=i.MAF][hm3.l2,on=c("SNP"),c("L2"):=i.L2]
+    saveRDS(object = hm3,file = file.path(p$folderpath.workingDirectory,"hm3.frq.l2.Rds"))
+  }
+  
+  hm3[,g:="hm3"]
+  
   p$dsStat$panel.meta[code=="hm3",c("m")]<-nrow(hm3)
   p$dsStat$panel.meta[code=="hm3",c("m.0_01")]<-nrow(hm3[is.finite(MAF) & MAF<0.01,])
   p$dsStat$panel.meta[code=="hm3",c("m.01_05")]<-nrow(hm3[is.finite(MAF) & MAF>0.01 & MAF <0.05,])
   p$dsStat$panel.meta[code=="hm3",c("m.05_50")]<-nrow(hm3[is.finite(MAF) & MAF>0.05 & MAF <0.5,])
+  
+  vall<-rbindlist(
+    l = list(tgp.old[,c("SNP","MAF","L2","g")],hm3[,c("SNP","MAF","L2","g")]),
+    use.names = T,
+    fill = T
+    )
   rm(hm3)
   rm(tgp.old.frq)
+  rm(tgp.old)
+  
   
   cat("\nhc1kg")
   tgp <- shru::readFile(filePath = p$dsStat$panel.meta[code=="hc1kg",]$path, nThreads = p$nThread)
   setkeyv(tgp,cols = c("SNP"))
+  
+  tgp[,g:="hc1kg"]
+  
   p$dsStat$panel.meta[code=="hc1kg",c("m")]<-nrow(tgp)
   p$dsStat$panel.meta[code=="hc1kg",c("m.0_01")]<-nrow(tgp[is.finite(MAF) & MAF<0.01,])
   p$dsStat$panel.meta[code=="hc1kg",c("m.01_05")]<-nrow(tgp[is.finite(MAF) & MAF>0.01 & MAF <0.05,])
   p$dsStat$panel.meta[code=="hc1kg",c("m.05_50")]<-nrow(tgp[is.finite(MAF) & MAF>0.05 & MAF <0.5,])
-  rm(tgp)
 
   saveRDS(object = p$dsStat,file = p$filepath.dsStat)
+  
+  vall<-rbindlist(
+    l = list(vall,tgp[,c("SNP","MAF","L2","g")]),
+    use.names = T,
+    fill = T
+    )
+  rm(tgp)
+  
+  
+  if(p$host!="cluster"){
+    vall<-vall[MAF>0 & !is.na(L2),]
+    vall<-as.data.frame(vall)
+    #vall$SNP<-as.factor(vall$SNP)
+    vall$g<-as.factor(vall$g)
+    
+    for(cPanel in c("hm3","1kg","hc1kg")){
+      #cPanel <- "hm3"
+      cPlot <- ggplot(aes(x=MAF, group = g, fill = g), data = vall[vall$g==cPanel,]) + #aes: group = g, fill = g
+        geom_bar(stat = 'count', position = 'dodge') +
+        scale_x_binned(n.breaks = 50) +
+        #ylim(0,1.5e07) +
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+        ggtitle(paste("MAF distribution: ",cPanel)) +
+        xlab("MAF") + ylab("# variants")
+      ggsave(filename=file.path(p$folderpath.plots, paste0("panel.maf.",cPanel,".png")), plot = cPlot, width = 297, height = 210, units = "mm", dpi = 320, scale = 1.2)
+      
+      cPlot <- ggplot(aes(x=MAF, y=L2, group = g, fill = g), data = vall[vall$g==cPanel,]) +
+        stat_summary_bin(geom='point', size=3, shape=5, color='red', bins=60) +
+        #stat_summary_bin(fun.y = "mean", geom="bar", bins=30) +
+        #geom_errorbar(aes(ymin= len-se, ymax=len+se),
+         #         width=.2,                    # Width of the error bars
+          #        position=position_dodge(.9)) +
+        stat_summary_bin(geom='errorbar', color='red', bins=60, width=0.1) +
+        #stat_summary_bin(fun.y = "mean", geom="bar", bins=30) +
+        ylim(0,150) +
+        
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+        ggtitle(paste("L2 distribution across MAF: ",cPanel)) +
+        xlab("MAF") + ylab("Average L2")
+      ggsave(filename=file.path(p$folderpath.plots, paste0("panel.l2_maf.",cPanel,".png")), plot = cPlot, width = 297, height = 210, units = "mm", dpi = 320, scale = 1.2)
+    }
+  }
   
 }
 
@@ -3177,515 +3198,518 @@ if(p$clOptions$task=="mvLD" || (!file.exists(p$filepath.mvLD) & p$clOptions$task
   #   ldsc.log = p$setup.code.date
   #   )
   
+# 
+#   readyMergedTraitsF<-ldscpp(
+#     traits = p$sumstats.sel$mungedpath,
+#     sample.prev =  p$sumstats.sel$samplePrevalence,
+#     population.prev = p$sumstats.sel$populationPrevalence,
+#     trait.names = p$sumstats.sel$code,
+#     ld = p$folderpath.data.mvLDSC.ld.1kg,
+#     #filepathVariantsAdditional = p$filepath.SNPReference.hc1kg,
+#     ancestrySetting = "EUR",
+#     referenceAncestrySetting = "EUR",
+#     filter.info = 0.6,
+#     filter.maf = 0.01,
+#     #filter.chisq.min = NA,
+#     filter.region.df = p$highld_b38,
+#     N = p$sumstats.sel$n_total,
+#     ldsc.log = p$setup.code.date,
+#     exportReadyMergedTraits = T,
+#     force.M = 7184778
+#     )
+# 
+#   readyMergedTraits<-ldscpp(
+#     traits = p$sumstats.sel$mungedpath,
+#     sample.prev =  p$sumstats.sel$samplePrevalence,
+#     population.prev = p$sumstats.sel$populationPrevalence,
+#     trait.names = p$sumstats.sel$code,
+#     ld = p$folderpath.data.mvLDSC.ld.1kg,
+#     #filepathVariantsAdditional = p$filepath.SNPReference.hc1kg,
+#     ancestrySetting = "EUR",
+#     referenceAncestrySetting = "EUR",
+#     #filter.info = 0.6,
+#     filter.maf = 0.01,
+#     #filter.chisq.min = NA,
+#     filter.region.df = p$highld_b38,
+#     N = p$sumstats.sel$n_total,
+#     ldsc.log = p$setup.code.date,
+#     exportReadyMergedTraits = T,
+#     force.M = 7184778
+#     )
+# 
+#   cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.original ***\n")
+#   p$mvLD$covstruct.mvLDSC.1kg.original<-ldscpp(
+#     traits = p$sumstats.sel$mungedpath,
+#     readyMergedTraits = readyMergedTraitsF,
+#     sample.prev =  p$sumstats.sel$samplePrevalence,
+#     population.prev = p$sumstats.sel$populationPrevalence,
+#     trait.names = p$sumstats.sel$code,
+#     ld = p$folderpath.data.mvLDSC.ld.1kg,
+#     #filepathVariantsAdditional = p$filepath.SNPReference.hc1kg,
+#     n.blocks = 200,
+#     ancestrySetting = "EUR",
+#     referenceAncestrySetting = "EUR",
+#     preweight.ChiSquare = F,
+#     correctAttenuationBias = F,
+#     doubleRegressionRoutine = F,
+#     preweight.INFO=F,
+#     resamplingMethod="jn",
+#     blocksizeCM = NA, #inactivate CM window def
+#     filter.region.df = p$highld_b38,
+#     N = p$sumstats.sel$n_total,
+#     filter.info = 0.6,
+#     filter.maf = 0.01,
+#     force.M = 7184778,
+#     ldsc.log = p$setup.code.date
+#     )
+#   saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+#   cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.original ***\n")
+# 
+#   
+  # #restricted 1kg to hm3 variants
+  # df_ld.hm3 <- fread(file = p$filepath.SNPReference.hm3, na.strings =c(".",NA,"NA",""), encoding = "UTF-8",check.names = T, fill = T, blank.lines.skip = T, showProgress = F, nThread = p$nThread, data.table=T)
+  # #df_ld.1kg <- fread(file = p$filepath.SNPReference.1kg, na.strings =c(".",NA,"NA",""), encoding = "UTF-8",check.names = T, fill = T, blank.lines.skip = T, showProgress = F, nThread = p$nThread, data.table=T)
+  # df_ld.1kg <- do.call("rbind", lapply(list.files(path = p$folderpath.data.mvLDSC.ld.1kg, pattern = "\\.l2\\.ldscore\\.gz$"), function(i) {
+  #     suppressMessages(fread(file = file.path(p$folderpath.data.mvLDSC.ld.1kg, i), na.strings =c(".",NA,"NA",""), encoding = "UTF-8",check.names = T, fill = T, blank.lines.skip = T, showProgress = F, nThread = p$nThread, data.table=T))
+  #   }))
+  # 
+  # df_ld.hm3<-df_ld.hm3[,c("SNP")]
+  # setkeyv(df_ld.hm3,cols = c("SNP"))
+  # setkeyv(df_ld.1kg,cols = c("SNP"))
+  # df_ld.1kg.hm3res <- df_ld.1kg[df_ld.hm3, on=c("SNP"), nomatch=0]
+  # rm(df_ld.hm3)
+  # rm(df_ld.1kg)
+# 
+#   cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.hm3res.original***\n")
+#   p$mvLD$covstruct.mvLDSC.1kg.hm3res.original<-ldscpp(
+#     traits = p$sumstats.sel$mungedpath,
+#     sample.prev =  p$sumstats.sel$samplePrevalence,
+#     population.prev = p$sumstats.sel$populationPrevalence,
+#     trait.names = p$sumstats.sel$code,
+#     df_ld = df_ld.1kg.hm3res,
+#     n.blocks = 200,
+#     ancestrySetting = "EUR",
+#     referenceAncestrySetting = "EUR",
+#     preweight.ChiSquare = F,
+#     correctAttenuationBias = F,
+#     doubleRegressionRoutine = F,
+#     preweight.INFO=F,
+#     resamplingMethod="jn",
+#     blocksizeCM = NA, #inactivate CM window def
+#     filter.region.df = p$highld_b38,
+#     N = p$sumstats.sel$n_total,
+#     filter.info = 0.6,
+#     filter.maf = 0.01,
+#     force.M = 7184778,
+#     ldsc.log = p$setup.code.date
+#     )
+#   saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+#   cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.hm3res.original***\n")
+#   #rm(df_ld.1kg.hm3res)
+# 
+#   cat("\n\n*** LDSC: covstruct.mvLDSC.hm3.original ***\n")
+#   p$mvLD$covstruct.mvLDSC.hm3.original<-ldscpp(
+#     traits = p$sumstats.sel$mungedpath,
+#     sample.prev =  p$sumstats.sel$samplePrevalence,
+#     population.prev = p$sumstats.sel$populationPrevalence,
+#     trait.names = p$sumstats.sel$code,
+#     ld = p$folderpath.data.mvLDSC.ld.hm3,
+#     n.blocks = 200,
+#     ancestrySetting = "EUR",
+#     referenceAncestrySetting = "EUR",
+#     preweight.ChiSquare = F,
+#     correctAttenuationBias = F,
+#     doubleRegressionRoutine = F,
+#     preweight.INFO=F,
+#     resamplingMethod="jn",
+#     blocksizeCM = NA, #inactivate CM window def
+#     filter.region.df = p$highld_b38,
+#     filter.info = 0.6,
+#     filter.maf = 0.01,
+#     N = p$sumstats.sel$n_total,
+#     ldsc.log = p$setup.code.date
+#     )
+#   saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+#   cat("\n\n***END LDSC: covstruct.mvLDSC.hm3.original ***\n")
+# 
+#   # cat("\n\n*** LDSC: covstruct.mvLDSC.hc1kg.original ***\n")
+#   # p$mvLD$covstruct.mvLDSC.hc1kg.original<-ldscpp(
+#   #   traits = p$sumstats.sel$mungedpath,
+#   #   sample.prev =  p$sumstats.sel$samplePrevalence,
+#   #   population.prev = p$sumstats.sel$populationPrevalence,
+#   #   trait.names = p$sumstats.sel$code,
+#   #   filepathLD = p$filepath.SNPReference.hc1kg,
+#   #   n.blocks = 200,
+#   #   ancestrySetting = "EUR",
+#   #   referenceAncestrySetting = "EUR",
+#   #   preweight.ChiSquare = F,
+#   #   correctAttenuationBias = F,
+#   #   doubleRegressionRoutine = F,
+#   #   preweight.INFO=F,
+#   #   resamplingMethod="jn",
+#   #   blocksizeCM = NA, #inactivate CM window def
+#   #   filter.info = 0.6,
+#   #   filter.maf = 0.01,
+#   #   filter.region.df = p$highld_b38,
+#   #   N = p$sumstats.sel$n_total,
+#   #   ldsc.log = p$setup.code.date
+#   #   )
+#   # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+#   # cat("\n\n***END LDSC: covstruct.mvLDSC.hc1kg.original ***\n")
+# 
+#   cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs ***\n")
+#   p$mvLD$covstruct.mvLDSC.1kg.vbcs<-ldscpp(
+#     traits = p$sumstats.sel$mungedpath,
+#     #readyMergedTraits = readyMergedTraitsF,
+#     sample.prev =  p$sumstats.sel$samplePrevalence,
+#     population.prev = p$sumstats.sel$populationPrevalence,
+#     trait.names = p$sumstats.sel$code,
+#     ld = p$folderpath.data.mvLDSC.ld.1kg,
+#     filepathVariantsAdditional = p$filepath.SNPReference.hc1kg,
+#     ancestrySetting = "EUR",
+#     referenceAncestrySetting = "EUR",
+#     preweight.ChiSquare = F,
+#     correctAttenuationBias = F,
+#     doubleRegressionRoutine = F,
+#     preweight.INFO=F,
+#     filter.region.df = p$highld_b38,
+#     N = p$sumstats.sel$n_total,
+#     filter.info = 0.6,
+#     filter.maf = 0.01,
+#     force.M = 7184778,
+#     ldsc.log = p$setup.code.date
+#     )
+#   saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+#   cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.vbcs ***\n")
+#    
+#   cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.hm3res.vbcs ***\n")
+#   p$mvLD$covstruct.mvLDSC.1kg.hm3res.vbcs<-ldscpp(
+#     traits = p$sumstats.sel$mungedpath,
+#     sample.prev =  p$sumstats.sel$samplePrevalence,
+#     population.prev = p$sumstats.sel$populationPrevalence,
+#     trait.names = p$sumstats.sel$code,
+#     df_ld = df_ld.1kg.hm3res,
+#     filepathVariantsAdditional = p$filepath.SNPReference.hc1kg,
+#     ancestrySetting = "EUR",
+#     referenceAncestrySetting = "EUR",
+#     preweight.ChiSquare = F,
+#     correctAttenuationBias = F,
+#     doubleRegressionRoutine = F,
+#     preweight.INFO=F,
+#     filter.region.df = p$highld_b38,
+#     filter.info = 0.6,
+#     filter.maf = 0.01,
+#     N = p$sumstats.sel$n_total,
+#     force.M = 7184778,
+#     ldsc.log = p$setup.code.date
+#     )
+#   saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+#    cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.hm3res.vbcs ***\n")
+# 
+#   cat("\n\n*** LDSC: covstruct.mvLDSC.hm3.vbcs ***\n")
+#   p$mvLD$covstruct.mvLDSC.hm3.vbcs<-ldscpp(
+#     traits = p$sumstats.sel$mungedpath,
+#     sample.prev =  p$sumstats.sel$samplePrevalence,
+#     population.prev = p$sumstats.sel$populationPrevalence,
+#     trait.names = p$sumstats.sel$code,
+#     ld = p$folderpath.data.mvLDSC.ld.hm3,
+#     filepathVariantsAdditional = p$filepath.SNPReference.hc1kg,
+#     ancestrySetting = "EUR",
+#     referenceAncestrySetting = "EUR",
+#     preweight.ChiSquare = F,
+#     correctAttenuationBias = F,
+#     doubleRegressionRoutine = F,
+#     preweight.INFO=F,
+#     filter.region.df = p$highld_b38,
+#     filter.info = 0.6,
+#     filter.maf = 0.01,
+#     N = p$sumstats.sel$n_total,
+#     ldsc.log = p$setup.code.date
+#     )
+#   saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+#    cat("\n\n***END LDSC: covstruct.mvLDSC.hm3.vbcs ***\n")
+# 
+#   cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.nocm ***\n")
+#   p$mvLD$covstruct.mvLDSC.1kg.vbcs.nocm<-ldscpp(
+#     traits = p$sumstats.sel$mungedpath,
+#     readyMergedTraits = readyMergedTraitsF,
+#     sample.prev =  p$sumstats.sel$samplePrevalence,
+#     population.prev = p$sumstats.sel$populationPrevalence,
+#     trait.names = p$sumstats.sel$code,
+#     ld = p$folderpath.data.mvLDSC.ld.1kg,
+#     ancestrySetting = "EUR",
+#     referenceAncestrySetting = "EUR",
+#     blocksizeCM = NA,
+#     preweight.ChiSquare = F,
+#     correctAttenuationBias = F,
+#     doubleRegressionRoutine = F,
+#     preweight.INFO=F,
+#     filter.region.df = p$highld_b38,
+#     N = p$sumstats.sel$n_total,
+#     filter.info = 0.6,
+#     filter.maf = 0.01,
+#     force.M = 7184778,
+#     ldsc.log = p$setup.code.date
+#     )
+#   saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+#   cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.vbcs.nocm ***\n")
+# 
+#   cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.hm3res.vbcs.nocm ***\n")
+#   p$mvLD$covstruct.mvLDSC.1kg.hm3res.vbcs.nocm<-ldscpp(
+#     traits = p$sumstats.sel$mungedpath,
+#     sample.prev =  p$sumstats.sel$samplePrevalence,
+#     population.prev = p$sumstats.sel$populationPrevalence,
+#     trait.names = p$sumstats.sel$code,
+#     df_ld = df_ld.1kg.hm3res,
+#     ancestrySetting = "EUR",
+#     referenceAncestrySetting = "EUR",
+#     blocksizeCM = NA,
+#     preweight.ChiSquare = F,
+#     correctAttenuationBias = F,
+#     doubleRegressionRoutine = F,
+#     preweight.INFO=F,
+#     filter.region.df = p$highld_b38,
+#     N = p$sumstats.sel$n_total,
+#     filter.info = 0.6,
+#     filter.maf = 0.01,
+#     force.M = 7184778,
+#     ldsc.log = p$setup.code.date
+#     )
+#   saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+#   cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.hm3res.vbcs.nocm ***\n")
+# 
+#   cat("\n\n*** LDSC: covstruct.mvLDSC.hm3.vbcs.nocm ***\n")
+#   p$mvLD$covstruct.mvLDSC.hm3.vbcs.nocm<-ldscpp(
+#     traits = p$sumstats.sel$mungedpath,
+#     sample.prev =  p$sumstats.sel$samplePrevalence,
+#     population.prev = p$sumstats.sel$populationPrevalence,
+#     trait.names = p$sumstats.sel$code,
+#     ld = p$folderpath.data.mvLDSC.ld.hm3,
+#     ancestrySetting = "EUR",
+#     referenceAncestrySetting = "EUR",
+#     blocksizeCM = NA,
+#     preweight.ChiSquare = F,
+#     correctAttenuationBias = F,
+#     doubleRegressionRoutine = F,
+#     preweight.INFO=F,
+#     filter.region.df = p$highld_b38,
+#     N = p$sumstats.sel$n_total,
+#     filter.info = 0.6,
+#     filter.maf = 0.01,
+#     ldsc.log = p$setup.code.date
+#     )
+#   saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+#   cat("\n\n***END LDSC: covstruct.mvLDSC.hm3.vbcs.nocm ***\n")
+# 
+# 
+#   cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.unfiltered ***\n")
+#   p$mvLD$covstruct.mvLDSC.1kg.vbcs.unfiltered<-ldscpp(
+#     traits = p$sumstats.sel$mungedpath,
+#     sample.prev =  p$sumstats.sel$samplePrevalence,
+#     population.prev = p$sumstats.sel$populationPrevalence,
+#     trait.names = p$sumstats.sel$code,
+#     ld = p$folderpath.data.mvLDSC.ld.1kg,
+#     filepathVariantsAdditional = p$filepath.SNPReference.hc1kg,
+#     ancestrySetting = "EUR",
+#     referenceAncestrySetting = "EUR",
+#     preweight.ChiSquare = F,
+#     correctAttenuationBias = F,
+#     doubleRegressionRoutine = F,
+#     preweight.INFO=F,
+#     filter.region.df = p$highld_b38,
+#     N = p$sumstats.sel$n_total,
+#     filter.maf = 0.01,
+#     force.M = 7184778,
+#     ldsc.log = p$setup.code.date
+#     )
+#   saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+#   cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.vbcs.unfiltered ***\n")
+# 
+#   cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.winfo ***\n")
+#   p$mvLD$covstruct.mvLDSC.1kg.vbcs.winfo<-ldscpp(
+#     traits = p$sumstats.sel$mungedpath,
+#     sample.prev =  p$sumstats.sel$samplePrevalence,
+#     population.prev = p$sumstats.sel$populationPrevalence,
+#     trait.names = p$sumstats.sel$code,
+#     ld = p$folderpath.data.mvLDSC.ld.1kg,
+#     filepathVariantsAdditional = p$filepath.SNPReference.hc1kg,
+#     ancestrySetting = "EUR",
+#     referenceAncestrySetting = "EUR",
+#     preweight.ChiSquare = F,
+#     correctAttenuationBias = F,
+#     doubleRegressionRoutine = F,
+#     preweight.INFO=T,
+#     filter.region.df = p$highld_b38,
+#     N = p$sumstats.sel$n_total,
+#     filter.maf = 0.01,
+#     force.M = 7184778,
+#     ldsc.log = p$setup.code.date
+#     )
+#   saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+#   cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.vbcs.winfo ***\n")
+# 
+#   cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.nocm.unfiltered ***\n")
+#   p$mvLD$covstruct.mvLDSC.1kg.vbcs.nocm.unfiltered<-ldscpp(
+#     traits = p$sumstats.sel$mungedpath,
+#     sample.prev =  p$sumstats.sel$samplePrevalence,
+#     population.prev = p$sumstats.sel$populationPrevalence,
+#     trait.names = p$sumstats.sel$code,
+#     ld = p$folderpath.data.mvLDSC.ld.1kg,
+#     filepathVariantsAdditional = p$filepath.SNPReference.hc1kg,
+#     ancestrySetting = "EUR",
+#     referenceAncestrySetting = "EUR",
+#     blocksizeCM = NA,
+#     preweight.ChiSquare = F,
+#     correctAttenuationBias = F,
+#     doubleRegressionRoutine = F,
+#     preweight.INFO=F,
+#     filter.region.df = p$highld_b38,
+#     N = p$sumstats.sel$n_total,
+#     filter.maf = 0.01,
+#     force.M = 7184778,
+#     ldsc.log = p$setup.code.date
+#     )
+#   saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+#   cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.vbcs.nocm.unfiltered ***\n")
+# 
+#   cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.nocm.winfo ***\n")
+#   p$mvLD$covstruct.mvLDSC.1kg.vbcs.nocm.winfo<-ldscpp(
+#     traits = p$sumstats.sel$mungedpath,
+#     sample.prev =  p$sumstats.sel$samplePrevalence,
+#     population.prev = p$sumstats.sel$populationPrevalence,
+#     trait.names = p$sumstats.sel$code,
+#     ld = p$folderpath.data.mvLDSC.ld.1kg,
+#     filepathVariantsAdditional = p$filepath.SNPReference.hc1kg,
+#     ancestrySetting = "EUR",
+#     referenceAncestrySetting = "EUR",
+#     blocksizeCM = NA,
+#     preweight.ChiSquare = F,
+#     correctAttenuationBias = F,
+#     doubleRegressionRoutine = F,
+#     preweight.INFO=T,
+#     filter.region.df = p$highld_b38,
+#     N = p$sumstats.sel$n_total,
+#     filter.maf = 0.01,
+#     force.M = 7184778,
+#     ldsc.log = p$setup.code.date
+#     )
+#   saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+#   cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.vbcs.nocm.winfo ***\n")
+# 
+#   cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.hm3res.vbcs.nocm.winfo ***\n")
+#   p$mvLD$covstruct.mvLDSC.1kg.hm3res.vbcs.nocm.winfo<-ldscpp(
+#     traits = p$sumstats.sel$mungedpath,
+#     sample.prev =  p$sumstats.sel$samplePrevalence,
+#     population.prev = p$sumstats.sel$populationPrevalence,
+#     trait.names = p$sumstats.sel$code,
+#     df_ld = df_ld.1kg.hm3res,
+#     filepathVariantsAdditional = p$filepath.SNPReference.hc1kg,
+#     ancestrySetting = "EUR",
+#     referenceAncestrySetting = "EUR",
+#     blocksizeCM = NA,
+#     preweight.ChiSquare = F,
+#     correctAttenuationBias = F,
+#     doubleRegressionRoutine = F,
+#     preweight.INFO=T,
+#     filter.region.df = p$highld_b38,
+#     N = p$sumstats.sel$n_total,
+#     filter.maf = 0.01,
+#     force.M = 7184778,
+#     ldsc.log = p$setup.code.date
+#     )
+#   saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+#   cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.hm3res.vbcs.nocm.winfo ***\n")
+#   
+#   
 
-  # readyMergedTraitsF<-ldscpp(
-  #   traits = p$sumstats.sel$mungedpath,
-  #   sample.prev =  p$sumstats.sel$samplePrevalence,
-  #   population.prev = p$sumstats.sel$populationPrevalence,
-  #   trait.names = p$sumstats.sel$code,
-  #   ld = p$folderpath.data.mvLDSC.ld.1kg,
-  #   #filepathVariantsAdditional = p$filepath.SNPReference.hc1kg,
-  #   ancestrySetting = "EUR",
-  #   referenceAncestrySetting = "EUR",
-  #   filter.info = 0.6,
-  #   filter.maf = 0.01,
-  #   #filter.chisq.min = NA,
-  #   filter.region.df = p$highld_b38,
-  #   N = p$sumstats.sel$n_total,
-  #   ldsc.log = p$setup.code.date,
-  #   exportReadyMergedTraits = T,
-  #   force.M = 7184778
-  #   )
 
-  # readyMergedTraits<-ldscpp(
-  #   traits = p$sumstats.sel$mungedpath,
-  #   sample.prev =  p$sumstats.sel$samplePrevalence,
-  #   population.prev = p$sumstats.sel$populationPrevalence,
-  #   trait.names = p$sumstats.sel$code,
-  #   ld = p$folderpath.data.mvLDSC.ld.1kg,
-  #   #filepathVariantsAdditional = p$filepath.SNPReference.hc1kg,
-  #   ancestrySetting = "EUR",
-  #   referenceAncestrySetting = "EUR",
-  #   #filter.info = 0.6,
-  #   filter.maf = 0.01,
-  #   #filter.chisq.min = NA,
-  #   filter.region.df = p$highld_b38,
-  #   N = p$sumstats.sel$n_total,
-  #   ldsc.log = p$setup.code.date,
-  #   exportReadyMergedTraits = T,
-  #   force.M = 7184778
-  #   )
+#   
+# # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.drc ***\n")
+# # p$mvLD$covstruct.mvLDSC.1kg.vbcs.drc<-ldscpp(
+# #   traits = p$sumstats.sel$mungedpath,
+# #   readyMergedTraits = readyMergedTraitsF,
+# #   sample.prev =  p$sumstats.sel$samplePrevalence,
+# #   population.prev = p$sumstats.sel$populationPrevalence,
+# #   trait.names = p$sumstats.sel$code,
+# #   filepathLD = p$filepath.SNPReference.hc1kg,
+# #   ancestrySetting = "EUR",
+# #   referenceAncestrySetting = "EUR",
+# #   preweight.ChiSquare = F,
+# #   correctAttenuationBias = F,
+# #   doubleRegressionRoutine = T,
+# #   preweight.INFO=F,
+# #   filter.region.df = p$highld_b38,
+# #   N = p$sumstats.sel$n_total,
+# #   ldsc.log = p$setup.code.date
+# #   )
+# # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+# # 
+# # 
+# # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.drc.nocm ***\n")
+# # p$mvLD$covstruct.mvLDSC.1kg.vbcs.drc.nocm<-ldscpp(
+# #   traits = p$sumstats.sel$mungedpath,
+# #   readyMergedTraits = readyMergedTraitsF,
+# #   sample.prev =  p$sumstats.sel$samplePrevalence,
+# #   population.prev = p$sumstats.sel$populationPrevalence,
+# #   trait.names = p$sumstats.sel$code,
+# #   filepathLD = p$filepath.SNPReference.hc1kg,
+# #   ancestrySetting = "EUR",
+# #   referenceAncestrySetting = "EUR",
+# #   preweight.ChiSquare = F,
+# #   correctAttenuationBias = F,
+# #   doubleRegressionRoutine = T,
+# #   preweight.INFO=F,
+# #   blocksizeCM = NA,
+# #   filter.region.df = p$highld_b38,
+# #   N = p$sumstats.sel$n_total,
+# #   ldsc.log = p$setup.code.date
+# #   )
+# # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+# # 
+# # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.drc.winfo ***\n")
+# # p$mvLD$covstruct.mvLDSC.1kg.vbcs.drc.winfo<-ldscpp(
+# #   traits = p$sumstats.sel$mungedpath,
+# #   readyMergedTraits = readyMergedTraits,
+# #   sample.prev =  p$sumstats.sel$samplePrevalence,
+# #   population.prev = p$sumstats.sel$populationPrevalence,
+# #   trait.names = p$sumstats.sel$code,
+# #   filepathLD = p$filepath.SNPReference.hc1kg,
+# #   ancestrySetting = "EUR",
+# #   referenceAncestrySetting = "EUR",
+# #   preweight.ChiSquare = F,
+# #   correctAttenuationBias = F,
+# #   doubleRegressionRoutine = T,
+# #   preweight.INFO=T,
+# #   filter.region.df = p$highld_b38,
+# #   N = p$sumstats.sel$n_total,
+# #   ldsc.log = p$setup.code.date
+# #   )
+# # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+# # 
+# # 
+# # 
 
-  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.original ***\n")
-  # p$mvLD$covstruct.mvLDSC.1kg.original<-ldscpp(
-  #   traits = p$sumstats.sel$mungedpath,
-  #   readyMergedTraits = readyMergedTraitsF,
-  #   sample.prev =  p$sumstats.sel$samplePrevalence,
-  #   population.prev = p$sumstats.sel$populationPrevalence,
-  #   trait.names = p$sumstats.sel$code,
-  #   ld = p$folderpath.data.mvLDSC.ld.1kg,
-  #   #filepathVariantsAdditional = p$filepath.SNPReference.hc1kg,
-  #   n.blocks = 200,
-  #   ancestrySetting = "EUR",
-  #   referenceAncestrySetting = "EUR",
-  #   preweight.ChiSquare = F,
-  #   correctAttenuationBias = F,
-  #   doubleRegressionRoutine = F,
-  #   preweight.INFO=F,
-  #   resamplingMethod="jn",
-  #   blocksizeCM = NA, #inactivate CM window def
-  #   filter.region.df = p$highld_b38,
-  #   N = p$sumstats.sel$n_total,
-  #   filter.info = 0.6,
-  #   filter.maf = 0.01,
-  #   force.M = 7184778,
-  #   ldsc.log = p$setup.code.date
-  #   )
-  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  # cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.original ***\n")
-  # 
-  
-    # #restricted 1kg to hm3 variants
-    # df_ld.hm3 <- fread(file = p$filepath.SNPReference.hm3, na.strings =c(".",NA,"NA",""), encoding = "UTF-8",check.names = T, fill = T, blank.lines.skip = T, showProgress = F, nThread = p$nThread, data.table=T)
-    # #df_ld.1kg <- fread(file = p$filepath.SNPReference.1kg, na.strings =c(".",NA,"NA",""), encoding = "UTF-8",check.names = T, fill = T, blank.lines.skip = T, showProgress = F, nThread = p$nThread, data.table=T)
-    # df_ld.1kg <- do.call("rbind", lapply(list.files(path = p$folderpath.data.mvLDSC.ld.1kg, pattern = "\\.l2\\.ldscore\\.gz$"), function(i) {
-    #     suppressMessages(fread(file = file.path(p$folderpath.data.mvLDSC.ld.1kg, i), na.strings =c(".",NA,"NA",""), encoding = "UTF-8",check.names = T, fill = T, blank.lines.skip = T, showProgress = F, nThread = p$nThread, data.table=T))
-    #   }))
-    # 
-    # df_ld.hm3<-df_ld.hm3[,c("SNP")]
-    # setkeyv(df_ld.hm3,cols = c("SNP"))
-    # setkeyv(df_ld.1kg,cols = c("SNP"))
-    # df_ld.1kg.hm3res <- df_ld.1kg[df_ld.hm3, on=c("SNP"), nomatch=0]
-    # rm(df_ld.hm3)
-    # rm(df_ld.1kg)
-
-  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.hm3res.original***\n")
-  # p$mvLD$covstruct.mvLDSC.1kg.hm3res.original<-ldscpp(
-  #   traits = p$sumstats.sel$mungedpath,
-  #   sample.prev =  p$sumstats.sel$samplePrevalence,
-  #   population.prev = p$sumstats.sel$populationPrevalence,
-  #   trait.names = p$sumstats.sel$code,
-  #   df_ld = df_ld.1kg.hm3res,
-  #   n.blocks = 200,
-  #   ancestrySetting = "EUR",
-  #   referenceAncestrySetting = "EUR",
-  #   preweight.ChiSquare = F,
-  #   correctAttenuationBias = F,
-  #   doubleRegressionRoutine = F,
-  #   preweight.INFO=F,
-  #   resamplingMethod="jn",
-  #   blocksizeCM = NA, #inactivate CM window def
-  #   filter.region.df = p$highld_b38,
-  #   N = p$sumstats.sel$n_total,
-  #   filter.info = 0.6,
-  #   filter.maf = 0.01,
-  #   force.M = 7184778,
-  #   ldsc.log = p$setup.code.date
-  #   )
-  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  # cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.hm3res.original***\n")
-  # #rm(df_ld.1kg.hm3res)
-  # 
-  # cat("\n\n*** LDSC: covstruct.mvLDSC.hm3.original ***\n")
-  # p$mvLD$covstruct.mvLDSC.hm3.original<-ldscpp(
-  #   traits = p$sumstats.sel$mungedpath,
-  #   sample.prev =  p$sumstats.sel$samplePrevalence,
-  #   population.prev = p$sumstats.sel$populationPrevalence,
-  #   trait.names = p$sumstats.sel$code,
-  #   ld = p$folderpath.data.mvLDSC.ld.hm3,
-  #   n.blocks = 200,
-  #   ancestrySetting = "EUR",
-  #   referenceAncestrySetting = "EUR",
-  #   preweight.ChiSquare = F,
-  #   correctAttenuationBias = F,
-  #   doubleRegressionRoutine = F,
-  #   preweight.INFO=F,
-  #   resamplingMethod="jn",
-  #   blocksizeCM = NA, #inactivate CM window def
-  #   filter.region.df = p$highld_b38,
-  #   filter.info = 0.6,
-  #   filter.maf = 0.01,
-  #   N = p$sumstats.sel$n_total,
-  #   ldsc.log = p$setup.code.date
-  #   )
-  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  # cat("\n\n***END LDSC: covstruct.mvLDSC.hm3.original ***\n")
-  # 
-  # # cat("\n\n*** LDSC: covstruct.mvLDSC.hc1kg.original ***\n")
-  # # p$mvLD$covstruct.mvLDSC.hc1kg.original<-ldscpp(
-  # #   traits = p$sumstats.sel$mungedpath,
-  # #   sample.prev =  p$sumstats.sel$samplePrevalence,
-  # #   population.prev = p$sumstats.sel$populationPrevalence,
-  # #   trait.names = p$sumstats.sel$code,
-  # #   filepathLD = p$filepath.SNPReference.hc1kg,
-  # #   n.blocks = 200,
-  # #   ancestrySetting = "EUR",
-  # #   referenceAncestrySetting = "EUR",
-  # #   preweight.ChiSquare = F,
-  # #   correctAttenuationBias = F,
-  # #   doubleRegressionRoutine = F,
-  # #   preweight.INFO=F,
-  # #   resamplingMethod="jn",
-  # #   blocksizeCM = NA, #inactivate CM window def
-  # #   filter.info = 0.6,
-  # #   filter.maf = 0.01,
-  # #   filter.region.df = p$highld_b38,
-  # #   N = p$sumstats.sel$n_total,
-  # #   ldsc.log = p$setup.code.date
-  # #   )
-  # # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  # # cat("\n\n***END LDSC: covstruct.mvLDSC.hc1kg.original ***\n")
-  # 
-  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs ***\n")
-  # p$mvLD$covstruct.mvLDSC.1kg.vbcs<-ldscpp(
-  #   traits = p$sumstats.sel$mungedpath,
-  #   #readyMergedTraits = readyMergedTraitsF,
-  #   sample.prev =  p$sumstats.sel$samplePrevalence,
-  #   population.prev = p$sumstats.sel$populationPrevalence,
-  #   trait.names = p$sumstats.sel$code,
-  #   ld = p$folderpath.data.mvLDSC.ld.1kg,
-  #   filepathVariantsAdditional = p$filepath.SNPReference.hc1kg,
-  #   ancestrySetting = "EUR",
-  #   referenceAncestrySetting = "EUR",
-  #   preweight.ChiSquare = F,
-  #   correctAttenuationBias = F,
-  #   doubleRegressionRoutine = F,
-  #   preweight.INFO=F,
-  #   filter.region.df = p$highld_b38,
-  #   N = p$sumstats.sel$n_total,
-  #   filter.info = 0.6,
-  #   filter.maf = 0.01,
-  #   force.M = 7184778,
-  #   ldsc.log = p$setup.code.date
-  #   )
-  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  # cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.vbcs ***\n")
-   
-  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.hm3res.vbcs ***\n")
-  # p$mvLD$covstruct.mvLDSC.1kg.hm3res.vbcs<-ldscpp(
-  #   traits = p$sumstats.sel$mungedpath,
-  #   sample.prev =  p$sumstats.sel$samplePrevalence,
-  #   population.prev = p$sumstats.sel$populationPrevalence,
-  #   trait.names = p$sumstats.sel$code,
-  #   df_ld = df_ld.1kg.hm3res,
-  #   filepathVariantsAdditional = p$filepath.SNPReference.hc1kg,
-  #   ancestrySetting = "EUR",
-  #   referenceAncestrySetting = "EUR",
-  #   preweight.ChiSquare = F,
-  #   correctAttenuationBias = F,
-  #   doubleRegressionRoutine = F,
-  #   preweight.INFO=F,
-  #   filter.region.df = p$highld_b38,
-  #   filter.info = 0.6,
-  #   filter.maf = 0.01,
-  #   N = p$sumstats.sel$n_total,
-  #   force.M = 7184778,
-  #   ldsc.log = p$setup.code.date
-  #   )
-  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  #  cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.hm3res.vbcs ***\n")
-  #  
-  # cat("\n\n*** LDSC: covstruct.mvLDSC.hm3.vbcs ***\n")
-  # p$mvLD$covstruct.mvLDSC.hm3.vbcs<-ldscpp(
-  #   traits = p$sumstats.sel$mungedpath,
-  #   sample.prev =  p$sumstats.sel$samplePrevalence,
-  #   population.prev = p$sumstats.sel$populationPrevalence,
-  #   trait.names = p$sumstats.sel$code,
-  #   ld = p$folderpath.data.mvLDSC.ld.hm3,
-  #   filepathVariantsAdditional = p$filepath.SNPReference.hc1kg,
-  #   ancestrySetting = "EUR",
-  #   referenceAncestrySetting = "EUR",
-  #   preweight.ChiSquare = F,
-  #   correctAttenuationBias = F,
-  #   doubleRegressionRoutine = F,
-  #   preweight.INFO=F,
-  #   filter.region.df = p$highld_b38,
-  #   filter.info = 0.6,
-  #   filter.maf = 0.01,
-  #   N = p$sumstats.sel$n_total,
-  #   ldsc.log = p$setup.code.date
-  #   )
-  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  #  cat("\n\n***END LDSC: covstruct.mvLDSC.hm3.vbcs ***\n")
-  # 
-  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.nocm ***\n")
-  # p$mvLD$covstruct.mvLDSC.1kg.vbcs.nocm<-ldscpp(
-  #   traits = p$sumstats.sel$mungedpath,
-  #   readyMergedTraits = readyMergedTraitsF,
-  #   sample.prev =  p$sumstats.sel$samplePrevalence,
-  #   population.prev = p$sumstats.sel$populationPrevalence,
-  #   trait.names = p$sumstats.sel$code,
-  #   ld = p$folderpath.data.mvLDSC.ld.1kg,
-  #   ancestrySetting = "EUR",
-  #   referenceAncestrySetting = "EUR",
-  #   blocksizeCM = NA,
-  #   preweight.ChiSquare = F,
-  #   correctAttenuationBias = F,
-  #   doubleRegressionRoutine = F,
-  #   preweight.INFO=F,
-  #   filter.region.df = p$highld_b38,
-  #   N = p$sumstats.sel$n_total,
-  #   filter.info = 0.6,
-  #   filter.maf = 0.01,
-  #   force.M = 7184778,
-  #   ldsc.log = p$setup.code.date
-  #   )
-  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  # cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.vbcs.nocm ***\n")
-  # 
-  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.hm3res.vbcs.nocm ***\n")
-  # p$mvLD$covstruct.mvLDSC.1kg.hm3res.vbcs.nocm<-ldscpp(
-  #   traits = p$sumstats.sel$mungedpath,
-  #   sample.prev =  p$sumstats.sel$samplePrevalence,
-  #   population.prev = p$sumstats.sel$populationPrevalence,
-  #   trait.names = p$sumstats.sel$code,
-  #   df_ld = df_ld.1kg.hm3res,
-  #   ancestrySetting = "EUR",
-  #   referenceAncestrySetting = "EUR",
-  #   blocksizeCM = NA,
-  #   preweight.ChiSquare = F,
-  #   correctAttenuationBias = F,
-  #   doubleRegressionRoutine = F,
-  #   preweight.INFO=F,
-  #   filter.region.df = p$highld_b38,
-  #   N = p$sumstats.sel$n_total,
-  #   filter.info = 0.6,
-  #   filter.maf = 0.01,
-  #   force.M = 7184778,
-  #   ldsc.log = p$setup.code.date
-  #   )
-  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  # cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.hm3res.vbcs.nocm ***\n")
-  # 
-  # cat("\n\n*** LDSC: covstruct.mvLDSC.hm3.vbcs.nocm ***\n")
-  # p$mvLD$covstruct.mvLDSC.hm3.vbcs.nocm<-ldscpp(
-  #   traits = p$sumstats.sel$mungedpath,
-  #   sample.prev =  p$sumstats.sel$samplePrevalence,
-  #   population.prev = p$sumstats.sel$populationPrevalence,
-  #   trait.names = p$sumstats.sel$code,
-  #   ld = p$folderpath.data.mvLDSC.ld.hm3,
-  #   ancestrySetting = "EUR",
-  #   referenceAncestrySetting = "EUR",
-  #   blocksizeCM = NA,
-  #   preweight.ChiSquare = F,
-  #   correctAttenuationBias = F,
-  #   doubleRegressionRoutine = F,
-  #   preweight.INFO=F,
-  #   filter.region.df = p$highld_b38,
-  #   N = p$sumstats.sel$n_total,
-  #   filter.info = 0.6,
-  #   filter.maf = 0.01,
-  #   ldsc.log = p$setup.code.date
-  #   )
-  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  # cat("\n\n***END LDSC: covstruct.mvLDSC.hm3.vbcs.nocm ***\n")
-
-
-  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.unfiltered ***\n")
-  # p$mvLD$covstruct.mvLDSC.1kg.vbcs.unfiltered<-ldscpp(
-  #   traits = p$sumstats.sel$mungedpath,
-  #   sample.prev =  p$sumstats.sel$samplePrevalence,
-  #   population.prev = p$sumstats.sel$populationPrevalence,
-  #   trait.names = p$sumstats.sel$code,
-  #   ld = p$folderpath.data.mvLDSC.ld.1kg,
-  #   filepathVariantsAdditional = p$filepath.SNPReference.hc1kg,
-  #   ancestrySetting = "EUR",
-  #   referenceAncestrySetting = "EUR",
-  #   preweight.ChiSquare = F,
-  #   correctAttenuationBias = F,
-  #   doubleRegressionRoutine = F,
-  #   preweight.INFO=F,
-  #   filter.region.df = p$highld_b38,
-  #   N = p$sumstats.sel$n_total,
-  #   filter.maf = 0.01,
-  #   force.M = 7184778,
-  #   ldsc.log = p$setup.code.date
-  #   )
-  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  # cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.vbcs.unfiltered ***\n")
-  # 
-  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.winfo ***\n")
-  # p$mvLD$covstruct.mvLDSC.1kg.vbcs.winfo<-ldscpp(
-  #   traits = p$sumstats.sel$mungedpath,
-  #   sample.prev =  p$sumstats.sel$samplePrevalence,
-  #   population.prev = p$sumstats.sel$populationPrevalence,
-  #   trait.names = p$sumstats.sel$code,
-  #   ld = p$folderpath.data.mvLDSC.ld.1kg,
-  #   filepathVariantsAdditional = p$filepath.SNPReference.hc1kg,
-  #   ancestrySetting = "EUR",
-  #   referenceAncestrySetting = "EUR",
-  #   preweight.ChiSquare = F,
-  #   correctAttenuationBias = F,
-  #   doubleRegressionRoutine = F,
-  #   preweight.INFO=T,
-  #   filter.region.df = p$highld_b38,
-  #   N = p$sumstats.sel$n_total,
-  #   filter.maf = 0.01,
-  #   force.M = 7184778,
-  #   ldsc.log = p$setup.code.date
-  #   )
-  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  # cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.vbcs.winfo ***\n")
-  
-  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.nocm.unfiltered ***\n")
-  # p$mvLD$covstruct.mvLDSC.1kg.vbcs.nocm.unfiltered<-ldscpp(
-  #   traits = p$sumstats.sel$mungedpath,
-  #   sample.prev =  p$sumstats.sel$samplePrevalence,
-  #   population.prev = p$sumstats.sel$populationPrevalence,
-  #   trait.names = p$sumstats.sel$code,
-  #   ld = p$folderpath.data.mvLDSC.ld.1kg,
-  #   filepathVariantsAdditional = p$filepath.SNPReference.hc1kg,
-  #   ancestrySetting = "EUR",
-  #   referenceAncestrySetting = "EUR",
-  #   blocksizeCM = NA,
-  #   preweight.ChiSquare = F,
-  #   correctAttenuationBias = F,
-  #   doubleRegressionRoutine = F,
-  #   preweight.INFO=F,
-  #   filter.region.df = p$highld_b38,
-  #   N = p$sumstats.sel$n_total,
-  #   filter.maf = 0.01,
-  #   force.M = 7184778,
-  #   ldsc.log = p$setup.code.date
-  #   )
-  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  # cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.vbcs.nocm.unfiltered ***\n")
-  # 
-  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.nocm.winfo ***\n")
-  # p$mvLD$covstruct.mvLDSC.1kg.vbcs.nocm.winfo<-ldscpp(
-  #   traits = p$sumstats.sel$mungedpath,
-  #   sample.prev =  p$sumstats.sel$samplePrevalence,
-  #   population.prev = p$sumstats.sel$populationPrevalence,
-  #   trait.names = p$sumstats.sel$code,
-  #   ld = p$folderpath.data.mvLDSC.ld.1kg,
-  #   filepathVariantsAdditional = p$filepath.SNPReference.hc1kg,
-  #   ancestrySetting = "EUR",
-  #   referenceAncestrySetting = "EUR",
-  #   blocksizeCM = NA,
-  #   preweight.ChiSquare = F,
-  #   correctAttenuationBias = F,
-  #   doubleRegressionRoutine = F,
-  #   preweight.INFO=T,
-  #   filter.region.df = p$highld_b38,
-  #   N = p$sumstats.sel$n_total,
-  #   filter.maf = 0.01,
-  #   force.M = 7184778,
-  #   ldsc.log = p$setup.code.date
-  #   )
-  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  # cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.vbcs.nocm.winfo ***\n")
-  
-  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.hm3res.vbcs.nocm.winfo ***\n")
-  # p$mvLD$covstruct.mvLDSC.1kg.hm3res.vbcs.nocm.winfo<-ldscpp(
-  #   traits = p$sumstats.sel$mungedpath,
-  #   sample.prev =  p$sumstats.sel$samplePrevalence,
-  #   population.prev = p$sumstats.sel$populationPrevalence,
-  #   trait.names = p$sumstats.sel$code,
-  #   df_ld = df_ld.1kg.hm3res,
-  #   filepathVariantsAdditional = p$filepath.SNPReference.hc1kg,
-  #   ancestrySetting = "EUR",
-  #   referenceAncestrySetting = "EUR",
-  #   blocksizeCM = NA,
-  #   preweight.ChiSquare = F,
-  #   correctAttenuationBias = F,
-  #   doubleRegressionRoutine = F,
-  #   preweight.INFO=T,
-  #   filter.region.df = p$highld_b38,
-  #   N = p$sumstats.sel$n_total,
-  #   filter.maf = 0.01,
-  #   force.M = 7184778,
-  #   ldsc.log = p$setup.code.date
-  #   )
-  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  # cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.hm3res.vbcs.nocm.winfo ***\n")
-  
-  
-  # 
-  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.drc ***\n")
-  # p$mvLD$covstruct.mvLDSC.1kg.vbcs.drc<-ldscpp(
-  #   traits = p$sumstats.sel$mungedpath,
-  #   readyMergedTraits = readyMergedTraitsF,
-  #   sample.prev =  p$sumstats.sel$samplePrevalence,
-  #   population.prev = p$sumstats.sel$populationPrevalence,
-  #   trait.names = p$sumstats.sel$code,
-  #   filepathLD = p$filepath.SNPReference.hc1kg,
-  #   ancestrySetting = "EUR",
-  #   referenceAncestrySetting = "EUR",
-  #   preweight.ChiSquare = F,
-  #   correctAttenuationBias = F,
-  #   doubleRegressionRoutine = T,
-  #   preweight.INFO=F,
-  #   filter.region.df = p$highld_b38,
-  #   N = p$sumstats.sel$n_total,
-  #   ldsc.log = p$setup.code.date
-  #   )
-  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  # 
-  # 
-  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.drc.nocm ***\n")
-  # p$mvLD$covstruct.mvLDSC.1kg.vbcs.drc.nocm<-ldscpp(
-  #   traits = p$sumstats.sel$mungedpath,
-  #   readyMergedTraits = readyMergedTraitsF,
-  #   sample.prev =  p$sumstats.sel$samplePrevalence,
-  #   population.prev = p$sumstats.sel$populationPrevalence,
-  #   trait.names = p$sumstats.sel$code,
-  #   filepathLD = p$filepath.SNPReference.hc1kg,
-  #   ancestrySetting = "EUR",
-  #   referenceAncestrySetting = "EUR",
-  #   preweight.ChiSquare = F,
-  #   correctAttenuationBias = F,
-  #   doubleRegressionRoutine = T,
-  #   preweight.INFO=F,
-  #   blocksizeCM = NA,
-  #   filter.region.df = p$highld_b38,
-  #   N = p$sumstats.sel$n_total,
-  #   ldsc.log = p$setup.code.date
-  #   )
-  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  # 
-  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.drc.winfo ***\n")
-  # p$mvLD$covstruct.mvLDSC.1kg.vbcs.drc.winfo<-ldscpp(
-  #   traits = p$sumstats.sel$mungedpath,
-  #   readyMergedTraits = readyMergedTraits,
-  #   sample.prev =  p$sumstats.sel$samplePrevalence,
-  #   population.prev = p$sumstats.sel$populationPrevalence,
-  #   trait.names = p$sumstats.sel$code,
-  #   filepathLD = p$filepath.SNPReference.hc1kg,
-  #   ancestrySetting = "EUR",
-  #   referenceAncestrySetting = "EUR",
-  #   preweight.ChiSquare = F,
-  #   correctAttenuationBias = F,
-  #   doubleRegressionRoutine = T,
-  #   preweight.INFO=T,
-  #   filter.region.df = p$highld_b38,
-  #   N = p$sumstats.sel$n_total,
-  #   ldsc.log = p$setup.code.date
-  #   )
-  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  # 
-  # 
-   
   #USING NO CM BLOCKS AS DEFAULT FROM HERE!!!!
-  cat("\n\n*** LDSC: covstruct.mvLDSC.hc1kg.largeonly***\n")
-  p$mvLD$covstruct.mvLDSC.hc1kg.largeonly<-ldscpp(
-    traits = p$sumstats.sel.ssimp$mungedpath,
-    sample.prev =  p$sumstats.sel.ssimp$samplePrevalence,
-    population.prev = p$sumstats.sel.ssimp$populationPrevalence,
-    trait.names = p$sumstats.sel.ssimp$code,
-    filepathLD = p$filepath.SNPReference.hc1kg,
-    ancestrySetting = "EUR",
-    referenceAncestrySetting = "EUR",
-    filter.maf = 0.01,
-    preweight.ChiSquare = F,
-    correctAttenuationBias = F,
-    doubleRegressionRoutine = F,
-    blocksizeCM = NA,
-    filter.region.df = p$highld_b38,
-    N = p$sumstats.sel$n_total,
-    ldsc.log = p$setup.code.date
-    )
-  saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  cat("\n\n***END LDSC: covstruct.mvLDSC.hc1kg.largeonly***\n")
+  # cat("\n\n*** LDSC: covstruct.mvLDSC.hc1kg.largeonly***\n")
+  # p$mvLD$covstruct.mvLDSC.hc1kg.largeonly<-ldscpp(
+  #   traits = p$sumstats.sel.ssimp$mungedpath,
+  #   sample.prev =  p$sumstats.sel.ssimp$samplePrevalence,
+  #   population.prev = p$sumstats.sel.ssimp$populationPrevalence,
+  #   trait.names = p$sumstats.sel.ssimp$code,
+  #   filepathLD = p$filepath.SNPReference.hc1kg,
+  #   ancestrySetting = "EUR",
+  #   referenceAncestrySetting = "EUR",
+  #   filter.maf = 0.01,
+  #   preweight.ChiSquare = F,
+  #   correctAttenuationBias = F,
+  #   doubleRegressionRoutine = F,
+  #   blocksizeCM = NA,
+  #   filter.region.df = p$highld_b38,
+  #   N = p$sumstats.sel$n_total,
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  # cat("\n\n***END LDSC: covstruct.mvLDSC.hc1kg.largeonly***\n")
   
   # cat("\n\n*** LDSC: covstruct.mvLDSC.hc1kg***\n")
   # p$mvLD$covstruct.mvLDSC.hc1kg<-ldscpp(
@@ -3804,42 +3828,52 @@ if(p$clOptions$task=="mvLD" || (!file.exists(p$filepath.mvLD) & p$clOptions$task
   #   )
   # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
   
-  #
-  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.500 ***\n")
-  # p$mvLD$covstruct.mvLDSC.1kg.500<-ldscpp(
-  #   traits = p$sumstats.sel$imputedpath,
-  #   sample.prev =  p$sumstats.sel$samplePrevalence,
-  #   population.prev = p$sumstats.sel$populationPrevalence,
-  #   trait.names = p$sumstats.sel$code,
-  #   filepathLD = p$filepath.SNPReference.hc1kg,
-  #   ancestrySetting = "EUR",
-  #   referenceAncestrySetting = "EUR",
-  #   filter.maf = 0.01,
-  #   filter.region.df = p$highld_b38,
-  #   N = p$sumstats.sel$n_total,
-  #   ldsc.log = p$setup.code.date
-  #   )
-  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  #
-  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.500.small ***\n")
-  # p$mvLD$covstruct.mvLDSC.1kg.500.small<-ldscpp(
-  #   traits = p$sumstats.sel.ssimp$imputedpath,
-  #   sample.prev =  p$sumstats.sel.ssimp$samplePrevalence,
-  #   population.prev = p$sumstats.sel.ssimp$populationPrevalence,
-  #   trait.names = p$sumstats.sel.ssimp$code,
-  #   filepathLD = p$filepath.SNPReference.hc1kg,
-  #   ancestrySetting = "EUR",
-  #   referenceAncestrySetting = "EUR",
-  #   leave.chr = list(1,2,6,7,9,11),
-  #   filter.maf = 0.01,
-  #   filter.simpute.fraction = 0.10, #10% to compare between the two methods
-  #   blocksizeCM = NA,
-  #   filter.region.df = p$highld_b38,
-  #   N = p$sumstats.sel$n_total,
-  #   ldsc.log = p$setup.code.date
-  #   )
-  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  # 
+  
+  #temp fix for traits missing NEFF
+  # cSumstats<-data.table::fread(file = "/scratch/users/k19049801/project/JZ_GED_PHD_C1/data/export/gwas.ssimp.cleaned.nohighld/SCHI04.gz", na.strings =c(".",NA,"NA",""), encoding = "UTF-8",check.names = T, fill = T, blank.lines.skip = T, data.table = T, nThread = 6, showProgress = F)
+  # cSumstats[,NEFF:=NEF][,NEF:=NULL] #for ssimp datasets
+  # cSumstats[,VSNP:=2*FRQ*(1-FRQ)]
+  # cSumstats.nNANEFF<-nrow(cSumstats[is.na(NEFF),])
+  # cSumstats[is.na(NEFF),NEFF:=4/(VSNP*(SE^2))]
+  # cSumstats.nNANEFF
+  # cSumstats[,VSNP:=NULL]
+  # data.table::fwrite(x = cSumstats,file = "/scratch/users/k19049801/project/JZ_GED_PHD_C1/data/export/gwas.ssimp.cleaned.nohighld/SCHI04.gz", append = F,quote = F,sep = "\t",col.names = T,nThread=6)
+# 
+#   cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.500 ***\n")
+#   p$mvLD$covstruct.mvLDSC.1kg.500<-ldscpp(
+#     traits = p$sumstats.sel$imputedpath,
+#     sample.prev =  p$sumstats.sel$samplePrevalence,
+#     population.prev = p$sumstats.sel$populationPrevalence,
+#     trait.names = p$sumstats.sel$code,
+#     filepathLD = p$filepath.SNPReference.hc1kg,
+#     ancestrySetting = "EUR",
+#     referenceAncestrySetting = "EUR",
+#     filter.maf = 0.01,
+#     filter.region.df = p$highld_b38,
+#     N = p$sumstats.sel$n_total,
+#     ldsc.log = p$setup.code.date
+#     )
+#   saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+# 
+#   cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.500.small ***\n")
+#   p$mvLD$covstruct.mvLDSC.1kg.500.small<-ldscpp(
+#     traits = p$sumstats.sel.ssimp$imputedpath,
+#     sample.prev =  p$sumstats.sel.ssimp$samplePrevalence,
+#     population.prev = p$sumstats.sel.ssimp$populationPrevalence,
+#     trait.names = p$sumstats.sel.ssimp$code,
+#     filepathLD = p$filepath.SNPReference.hc1kg,
+#     ancestrySetting = "EUR",
+#     referenceAncestrySetting = "EUR",
+#     leave.chr = list(1,2,6,7,9,11),
+#     filter.maf = 0.01,
+#     filter.simpute.fraction = 0.10, #10% to compare between the two methods
+#     blocksizeCM = NA,
+#     filter.region.df = p$highld_b38,
+#     N = p$sumstats.sel$n_total,
+#     ldsc.log = p$setup.code.date
+#     )
+#   saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+
   # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.ssimp.small ***\n")
   # p$mvLD$covstruct.mvLDSC.1kg.ssimp.small<-ldscpp(
   #   traits = p$sumstats.sel.ssimp$imputedpath2.ssimp,
@@ -3861,7 +3895,7 @@ if(p$clOptions$task=="mvLD" || (!file.exists(p$filepath.mvLD) & p$clOptions$task
   #   )
   # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
 
-  #experimental - there is a bug
+  # #experimental - there is a bug
   # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.500only.small ***\n")
   # p$mvLD$covstruct.mvLDSC.1kg.500only.small<-ldscpp(
   #   traits = p$sumstats.sel.ssimp$imputedpath,
@@ -3879,7 +3913,7 @@ if(p$clOptions$task=="mvLD" || (!file.exists(p$filepath.mvLD) & p$clOptions$task
   #   ldsc.log = p$setup.code.date
   #   )
   # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  #
+  # 
   # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.ssimponly.small ***\n")
   # p$mvLD$covstruct.mvLDSC.1kg.ssimponly.small<-ldscpp(
   #   traits = p$sumstats.sel.ssimp$imputedpath2.ssimp,
@@ -3899,8 +3933,8 @@ if(p$clOptions$task=="mvLD" || (!file.exists(p$filepath.mvLD) & p$clOptions$task
   #   ldsc.log = p$setup.code.date
   #   )
   # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-
-  
+  # 
+  # 
   #   
 #   
 #   #original ldsc test
@@ -4050,8 +4084,8 @@ p$sumstats.sel$variants_ssimp.small<-p$mvLD$covstruct.mvLDSC.1kg.ssimp.small$imp
 ```{r overview ldsc cv, fig.width=9, fig.height=6, out.width="1600px", out.height="1000px", eval=FALSE, purl=FALSE}
 
 #m_names <- paste0(colnames(p$mvLD$covstruct.mvLDSC.1kg.original$S_Stand.SE),"_",rownames(S_Stand.SE))
-#excludeTraits <- c("BODYT2MI")
-excludeTraits <- c("BODYT2MI","BODYTM")
+excludeTraits <- c("BODYT2MI")
+#excludeTraits <- c("BODYT2MI","BODYTM")
 
 cv.S_StandLimit <- 0.05 #0.05
 cCovstruct<-p$mvLD$covstruct.mvLDSC.1kg.hm3res.original
@@ -4145,11 +4179,11 @@ p$cv_coverage.1kg.vbcs$l<-"rvbcs.1kg"
 p$cv_coverage.1kg.vbcs$g<-"rvbcs"
 
 p$cv_coverage <- rbind(
-  #p$cv_coverage.1kg.hm3res.original,
+  p$cv_coverage.1kg.hm3res.original,
   p$cv_coverage.1kg.original,
-  #p$cv_coverage.1kg.hm3res.vbcs.nocm,
+  p$cv_coverage.1kg.hm3res.vbcs.nocm,
   p$cv_coverage.1kg.vbcs.nocm,
-  #p$cv_coverage.1kg.hm3res.vbcs,
+  p$cv_coverage.1kg.hm3res.vbcs,
   p$cv_coverage.1kg.vbcs
   )
 
@@ -4222,18 +4256,18 @@ ggplot(data = p$cv_coverage, aes(x=m, y=cv, shape=l, color=g)) +
   geom_smooth(method="glm", aes(group=g, color=g)) +
   coord_cartesian(ylim = c(0, 0.9)) +
   ggtitle(label = "LDSC genetic correlation, number of variants against coefficient of variance (CV)") + 
-  stat_cor(method="pearson", label.x.npc = 0.4,label.y.npc = 1.0, aes(group=g))
+  stat_cor(method="pearson", label.x.npc = 0.5,label.y.npc = 0.4, aes(group=g))
   #stat_cor(method="pearson", label.x.npc = "middle",label.y.npc = "bottom")
-ggsave(filename=file.path(p$folderpath.plots,"ldsc_m_cv.1kgnohm3.png"), plot = last_plot(), width = 200, height = 200, units = "mm")
+ggsave(filename=file.path(p$folderpath.plots,"ldsc_m_cv.all.png"), plot = last_plot(), width = 200, height = 200, units = "mm")
 
 ggplot(data = p$cv_coverage, aes(x=m, y=se, shape=l, color=g)) +
   geom_point(size=3) +
   geom_smooth(method="glm", aes(group=g, color=g)) + 
   coord_cartesian(ylim = c(0, 0.1)) +
   ggtitle(label = "LDSC genetic correlation, number of variants against S.E.") +
-  stat_cor(method="pearson", label.x.npc = 0,label.y.npc = 0, aes(group=g, color=g))
+  stat_cor(method="pearson", label.x.npc = 0.3,label.y.npc = 0.3, aes(group=g, color=g))
   #stat_cor(method="pearson", label.x.npc = "middle",label.y.npc = "bottom")
-ggsave(filename=file.path(p$folderpath.plots,"ldsc_m_se.1kgnohm3.png"), plot = last_plot(), width = 200, height = 200, units = "mm")
+ggsave(filename=file.path(p$folderpath.plots,"ldsc_m_se.all.png"), plot = last_plot(), width = 200, height = 200, units = "mm")
 
 # 
 # ggplot(data = p$cv_coverage, aes(x=blocks, y=cv, shape=l, color=g)) +
@@ -4380,8 +4414,8 @@ ggsave(filename=file.path(p$folderpath.plots,"ldsc_m_se.1kgnohm3.png"), plot = l
 # ggsave(filename=file.path(p$folderpath.plots, paste0("rg.large.png")), plot = cPlot, width = 297, height = 210, units = "mm", dpi = 320, scale = 3)
 
 
-corrForPlot <- clipValues(p$mvLD$covstruct.mvLDSC.1kg.vbcs.nocm.winfo$S_Stand,-1,1)
-pForPlot <- p$mvLD$covstruct.mvLDSC.1kg.vbcs.nocm.winfo$cov.p
+corrForPlot <- clipValues(p$mvLD$covstruct.mvLDSC.hc1kg$S_Stand,-1,1)
+pForPlot <- p$mvLD$covstruct.mvLDSC.hc1kg$cov.p
 colnames(corrForPlot)<-p$sumstats.sel$code.nice
 rownames(corrForPlot)<-p$sumstats.sel$code.nice
 colnames(pForPlot)<-p$sumstats.sel$code.nice
@@ -4392,14 +4426,14 @@ pForPlot<-pForPlot[order(colnames(pForPlot)),order(colnames(pForPlot))]
 png(file.path(p$folderpath.plots,"rg.large.A.png"), width = 9, height = 9, units = 'in', res = 300, family = "Helvetica")
 par(xpd=TRUE) #keep labels inside margins
 pal<-colorRampPalette(c("#FF6666","#EEEEEE","#6666FF"))
-corrplot(corr = corrForPlot, method = "circle", insig='blank', order = "original", p.mat = pForPlot, sig.level = c(0.05), pch.cex = 1.5, tl.cex = 0.8, full_col=FALSE, na.label = "square", na.label.col = "grey30", title = "A: LDSC++ genetic correlations, 1kG reference:\nGWAS (non-imputed) + GWIS of male BMI (LD-IMP augmented height & weight)", tl.pos = 'd', mar=c(0,0,4,0), type = "upper", cl.pos = "r", col = pal(200))$corrPos -> p1 #type = "lower", diag=F, addCoef.col = 'black'
+corrplot(corr = corrForPlot, method = "circle", insig='blank', order = "original", p.mat = pForPlot, sig.level = c(0.05), pch.cex = 1.5, tl.cex = 0.8, full_col=FALSE, na.label = "square", na.label.col = "grey30", title = "A: LDSC++ genetic correlations, HC1kGP3 reference:\nGWAS (non-imputed) + GWIS of male BMI (LD-IMP augmented height & weight)", tl.pos = 'd', mar=c(0,0,4,0), type = "upper", cl.pos = "r", col = pal(200))$corrPos -> p1 #type = "lower", diag=F, addCoef.col = 'black'
 #text(p1$x, p1$y, round(p1$corr, 2))
 p1$corr <- ifelse(0==-p1$y + ncol(corrForPlot)-p1$x + 1, NA_real_, p1$corr)
 text(p1$x, p1$y, round(p1$corr, 2))
 dev.off()
 
-corrForPlot <- clipValues(p$mvLD$covstruct.mvLDSC.hc1kg$S_Stand,-1,1)
-pForPlot <- p$mvLD$covstruct.mvLDSC.hc1kg$cov.p
+corrForPlot <- clipValues(p$mvLD$covstruct.mvLDSC.1kg.05cm$S_Stand,-1,1)
+pForPlot <- p$mvLD$covstruct.mvLDSC.1kg.05cm$cov.p
 colnames(corrForPlot)<-p$sumstats.sel$code.nice
 rownames(corrForPlot)<-p$sumstats.sel$code.nice
 colnames(pForPlot)<-p$sumstats.sel$code.nice
@@ -4410,7 +4444,7 @@ pForPlot<-pForPlot[order(colnames(pForPlot)),order(colnames(pForPlot))]
 png(file.path(p$folderpath.plots,"rg.large.B.png"), width = 9, height = 9, units = 'in', res = 300, family = "Helvetica")
 par(xpd=TRUE) #keep labels inside margins
 pal<-colorRampPalette(c("#FF6666","#EEEEEE","#6666FF"))
-corrplot(corr = corrForPlot, method = "circle", insig='blank', order = "original", p.mat = pForPlot, sig.level = c(0.05), pch.cex = 1.5, tl.cex = 0.8, full_col=FALSE, na.label = "square", na.label.col = "grey30", title = "B: LDSC++ genetic correlations, HC1kG reference:\nGWAS (non-imputed) + GWIS of male BMI (LD-IMP augmented height & weight)", tl.pos = 'd', mar=c(0,0,4,0), type = "upper", cl.pos = "r", col = pal(200))$corrPos -> p1 #type = "lower", diag=F, addCoef.col = 'black'
+corrplot(corr = corrForPlot, method = "circle", insig='blank', order = "original", p.mat = pForPlot, sig.level = c(0.05), pch.cex = 1.5, tl.cex = 0.8, full_col=FALSE, na.label = "square", na.label.col = "grey30", title = "B: LDSC++ genetic correlations, HC1kGP3 + LD-IMP reference:\nLD-IMP augmented GWAS + GWIS of male BMI (LD-IMP augmented height & weight)", tl.pos = 'd', mar=c(0,0,4,0), type = "upper", cl.pos = "r", col = pal(200))$corrPos -> p1 #type = "lower", diag=F, addCoef.col = 'black'
 #text(p1$x, p1$y, round(p1$corr, 2))
 p1$corr <- ifelse(0==-p1$y + ncol(corrForPlot)-p1$x + 1, NA_real_, p1$corr)
 text(p1$x, p1$y, round(p1$corr, 2))
@@ -4428,7 +4462,7 @@ pForPlot<-pForPlot[order(colnames(pForPlot)),order(colnames(pForPlot))]
 png(file.path(p$folderpath.plots,"rg.large.C.png"), width = 9, height = 9, units = 'in', res = 300, family = "Helvetica")
 par(xpd=TRUE) #keep labels inside margins
 pal<-colorRampPalette(c("#FF6666","#EEEEEE","#6666FF"))
-corrplot(corr = corrForPlot, method = "circle", insig='blank', order = "original", p.mat = pForPlot, sig.level = c(0.05), pch.cex = 1.5, tl.cex = 0.8, full_col=FALSE, na.label = "square", na.label.col = "grey30", title = "C: LDSC++ genetic correlations, HC1kG reference:\nLD-IMP augmented GWAS + GWIS of male BMI (LD-IMP augmented height & weight)", tl.pos = 'd', mar=c(0,0,4,0), type = "upper", cl.pos = "r", col = pal(200))$corrPos -> p1 #type = "lower", diag=F, addCoef.col = 'black'
+corrplot(corr = corrForPlot, method = "circle", insig='blank', order = "original", p.mat = pForPlot, sig.level = c(0.05), pch.cex = 1.5, tl.cex = 0.8, full_col=FALSE, na.label = "square", na.label.col = "grey30", title = "C: LDSC++ genetic correlations, HC1kGP3 reference:\nLD-IMP augmented GWAS + GWIS of male BMI (LD-IMP augmented height & weight)", tl.pos = 'd', mar=c(0,0,4,0), type = "upper", cl.pos = "r", col = pal(200))$corrPos -> p1 #type = "lower", diag=F, addCoef.col = 'black'
 #text(p1$x, p1$y, round(p1$corr, 2))
 p1$corr <- ifelse(0==-p1$y + ncol(corrForPlot)-p1$x + 1, NA_real_, p1$corr)
 text(p1$x, p1$y, round(p1$corr, 2))
@@ -4446,7 +4480,7 @@ pForPlot<-pForPlot[order(colnames(pForPlot)),order(colnames(pForPlot))]
 png(file.path(p$folderpath.plots,"rg.large.D.png"), width = 9, height = 9, units = 'in', res = 300, family = "Helvetica")
 par(xpd=TRUE) #keep labels inside margins
 pal<-colorRampPalette(c("#FF6666","#EEEEEE","#6666FF"))
-corrplot(corr = corrForPlot, method = "circle", insig='blank', order = "original", p.mat = pForPlot, sig.level = c(0.05), pch.cex = 1.5, tl.cex = 0.8, full_col=FALSE, na.label = "square", na.label.col = "grey30", title = "D: LDSC++ genetic unsigned correlations, HC1kG reference:\nGWAS (non-imputed) + GWIS of male BMI (LD-IMP augmented height & weight)", tl.pos = 'd', mar=c(0,0,4,0), type = "upper", cl.pos = "r", col = pal(200))$corrPos -> p1 #type = "lower", diag=F, addCoef.col = 'black'
+corrplot(corr = corrForPlot, method = "circle", insig='blank', order = "original", p.mat = pForPlot, sig.level = c(0.05), pch.cex = 1.5, tl.cex = 0.8, full_col=FALSE, na.label = "square", na.label.col = "grey30", title = "D: LDSC++ genetic unsigned correlations, HC1kGP3 reference:\nGWAS (non-imputed) + GWIS of male BMI (LD-IMP augmented height & weight)", tl.pos = 'd', mar=c(0,0,4,0), type = "upper", cl.pos = "r", col = pal(200))$corrPos -> p1 #type = "lower", diag=F, addCoef.col = 'black'
 #text(p1$x, p1$y, round(p1$corr, 2))
 p1$corr <- ifelse(0==-p1$y + ncol(corrForPlot)-p1$x + 1, NA_real_, p1$corr)
 text(p1$x, p1$y, round(p1$corr, 2))
@@ -4463,7 +4497,7 @@ pForPlot<-pForPlot[order(colnames(pForPlot)),order(colnames(pForPlot))]
 png(file.path(p$folderpath.plots,"rg.large.E.png"), width = 9, height = 9, units = 'in', res = 300, family = "Helvetica")
 par(xpd=TRUE) #keep labels inside margins
 pal<-colorRampPalette(c("#FF6666","#EEEEEE","#6666FF"))
-corrplot(corr = corrForPlot, method = "circle", insig='blank', order = "original", p.mat = pForPlot, sig.level = c(0.05), pch.cex = 1.5, tl.cex = 0.8, full_col=FALSE, na.label = "square", na.label.col = "grey30", title = "E: LDSC++ 'residual' genetic correlations, HC1kG reference:\nGWAS (non-imputed) + GWIS of male BMI (LD-IMP augmented height & weight)", tl.pos = 'd', mar=c(0,0,4,0), type = "upper", cl.pos = "r", col = pal(200))$corrPos -> p1 #type = "lower", diag=F, addCoef.col = 'black'
+corrplot(corr = corrForPlot, method = "circle", insig='blank', order = "original", p.mat = pForPlot, sig.level = c(0.05), pch.cex = 1.5, tl.cex = 0.8, full_col=FALSE, na.label = "square", na.label.col = "grey30", title = "E: LDSC++ 'residual' genetic correlations, HC1kGP3 reference:\nGWAS (non-imputed) + GWIS of male BMI (LD-IMP augmented height & weight)", tl.pos = 'd', mar=c(0,0,4,0), type = "upper", cl.pos = "r", col = pal(200))$corrPos -> p1 #type = "lower", diag=F, addCoef.col = 'black'
 #text(p1$x, p1$y, round(p1$corr, 2))
 p1$corr <- ifelse(0==-p1$y + ncol(corrForPlot)-p1$x + 1, NA_real_, p1$corr)
 text(p1$x, p1$y, round(p1$corr, 2))
@@ -4475,17 +4509,17 @@ dev.off()
 p$plotAndTestBatteryForMVLDSC(mvldsc = p$mvLD$covstruct.mvLDSC.1kg.original, code = "original", titleTemplate = "original LDSC (Genomic SEM), 1kG reference,
 GWAS (non-imputed) + GWIS of male BMI (LD-IMP augmented height & weight),", titleAddition = "\nBlock-Jackknife Resampling")
 
-p$plotAndTestBatteryForMVLDSC(mvldsc = p$mvLD$covstruct.mvLDSC.1kg.vbcs.nocm, code = "vbcs", titleTemplate = "LDSC++, 1kG reference,
+p$plotAndTestBatteryForMVLDSC(mvldsc = p$mvLD$covstruct.mvLDSC.1kg.vbcs.nocm, code = "vbcs", titleTemplate = "LDSC++, 1kGP3 reference,
 GWAS (non-imputed) + GWIS of male BMI (LD-IMP augmented height & weight),", titleAddition = "\nVariable Block-Count Sampling (no cM blocks)",mvldscComparison = p$mvLD$covstruct.mvLDSC.1kg.original,titleAdditionComparison = "\ncomparing with original LDSC (Genomic SEM) settings\n and Block-Jackknife Resampling")
 
-p$plotAndTestBatteryForMVLDSC(mvldsc = p$mvLD$covstruct.mvLDSC.1kg.vbcs, code = "vbcs.cm", titleTemplate = "LDSC++, 1kG reference,
+p$plotAndTestBatteryForMVLDSC(mvldsc = p$mvLD$covstruct.mvLDSC.1kg.vbcs, code = "vbcs.cm", titleTemplate = "LDSC++, 1kGP3 reference,
 GWAS (non-imputed) + GWIS of male BMI (LD-IMP augmented height & weight),", titleAddition = "\nVariable Block-Count Sampling (cM blocks)",mvldscComparison = p$mvLD$covstruct.mvLDSC.1kg.original, titleAdditionComparison = "\ncomparing with original LDSC (Genomic SEM) settings\n and Block-Jackknife Resampling")
 
-p$plotAndTestBatteryForMVLDSC(mvldsc = p$mvLD$covstruct.mvLDSC.1kg.vbcs.nocm, code = "vbcs.nocmcm", titleTemplate = "LDSC++, 1kG reference,
+p$plotAndTestBatteryForMVLDSC(mvldsc = p$mvLD$covstruct.mvLDSC.1kg.vbcs.nocm, code = "vbcs.nocmcm", titleTemplate = "LDSC++, 1kGP3 reference,
 GWAS (non-imputed) + GWIS of male BMI (LD-IMP augmented height & weight),", titleAddition = "\nVariable Block-Count Sampling (no cM blocks)",mvldscComparison = p$mvLD$covstruct.mvLDSC.1kg.vbcs, titleAdditionComparison = "\ncomparing with Variable Block-Count Sampling (cM blocks)")
 
 infoTraits<-p$sumstats[which(p$sumstats$hasinfo==T),]$code
-p$plotAndTestBatteryForMVLDSC(mvldsc = p$mvLD$covstruct.mvLDSC.1kg.vbcs.nocm.winfo, code = "vbcs.winfo",titleTemplate = "LDSC++, 1kG reference,
+p$plotAndTestBatteryForMVLDSC(mvldsc = p$mvLD$covstruct.mvLDSC.1kg.vbcs.nocm.winfo, code = "vbcs.winfo",titleTemplate = "LDSC++, 1kGP3 reference,
 GWAS (non-imputed) + GWIS of male BMI (LD-IMP augmented height & weight),", titleAddition = "\nVariable Block-Count Sampling (no cM based blocks) and imputation weighting",mvldscComparison = p$mvLD$covstruct.mvLDSC.1kg.vbcs.nocm, testOnlyTraitNameCodes = infoTraits, titleAdditionComparison = "\ncomparing with Variable Block-Count Sampling\n (no cM based blocks)")
 
 # p$plotAndTestBatteryForMVLDSC(mvldsc = p$mvLD$covstruct.mvLDSC.1kg.vbcs.drc, code = "vbcs.drc",titleAddition = "VBCS + DRC",mvldscComparison = p$mvLD$covstruct.mvLDSC.1kg.vbcs, titleAdditionComparison = "VBCS + DRC comparing with VBCS only")
@@ -4501,20 +4535,20 @@ GWAS (non-imputed) + GWIS of male BMI (LD-IMP augmented height & weight),", titl
 p$plotAndTestBatteryForMVLDSC(mvldsc = p$mvLD$covstruct.mvLDSC.hm3, code = "hm3",titleTemplate = "LDSC++, HM3 reference,
 GWAS (non-imputed) + GWIS of male BMI (LD-IMP augmented height & weight)")
 
-p$plotAndTestBatteryForMVLDSC(mvldsc = p$mvLD$covstruct.mvLDSC.1kg.vbcs.nocm.winfo, code = "1kg",titleTemplate = "LDSC++, 1kG reference,
+p$plotAndTestBatteryForMVLDSC(mvldsc = p$mvLD$covstruct.mvLDSC.1kg.vbcs.nocm.winfo, code = "1kg",titleTemplate = "LDSC++, 1kGP3 reference,
+GWAS (non-imputed) + GWIS of male BMI (LD-IMP augmented height & weight)",mvldscComparison = p$mvLD$covstruct.mvLDSC.hm3,titleAdditionComparison = "\ncomparing with HM3")
+
+p$plotAndTestBatteryForMVLDSC(mvldsc = p$mvLD$covstruct.mvLDSC.1kg.hm3res.vbcs.nocm.winfo, code = "1kg.hm3res",titleTemplate = "LDSC++, 1kGP3 reference, restricted to HM3,
 GWAS (non-imputed) + GWIS of male BMI (LD-IMP augmented height & weight)")
 
-p$plotAndTestBatteryForMVLDSC(mvldsc = p$mvLD$covstruct.mvLDSC.1kg.hm3res.vbcs.nocm.winfo, code = "1kg.hm3res",titleTemplate = "LDSC++, 1kG reference, restricted to HM3,
-GWAS (non-imputed) + GWIS of male BMI (LD-IMP augmented height & weight)")
-
-p$plotAndTestBatteryForMVLDSC(mvldsc = p$mvLD$covstruct.mvLDSC.hc1kg.hm3res, code = "panel.hc1kg.hm3res_1kg",titleTemplate = "LDSC++, HC1kG reference, restricted to HM3,
-GWAS (non-imputed) + GWIS of male BMI (LD-IMP augmented height & weight)",mvldscComparison = p$mvLD$covstruct.mvLDSC.1kg.hm3res.vbcs.nocm.winfo,titleAdditionComparison = "\ncomparing with 1kG restricted to HM3 variants")
+p$plotAndTestBatteryForMVLDSC(mvldsc = p$mvLD$covstruct.mvLDSC.hc1kg.hm3res, code = "panel.hc1kg.hm3res_1kg",titleTemplate = "LDSC++, HC1kGP3 reference, restricted to HM3,
+GWAS (non-imputed) + GWIS of male BMI (LD-IMP augmented height & weight)",mvldscComparison = p$mvLD$covstruct.mvLDSC.1kg.hm3res.vbcs.nocm.winfo,titleAdditionComparison = "\ncomparing with 1kGP3 restricted to HM3 variants")
 
 # p$plotAndTestBatteryForMVLDSC(mvldsc = p$mvLD$covstruct.mvLDSC.hc1kg, code = "panel.hc1kg_hm3",titleAddition = "HC1kG",mvldscComparison = p$mvLD$covstruct.mvLDSC.hm3,titleAdditionComparison = "\ncomparing with HM3")
 # 
 # p$plotAndTestBatteryForMVLDSC(mvldsc = p$mvLD$covstruct.mvLDSC.hc1kg.hm3res, code = "panel.hc1kg.hm3res_hm3",titleAddition = "HC1kG restricted to HM3",mvldscComparison = p$mvLD$covstruct.mvLDSC.hm3,titleAdditionComparison = "\ncomparing with HM3")
 
-p$plotAndTestBatteryForMVLDSC(mvldsc = p$mvLD$covstruct.mvLDSC.hc1kg, code = "panel.hc1kg_1kg",titleAddition = "HC1kG",mvldscComparison = p$mvLD$covstruct.mvLDSC.1kg.vbcs.nocm.winfo, titleAdditionComparison = "\ncomparing with 1kG")
+p$plotAndTestBatteryForMVLDSC(mvldsc = p$mvLD$covstruct.mvLDSC.hc1kg, code = "panel.hc1kg_1kg",titleAddition = "HC1kGP3",mvldscComparison = p$mvLD$covstruct.mvLDSC.1kg.vbcs.nocm.winfo, titleAdditionComparison = "\ncomparing with 1kG")
 
 
 
@@ -4522,9 +4556,9 @@ p$plotAndTestBatteryForMVLDSC(mvldsc = p$mvLD$covstruct.mvLDSC.hc1kg, code = "pa
 
 #GWAS summary statistics imputation comparison
 imptraits<-p$sumstats.sel[which(p$sumstats.sel$code!="BODYT2MI"),]$code
-p$plotAndTestBatteryForMVLDSC(mvldsc = p$mvLD$covstruct.mvLDSC.1kg.05cm, code = "ldimp",titleAddition = "0.5cM imputation window",mvldscComparison = p$mvLD$covstruct.mvLDSC.1kg.vbcs.nocm.winfo, testOnlyTraitNameCodes = imptraits,titleTemplate = "HC1kG reference,\nLD-IMP augmented GWAS + GWIS of male BMI (LD-IMP augmented height & weight),\n", titleAdditionComparison = "comparing with LDSC++ of non-imputed GWAS")
+p$plotAndTestBatteryForMVLDSC(mvldsc = p$mvLD$covstruct.mvLDSC.1kg.05cm, code = "ldimp",titleAddition = "0.5cM imputation window",mvldscComparison = p$mvLD$covstruct.mvLDSC.1kg.vbcs.nocm.winfo, testOnlyTraitNameCodes = imptraits,titleTemplate = "HC1kGP3 reference,\nLD-IMP augmented GWAS + GWIS of male BMI (LD-IMP augmented height & weight),\n", titleAdditionComparison = "\ncomparing with LDSC++ of non-imputed GWAS")
 
-p$plotAndTestBatteryForMVLDSC(mvldsc = p$mvLD$covstruct.mvLDSC.1kg.500.small, code = "ldimp.small",titleAddition = "(selected chromosomes)",mvldscComparison = p$mvLD$covstruct.mvLDSC.1kg.ssimp.small,titleTemplate = "HC1kG reference,\nLD-IMP augmented GWAS (500kb imputation window) + GWIS of male BMI (LD-IMP augmented height & weight),\n", titleAdditionComparison = "comparing with LDSC++ of SSimp imputed GWAS")
+p$plotAndTestBatteryForMVLDSC(mvldsc = p$mvLD$covstruct.mvLDSC.1kg.500.small, code = "ldimp.small",titleAddition = "(selected chromosomes)",mvldscComparison = p$mvLD$covstruct.mvLDSC.1kg.ssimp.small,titleTemplate = "HC1kGP3 reference,\nLD-IMP augmented GWAS (500kb imputation window) + GWIS of male BMI (LD-IMP augmented height & weight),\n", titleAdditionComparison = "\ncomparing with LDSC++ of SSimp imputed GWAS")
 
 
 
