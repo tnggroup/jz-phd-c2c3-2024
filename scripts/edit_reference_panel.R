@@ -3,12 +3,13 @@
 #resolves ambiguous naming
 #deals with multiallelic variants
 #replaces previous set_reference_panels_rsids, resolve_duplicate_and_unnamed_variants
-#removes duplicates over genomic coordinates and SNP identifiers
+#removes duplicates over genomic coordinates but NOT SNP identifiers (as there may be multiple variants with the same ID)
 
 #run in the folder of the working reference panel
 
 #revision history
 #version 2 - improved handling of variant row duplicates as seen from duplicated SNP variants later
+#version 3 - improved handling of forward and backward matched rsID's and their synonyms. we need to keep both matched IDs as both may be encountered in existing GWAS sumstats. improved handling of variant row duplicates - keep SNP duplicates.
 
 
 library(data.table)
@@ -25,6 +26,7 @@ filepath.frq<-"1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.fr
 
 filepath.varlist <- "1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.frq.varlist.gz"
 
+filepath.varlist.important <- "unmatched.sig.1kg.Rds"
 
 increment<-10000000
 nrows <- 56
@@ -41,6 +43,12 @@ maf <- fread(file = filepath.frq, na.strings =c(".",NA,"NA",""), encoding = "UTF
 maf$ORDER<-1:nrow(maf)
 setDT(maf)
 
+
+#extra
+importantSNPs<-c()
+if(file.exists(filepath.varlist.important)){
+  importantSNPs<-readRDS(filepath.varlist.important)
+}
 
 #data formatting
 #bim[,CHR:=as.integer(shru::parseCHRColumn(CHR))]
@@ -63,7 +71,7 @@ rm(maf)
 
 doBreak<-F
 #loop to read the dbSNP in chunks because big
-m<-c()
+m.forward<-c()
 m.reverse<-c()
 for(iIteration in 1:10000){
 #for(iIteration in 1:3){ #TEST!!
@@ -86,8 +94,8 @@ for(iIteration in 1:10000){
   
   colnames(dbSNP)<-dbSNP.colnames
   
-  if(doBreak | nrow(dbSNP)<1 | length(colnames(dbSNP))<5){
-    cat("Breaking because of last increment or empty dt!\n")
+  if(nrow(dbSNP)<1 | length(colnames(dbSNP))<5){
+    cat("Breaking because of empty dt!\n")
     break
   }
   
@@ -110,6 +118,9 @@ for(iIteration in 1:10000){
   dbSNP<-dbSNP[,c("#CHROM","POS","ID","REF","ALT","dbSNPBuildID")]
   setkeyv(dbSNP,cols = c("#CHROM","POS","REF","ALT"))
   cat("Indexed dbSNP\n")
+  
+  # dbSNP.bp.max <- max(dbSNP$BP,na.rm = T)
+  # dbSNP.bp.min <- min(dbSNP$BP,na.rm = T)
   
   cat("Overview of dbSNP data table:\n\n")
   print(dbSNP)
@@ -156,74 +167,100 @@ for(iIteration in 1:10000){
     dbSNP[,A1:=ALT][,A2:=REF][,ALT:=NULL][,REF:=NULL]
   }
   
-  
-  
   #standardise dbSNP columns
   colnames(dbSNP)<-c("CHR","BP","SNP","dbSNPBuildID","A1","A2")
   setkeyv(dbSNP, cols = c("CHR","BP","A2","A1","SNP"))
   
-  
-  
-
   #capture updates update bim from dbSNP
+  #important
+  dbSNP.important <- dbSNP[SNP %in% importantSNPs$SNP,]
   
   #exact matches
   m.exact<-bim[dbSNP,on=c(CHR="CHR",BP="BP",A2="A2",A1="A1"), nomatch=0][,SNP:=i.SNP][,i.SNP:=NULL]
-  m.exact.reverse<-bim[dbSNP,on=c(CHR="CHR",BP="BP",A2="A1",A1="A2"), nomatch=0][,SNPR:=i.SNP][,i.SNP:=NULL][,SNP:=NULL]
+  m.exact.reverse<-bim[dbSNP,on=c(CHR="CHR",BP="BP",A2="A1",A1="A2"), nomatch=0][,SNP:=i.SNP][,i.SNP:=NULL]
   #dbSNP has unique rsid's for inverted allele configurations:
   #dbSNP[dbSNP,on=c(CHR="CHR",BP="BP",A2="A1",A1="A2"),nomatch=0] #check this with
   
-  m<-rbind(m,m.exact,fill=T)
+  m.forward<-rbind(m.forward,m.exact,fill=T)
   m.reverse<-rbind(m.reverse,m.exact.reverse,fill=T)
   
+  #this was actually not here for the last run, so may have missed the last iteration for chr 24
+  if(doBreak){
+    cat("Breaking because of last increment\n")
+    break
+  }
   
   #nrows <- clipValues(x = (nrows + increment),min = NA, max = dbSNP.nrows)
   nrows <- nrows + increment
   
   #to save memory
   rm(dbSNP)
+  
 }
 
 #to save memory
 rm(dbSNP)
 
-#filter unique reverse matches
-m.reverse<-m.reverse[order(-dbSNPBuildID,-MAF,-NCHROBS,SNPR),]
-m.reverse<-m.reverse[, .(SNPR = head(SNPR,1),MAF = head(MAF,1),dbSNPBuildID = head(dbSNPBuildID,1)), by = c("CHR","BP","A1","A2")]
+m.forward[,forward:=1]
+m.reverse[,forward:=0]
 
+#merge exact matches with reverse matches
+m<-rbind(m.forward,m.reverse,fill=T)
 
-#update exact matches with reverse matches
-m[m.reverse,on=c(CHR="CHR",BP="BP",A1="A1",A2="A2"), c("SNPR","dbSNPBuildIDR"):=list(i.SNPR,i.dbSNPBuildID)]
+rm(m.forward)
+rm(m.reverse)
 
-
+#cross version unique, including synonym lists - we need multiple SNP occurrences because the panel contains multiple instances of the same rsID SNP
 #exclude possible duplicate entries over CHR,BP,A1,A2, aimed at removing duplicates due to dbSNP version updates
-m<-m[order(-dbSNPBuildID,-MAF,-NCHROBS,SNP),]
-m.unique<-m[, .(SNP = head(SNP,1), SNPR = head(SNPR,1), MAF = head(MAF,1), dbSNPBuildID = head(dbSNPBuildID,1), dbSNPBuildIDR = head(dbSNPBuildIDR,1), ORDER = head(ORDER,1), NCHROBS = head(NCHROBS,1)), by = c("CHR","BP","A1","A2")]
-#m.unique<-m[, .(SNP = head(SNP,1),MAF = head(MAF,1),dbSNPBuildID = head(dbSNPBuildID,1)), by = c("CHR","BP","A1","A2")]
+setorder(m,-dbSNPBuildID,-forward,-MAF,-NCHROBS,SNP)
+m.xversion.unique<-m[, .(SNP = head(SNP,1), MAF = head(MAF,1), dbSNPBuildID = head(dbSNPBuildID,1), ORDER = head(ORDER,1), NCHROBS = head(NCHROBS,1), forward=head(forward,1), synonyms=paste(SNP,collapse = ",")), by = c("CHR","BP","A1","A2")] #synonyms=list(c(SNP))
+# #filter to unique SNP
+# setorder(m.xversion.unique,-dbSNPBuildID,-forward,-MAF,-NCHROBS,ORDER)
+# m.xversion.unique<-m.xversion.unique[, .(ORDER = head(ORDER,1), CHR = head(CHR,1), BP = head(BP,1), A1 = head(A1,1), A2 = head(A2,1), MAF = head(MAF,1), dbSNPBuildID = head(dbSNPBuildID,1), NCHROBS = head(NCHROBS,1), forward=head(forward,1), synonyms=head(synonyms,1)), by = c("SNP")]
 
-#filter to unique ORDER - THIS IS PROBABLY UNNECCESSARY AS THE ORDER SEEMS TO BE UNIQUE ALREADY
-
-#filter to unique SNP
-m.unique<-m.unique[order(-dbSNPBuildID,-MAF,-NCHROBS,ORDER),]
-m.unique<-m.unique[, .(ORDER = head(ORDER,1), SNPR = head(SNPR,1), CHR = head(CHR,1), BP = head(BP,1), A1 = head(A1,1), A2 = head(A2,1), MAF = head(MAF,1), dbSNPBuildID = head(dbSNPBuildID,1), dbSNPBuildIDR = head(dbSNPBuildIDR,1), NCHROBS = head(NCHROBS,1)), by = c("SNP")]
+# #cross SNP unique - for bim SNP labels
+# #filter to unique SNP
+# setorder(m,-dbSNPBuildID,-forward,-MAF,-NCHROBS,ORDER)
+# m.xsnp.unique<-m[, .(ORDER = head(ORDER,1), CHR = head(CHR,1), BP = head(BP,1), A1 = head(A1,1), A2 = head(A2,1), MAF = head(MAF,1), dbSNPBuildID = head(dbSNPBuildID,1), NCHROBS = head(NCHROBS,1), forward=head(forward,1)), by = c("SNP")]
+# #exclude possible duplicate entries over CHR,BP,A1,A2, aimed at removing duplicates due to dbSNP version updates
+# setorder(m.xsnp.unique,-dbSNPBuildID,-forward,-MAF,-NCHROBS,SNP)
+# m.xsnp.unique<-m.xsnp.unique[, .(SNP = head(SNP,1), MAF = head(MAF,1), dbSNPBuildID = head(dbSNPBuildID,1), ORDER = head(ORDER,1), NCHROBS = head(NCHROBS,1), forward=head(forward,1)), by = c("CHR","BP","A1","A2")]
 
 
 #update bim
-setkeyv(m.unique, cols = c("ORDER",CHR="CHR",BP="BP",A2="A2",A1="A1"))
-setkeyv(bim, cols = c("ORDER",CHR="CHR",BP="BP",A2="A2",A1="A1"))
-bim[m.unique,on=c(ORDER="ORDER",CHR="CHR",BP="BP",A2="A2",A1="A1"),c("SNP","BID","SNPR","BIDR"):=list(i.SNP,i.dbSNPBuildID,i.SNPR,i.dbSNPBuildIDR)]
-#bim[m.unique,on=c(CHR="CHR",BP="BP",A2="A2",A1="A1"),c("SNP","BP.dbSNP"):=list(i.SNP,i.BP)]
+setkeyv(bim, cols = c("ORDER","CHR","BP","A2","A1"))
+bim[,SNPASSIGNED:=FALSE]
+#unique forward
+setkeyv(m.xversion.unique, cols = c("ORDER","CHR","BP","A2","A1"))
+bim[m.xversion.unique,on=c(ORDER="ORDER",CHR="CHR",BP="BP",A2="A2",A1="A1"),c("SNP","BID","forward","SNPASSIGNED"):=list(i.SNP,i.dbSNPBuildID,i.forward,TRUE)]
 
-cat("\nAssigned RS numbers: ",nrow(bim[grepl(pattern = "^rs.+", x = bim$SNP, fixed = F),]),"\n")
+
+#explicitly check rs-numbers in SNP
+#cat("\nAssigned RS numbers: ",nrow(bim[grepl(pattern = "^rs.+", x = bim$SNP, fixed = F),]),"\n")
+cat("\nAssigned SNP ID's (RS numbers): ",nrow(bim[SNPASSIGNED==TRUE,]),"\n")
 
 #still missing SNP
-bim[is.na(SNP) | grepl(pattern = ".", x = bim$SNP, fixed = T),SNP:=paste(CHR,BP,ORDER,sep = ":")]
+bim[is.na(SNP) | grepl(pattern = ".", x = bim$SNP, fixed = T), SNP:=paste(CHR,BP,ORDER,sep = ":")]
 cat("\nSet back-stop names for names still missing\n")
+
+
 
 #output .bim format again in the right order
 fwrite(x = bim[order(ORDER),c("CHR","SNP","CM","BP","A1","A2")], file = filepath.newbim,col.names = F, sep = "\t",nThread = nThreads, na = ".",quote = F)
 
-#output general variant list - still has the overall MAF values
-fwrite(x = bim[order(ORDER),c("SNP","BID","SNPR","BIDR","CHR","BP","A1","A2","MAF","NCHROBS")],file = filepath.varlist, append = F,quote = F,sep = "\t",col.names = T,nThread=nThreads) #added CHR also here - not included in the last run
+#output general variant list + synonyms - still has the overall MAF values
+#forward SNPS
+bim[m.xversion.unique[forward==1,],on=c(ORDER="ORDER",CHR="CHR",BP="BP",A2="A2",A1="A1"),c("SNPF"):=list(i.SNP)]
+bim[m.xversion.unique,on=c(SNPF="SNP",ORDER="ORDER",CHR="CHR",BP="BP",A2="A2",A1="A1"),c("SYNF"):=list(i.synonyms)]
+#reverse SNPS
+bim[m.xversion.unique[forward==0,],on=c(ORDER="ORDER",CHR="CHR",BP="BP",A2="A2",A1="A1"),c("SNPR"):=list(i.SNP)]
+bim[m.xversion.unique,on=c(SNPR="SNP",ORDER="ORDER",CHR="CHR",BP="BP",A2="A2",A1="A1"),c("SYNR"):=list(i.synonyms)]
+
+
+#how many important SNPs covered
+cat("\nImportant SNPs covered: ",(sum(importantSNPs$SNP %in% bim$SNPF) + sum(importantSNPs$SNP %in% bim$SNPR))," of a total ",nrow(importantSNPs),"\n")
+
+
+fwrite(x = bim[order(ORDER),.(SNP,CHR,BP,A1,A2,MAF,NCHROBS,FW=forward,SNPF,SNPR,SYNF,SYNR)],file = filepath.varlist, append = F,quote = F,sep = "\t",col.names = T,nThread=nThreads) #added CHR also here - not included in the last run
 
 cat("\nTHE END\n")
