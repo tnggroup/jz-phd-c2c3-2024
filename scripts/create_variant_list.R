@@ -11,6 +11,7 @@ setDTthreads(threads = nThreads)
 getDTthreads(verbose=T)
 
 filepath.varlist<-"1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.frq.varlist.gz"
+filepath.varlist.unfiltered<-"1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.frq.varlist.unfiltered.gz" #for creating the synonym list
 filepath.bim<-"1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.frq.CM23.bim"
 
 filepath.bim.eur<-"1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.frq.CM.eur.bim"
@@ -26,6 +27,11 @@ setDT(allvars)
 allvars[is.na(SNP),SNP:="."] #[is.na(SNPR),SNPR:="."]
 allvars[,CHR:=as.integer(CHR)]
 setkeyv(allvars, cols = c("CHR","BP","A2","A1","SNP","SNPF","SNPR"))
+
+#compare with existing sumstat
+cSumstats <- shru::readFile(filePath = "/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/cleaned/ANXI03.gz", nThreads = nThreads)
+cat("\ncSumstats (ANXI03) F+R SNPs covered: ",(sum(cSumstats$SNP %in% allvars$SNPF) + sum(cSumstats$SNP %in% allvars$SNPR))," of a total ",nrow(cSumstats),"\n")
+cat("\ncSumstats (ANXI03) 'SNP' SNPs covered: ",(sum(cSumstats$SNP %in% allvars$SNP))," of a total ",nrow(cSumstats),"\n")
 
 #rename MAF to MAF.MIX as this is the overall 1kG MAF, same for NCHROBS
 allvars[,MAF.MIX:=MAF][,MAF:=NULL]
@@ -93,7 +99,7 @@ cat("\nN missing MAF.EUR-values:",nrow(allvars[!is.finite(MAF.EUR),]))
 cat("\nN missing L2.MIX-values:",nrow(allvars[!is.finite(L2.MIX),]))
 cat("\nN missing L2.EUR-values:",nrow(allvars[!is.finite(L2.EUR),]))
 cat("\nN variants with inverse mapping:",nrow(allvars[!is.na(SNPR),]))
-cat("\nN invertly mapped variants (because forward mapping missing):",nrow(allvars[FW==0,]))
+cat("\nN inversly mapped variants (because forward mapping missing):",nrow(allvars[FW==0,]))
 #allvars[grepl(pattern = ".",x = bim$SNP,fixed = T),SNP:=paste0("somevar_",CHR,":",BP,":",ORDER)]
 
 #set reverse coded MAF - NEW
@@ -123,69 +129,75 @@ cat("\nN missing MAF.EUR-values:",nrow(allvars.merged[!is.finite(MAF.EUR),]))
 cat("\nN missing L2.MIX-values:",nrow(allvars.merged[!is.finite(L2.MIX),]))
 cat("\nN missing L2.EUR-values:",nrow(allvars.merged[!is.finite(L2.EUR),]))
 cat("\nN variants with inverse mapping:",nrow(allvars.merged[!is.na(SNPR),]))
-cat("\nN invertly mapped variants (because forward mapping missing):",nrow(allvars.merged[FW==0,]))
+cat("\nN inversly mapped variants (because forward mapping missing):",nrow(allvars.merged[FW==0,]))
 
 #remove statistics vars
 allvars.merged[,MAF.MIX.ORIG:=NULL][,MAF.EUR.ORIG:=NULL]
 maf.max <- sqrt(max(allvars$MAF.MIX,na.rm=T))
 allvars.merged[MAF.MIX>eval(maf.max),MAF.MIX:=eval(maf.max)]
 
+cat("\ncSumstats (ANXI03) F+R SNPs covered: ",(sum(cSumstats$SNP %in% allvars.merged$SNPF) + sum(cSumstats$SNP %in% allvars.merged$SNPR))," of a total ",nrow(cSumstats),"\n")
+cat("\ncSumstats (ANXI03) 'SNP' SNPs covered: ",(sum(cSumstats$SNP %in% allvars.merged$SNP))," of a total ",nrow(cSumstats),"\n")
 
-cat("\nFiltering synonyms - forward")
+
+cat("\nFiltering synonyms")
 #filter synonyms
+all.syn<-fread(file = filepath.varlist.unfiltered, na.strings =c(".",NA,"NA",""), encoding = "UTF-8", header = T, fill = T, blank.lines.skip = T, data.table = T, nThread = nThreads, showProgress = T)
+all.syn[is.na(SNP),SNP:="."] #[is.na(SNPR),SNPR:="."]
+all.syn[,CHR:=as.integer(CHR)]
+setkeyv(all.syn, cols = c("CHR","BP","A2","A1","SNP"))
 
-#remove main SNP and create df with synonym variants - SLOW!
-all.syn<-allvars.merged[(CHR==-1),c("SNP")]
+#align synonym variants too to forward/backward direction matched
+all.syn[,MAF:=NULL][,NCHROBS:=NULL][,CM:=NULL]
+all.syn[,FW:=forward][,forward:=NULL]
+all.syn[,A1.OLD:=A1][,A2.OLD:=A2]
+all.syn[FW==0,A1:=A2.OLD]
+all.syn[FW==0,A2:=A1.OLD]
+all.syn[,A1.OLD:=NULL][,A2.OLD:=NULL]
 
-#forward
-csyn<-allvars.merged[!is.na(SYNF),]
-csyn[,SYNFL:=list(strsplit(SYNF,split = ",",fixed = T))]
-csyn<-csyn[lengths(SYNFL)>1,]
-for(icsyn in 1:nrow(csyn)){
-  #icsyn<-1
-  ccsyn <- csyn[icsyn,c("SNPF","SYNFL")]
-  for(isyn in 2:lengths(ccsyn$SYNFL)){
-    ccsyn.sub<-ccsyn
-    ccsyn.sub[,SYN:=eval(ccsyn$SYNFL[[1]][isyn])][,SNP:=SNPF]
-    all.syn<-rbindlist(list(all.syn,ccsyn.sub),fill = T)
-  }
-}
+#assign synonyms
+all.syn[,SYN:=SNP][,SNP:=NULL]
+setkeyv(all.syn, cols = c("CHR","BP","A2","A1","SYN"))
+setkeyv(allvars, cols = c("CHR","BP","A2","A1","SNP"))
+cat("\nFiltering synonyms - assigning to primary matches")
+#merge on allvars rather than allvars.merged because we consider all allele versions
+all.syn.merged<-all.syn[allvars, on=c(CHR="CHR",BP="BP",A2="A2",A1="A1"), nomatch=0] #the alleles are harmonised since previously with the reference panel - no need to do the reverse matching
+#all.syn.merged.reverse<-all.syn[allvars, on=c(CHR="CHR",BP="BP",A2="A1",A1="A2"), nomatch=0]
+#all.syn.merged<-rbind(all.syn.merged.forward,all.syn.merged.reverse)
+# rm(all.syn.merged.forward)
+# rm(all.syn.merged.reverse)
 
-cat("\nFiltering synonyms - reverse")
-#reverse
-csyn<-allvars.merged[!is.na(SYNR),]
-csyn[,SYNRL:=list(strsplit(SYNR,split = ",",fixed = T))]
-csyn<-csyn[lengths(SYNRL)>1,]
-for(icsyn in 1:nrow(csyn)){
-  #icsyn<-1
-  ccsyn <- csyn[icsyn,c("SNPR","SYNRL")]
-  for(isyn in 2:lengths(ccsyn$SYNRL)){
-    ccsyn.sub<-ccsyn
-    ccsyn.sub[,SYN:=eval(ccsyn$SYNRL[[1]][isyn])][,SNP:=SNPR]
-    all.syn<-rbindlist(list(all.syn,ccsyn.sub),fill = T)
-  }
-}
-
-all.syn[,SYNFL:=NULL][,SYNRL:=NULL][,SNPF:=NULL][,SNPR:=NULL]
-all.syn<-all.syn[SNP!=SYN,]
-setkeyv(all.syn,c("SNP","SYN"))
+all.syn.merged<-all.syn.merged[,.(SNP,SYN,CHR,BP,A1,A2,SNPF,SYNF,SNPR,SYNR,dbSNPBuildID)]
+setorder(all.syn.merged,SNP,SYN)
+all.syn.merged<-all.syn.merged[SNP!=SYN,]
 
 #exclude synonyms which are primary variants
 cat("\nFiltering synonyms - non-primary only")
-all.syn[allvars.merged, on=c(SNP="SYN"), c("PRIMARY"):=1]
-all.syn<-all.syn[is.na(PRIMARY),]
+setkeyv(all.syn.merged, cols = c("SYN","CHR","BP","A2","A1"))
+setkeyv(allvars, cols = c("SNP","CHR","BP","A2","A1"))
+all.syn.merged[allvars, on=c(SYN="SNP"), c("PRIMARY"):=1]
+all.syn.merged<-all.syn.merged[is.na(PRIMARY),]
 
+#unique synonyms
+all.syn.merged.unique<-all.syn.merged[, .(SNP = head(SNP,1)), by = c("SYN")]
+all.syn.merged.unique<-all.syn.merged.unique[,.(SNP,SYN)]
 #missing L2 - what should be done with these?
 #allvars[is.na(L2.EUR),L2.EUR:=0]
 
+cat("\nTotal number of unique synonyms: ",nrow(all.syn.merged.unique),"\n")
+cat("\ncSumstats (ANXI03) SNPs in synonyms: ",sum(cSumstats$SNP %in% all.syn.merged.unique$SYN),"\n")
+
 cat("\nWriting files")
-setkeyv(all.syn,c("SNP","SYN"))
-fwrite(x = all.syn, file = filepath.newvarlist.synonyms,col.names = T, sep = "\t",nThread = nThreads, na = ".",quote = F)
+setkeyv(all.syn.merged.unique,c("SNP","SYN"))
+fwrite(x = all.syn.merged.unique, file = filepath.newvarlist.synonyms,col.names = T, sep = "\t",nThread = nThreads, na = ".",quote = F)
 #sum(grepl(pattern = ".",x = bim$SNP,fixed = T)) #should be 0
 #allvars.merged<-allvars.merged[,c("SNP","BID","SNPR","BIDR","CHR","BP","A1","A2","CM","MAF.MIX","NCHROBS.MIX","L2.MIX","MAF.EUR","NCHROBS.EUR","L2.EUR")]
-setkeyv(allvars.merged, cols = c("SNP"))
+
 setorder(allvars.merged,CHR,BP,CM,SNP,-NCHROBS.MIX,-MAF.MIX,-L2.MIX) #new for the sorted version
 fwrite(x = allvars.merged, file = filepath.newvarlist.mix,col.names = T, sep = "\t",nThread = nThreads, na = ".",quote = F)
+cat("\nN final variants in variant list:",nrow(allvars.merged), "written to",filepath.newvarlist.mix)
+
 setorder(allvars.merged,CHR,BP,CM,SNP,-NCHROBS.EUR,-MAF.EUR,-L2.EUR)
 fwrite(x = allvars.merged[,.(SNP,CHR,BP,A1,A2,CM,FW,SNPR,MAF=MAF.EUR,NCHROBS=NCHROBS.EUR,L2=L2.EUR)], file = filepath.newvarlist.eur,col.names = T, sep = "\t",nThread = nThreads, na = ".",quote = F)
+cat("\nN final variants in variant list:",nrow(allvars.merged), "written to",filepath.newvarlist.eur)
 cat("\nTHE END")
