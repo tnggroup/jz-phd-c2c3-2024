@@ -497,3 +497,5 @@ source ~/project/JZ_GED_PHD_ADMIN_GENERAL/software/ldsc-venv2.7/bin/activate
 plink2 --bfile g1000_eur --rm-dup --make-pgen --out g1000_eur.iddup
 
 
+sbatch --time 01:00:00 --partition cpu --job-name="Rtest" --ntasks 1 --cpus-per-task 6 --mem 64G --wrap="Rscript code.r" --output "rtest.$(date +%Y%m%d).out.txt"
+
