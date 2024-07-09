@@ -1,0 +1,510 @@
+---
+title: "Replicate GWAS simulations"
+author: "Johan Zvrskovec"
+date: "2024-05-17"
+output: html_document
+---
+
+```{r}
+
+library(data.table)
+
+```
+
+
+# Simulate real genomic association effects
+This is used as input to GCTA to generate simulated GWAS with known h2.
+
+Trait 1 and 2
+Heritability: 0.2
+Genetic correlation: 0.4
+
+I manage to simulate roughly 6M variant effects with this. More, and GCTA tend to crash in the simulation step (memory?).
+
+To obtain the original experiment that did not yield any LDSC h2, you just have to remove the L2 part and use the EFFECT1 and EFFECT2 directly.
+
+If you look at the L2 part, do not mind the use of M, since it will just scale the effects linearly.
+
+
+```{r Simulate real genomic association effects}
+
+  #Known variants
+  variantsToSimulate <- shru::readFile(filePath = p$filepath.SNPReference.1kg, nThreads = p$nThread)
+  #variantsToSimulate<-variantsToSimulate[MAF < 0.45 | MAF > 0.55,] #MAF is not >0.5 here though
+  
+  nrow(variantsToSimulate)
+  
+  #remove a random set of variants to achieve targeted size
+  variantsToSimulate$SELV1<-rbinom(nrow(variantsToSimulate), 1, 0.6)
+  variantsToSimulate$SELV2<-rbinom(nrow(variantsToSimulate), 1, 0.6)
+  nrow(variantsToSimulate[SELV1==1 & MAF >0.01,])
+  nrow(variantsToSimulate[SELV2==1 & MAF >0.01,])
+  
+  #L2 info
+  L2.mean <- mean(variantsToSimulate$L2,na.rm=T)
+  L2.median <- median(variantsToSimulate$L2,na.rm=T)
+  
+  #Simulate completely randomised phenotype, h2=0.2
+  if(file.exists(file.path(p$folderpath.workingDirectory,"simulatedVars.Rds"))) {
+    print("Using existing effect simulation.")
+    simulatedVars<-readRDS(file=file.path(p$folderpath.workingDirectory,"simulatedVars.Rds"))
+  } else {
+
+    SigmaCovarianceMatrix <- matrix(c(0.2,0.2*0.4,0.2*0.4,0.2),2,2)
+    simulatedVars <- mvrnorm(n = nrow(variantsToSimulate), mu = c(0,0),Sigma = SigmaCovarianceMatrix)
+    saveRDS(simulatedVars,file = file.path(p$folderpath.workingDirectory,"simulatedVars.Rds"))
+  }
+  
+  
+  #Original real values
+  variantsToSimulate$RV1<-simulatedVars[,1]
+  variantsToSimulate$RV2<-simulatedVars[,2]
+  
+  meanAbsRV1<-mean(abs(variantsToSimulate$RV1),na.rm=T)
+  meanAbsRV2<-mean(abs(variantsToSimulate$RV2),na.rm=T)
+  
+  #These are the true genome-wide correlations
+  simulatedVars.true.rg <- cor(variantsToSimulate[SELV1==1 & SELV2==1,c("RV1","RV2")])
+  print(simulatedVars.true.rg)
+#           RV1       RV2
+# RV1 1.0000000 0.4003097
+# RV2 0.4003097 1.0000000
+  simulatedVars.true.covg <- cov(variantsToSimulate[SELV1==1 & SELV2==1,c("RV1","RV2")])
+  print(simulatedVars.true.covg)
+#            RV1        RV2
+# RV1 0.20002236 0.08006982
+# RV2 0.08006982 0.20001705
+  
+  #without MAF effect, in case inactivated
+  variantsToSimulate[,EFFECT1:=RV1]
+  variantsToSimulate[,EFFECT2:=RV2]
+  
+  # #MAF
+  # variantsToSimulate[,EFFECT1:=RV1/((0.5+MAF)^2)]
+  # variantsToSimulate[,EFFECT2:=RV2/((0.5+MAF)^2)]
+  # meanAbsEFFECT1<-mean(abs(variantsToSimulate$EFFECT1),na.rm=T)
+  # meanAbsEFFECT2<-mean(abs(variantsToSimulate$EFFECT2),na.rm=T)
+  # EFFECT1.ratio<-meanAbsRV1/meanAbsEFFECT1
+  # EFFECT2.ratio<-meanAbsRV2/meanAbsEFFECT2
+  # variantsToSimulate[,EFFECT1:=EFFECT1*eval(EFFECT1.ratio)]
+  # variantsToSimulate[,EFFECT2:=EFFECT2*eval(EFFECT2.ratio)]
+  # 
+  # #These should also be the true genome-wide correlations
+  # simulatedVars.true.rg <- cor(variantsToSimulate[SELV1==1 & SELV2==1,c("EFFECT1","EFFECT2")])
+  # print(simulatedVars.true.rg)
+  # simulatedVars.true.covg <- cov(variantsToSimulate[SELV1==1 & SELV2==1,c("EFFECT1","EFFECT2")])
+  # print(simulatedVars.true.covg)
+  
+  #L2
+  ##QC
+  LDSC.M<-7184778 #the LDSC 'M' value (#variants in LD score panel with MAF > 0.05)
+  #[,L:=sqrt(L2)]
+  variantsToSimulate[L2<0,L2:=0.01][!is.finite(L2),L2:=eval(L2.median)][,L:=sqrt(L2)][,rL:=sqrt(L2)/sqrt(eval(LDSC.M))]
+  #variantsToSimulate[,EFFECT1.LD:=sqrt((EFFECT1^2)*L2/eval(LDSC.M))][,EFFECT2.LD:=sqrt((EFFECT2^2)*L2/eval(LDSC.M))] #works fairly well
+  variantsToSimulate[,EFFECT1.LD:=EFFECT1*rL][,EFFECT2.LD:=EFFECT2*rL] #linear version - CURRENT version (ld)
+  meanAbsEFFECT1.LD<-mean(abs(variantsToSimulate$EFFECT1.LD),na.rm=T)
+  meanAbsEFFECT2.LD<-mean(abs(variantsToSimulate$EFFECT2.LD),na.rm=T)
+  EFFECT1.LD.ratio<-meanAbsRV1/meanAbsEFFECT1.LD
+  EFFECT2.LD.ratio<-meanAbsRV2/meanAbsEFFECT2.LD
+  variantsToSimulate[,EFFECT1.LD:=EFFECT1.LD*eval(EFFECT1.LD.ratio)]
+  variantsToSimulate[,EFFECT2.LD:=EFFECT2.LD*eval(EFFECT2.LD.ratio)]
+  
+  #These are the almost true genome-wide correlations after simulating L2
+  simulatedVars.true.l2.rg <- cor(variantsToSimulate[SELV1==1 & SELV2==1,c("EFFECT1.LD","EFFECT2.LD")],use = "pairwise.complete.obs")
+  print(simulatedVars.true.l2.rg)
+#  EFFECT1.LD EFFECT2.LD
+# EFFECT1.LD   1.000000   0.399341
+# EFFECT2.LD   0.399341   1.000000
+  simulatedVars.true.l2.covg <- cov(variantsToSimulate[SELV1==1 & SELV2==1,c("EFFECT1.LD","EFFECT2.LD")], use = "pairwise.complete.obs")
+  print(simulatedVars.true.l2.covg)
+#   EFFECT1.LD EFFECT2.LD
+# EFFECT1.LD  0.3851489  0.1537597
+# EFFECT2.LD  0.1537597  0.3849187
+  
+  
+  fwrite(x = variantsToSimulate[SELV1==1 & MAF>0.01,.(SNP,EFFECT1.LD)], file = file.path(p$folderpath.workingDirectory,"simEffects1.ld"), col.names = FALSE,nThread = p$nThread, sep = "\t")
+  fwrite(x = variantsToSimulate[SELV2==1 & MAF>0.01,.(SNP,EFFECT2.LD)], file = file.path(p$folderpath.workingDirectory,"simEffects2.ld"), col.names = FALSE,nThread = p$nThread, sep = "\t")
+
+```
+
+# Simulate effects in GCTA
+
+I used our GLAD+ sample for simulations with 36746 individuals.
+
+```{shell }
+
+sbatch --time 2-00:00:00 --partition cpu --job-name="sim" --ntasks 1 --cpus-per-task 10 --mem 512G --wrap="gcta64 --bfile /users/k19049801/project/JZ_GED_PHD_C1/data/geno/GLADv3_EDGIv1_NBRv2/imputed/bfiles/GLAD_EDGI_NBR --simu-causal-loci ~/project/JZ_GED_PHD_C1/working_directory/simEffects1.ld --simu-qt --simu-hsq 0.2 --simu-rep 1 --out simTrait1.020.ld --thread-num 10" --output "setup8.sim1.020.$(date +%Y%m%d).out.txt"
+sbatch --time 2-00:00:00 --partition cpu --job-name="sim" --ntasks 1 --cpus-per-task 10 --mem 512G --wrap="gcta64 --bfile /users/k19049801/project/JZ_GED_PHD_C1/data/geno/GLADv3_EDGIv1_NBRv2/imputed/bfiles/GLAD_EDGI_NBR --simu-causal-loci ~/project/JZ_GED_PHD_C1/working_directory/simEffects2.ld --simu-qt --simu-hsq 0.2 --simu-rep 1 --out simTrait2.020.ld --thread-num 10" --output "setup8.sim2.020.$(date +%Y%m%d).out.txt"
+
+```
+
+## Log for simulating trait 1 above
+```{text }
+
+*******************************************************************
+* GCTA (Genome-wide Complex Trait Analysis)
+* Version v1.94.1 Linux
+* Built at Jan 16 2024 14:19:02, by GCC 8.3
+* (C) 2010-present, Yang Lab, Westlake University
+* Please report bugs to Jian Yang jian.yang@westlake.edu.cn
+* MIT License
+*******************************************************************
+Analysis started at 18:30:40 BST on Wed May 15 2024.
+Hostname: erc-hpc-comp187
+
+Accepted options:
+--bfile /users/k19049801/project/JZ_GED_PHD_C1/data/geno/GLADv3_EDGIv1_NBRv2/imputed/bfiles/GLAD_EDGI_NBR
+--simu-causal-loci /users/k19049801/project/JZ_GED_PHD_C1/working_directory/simEffects1.ld
+--simu-qt
+--simu-hsq 0.2
+--simu-rep 1
+--out simTrait1.020.ld
+--thread-num 10
+
+
+Reading PLINK FAM file from [/users/k19049801/project/JZ_GED_PHD_C1/data/geno/GLADv3_EDGIv1_NBRv2/imputed/bfiles/GLAD_EDGI_NBR.fam].
+37557 individuals to be included from [/users/k19049801/project/JZ_GED_PHD_C1/data/geno/GLADv3_EDGIv1_NBRv2/imputed/bfiles/GLAD_EDGI_NBR.fam].
+Reading PLINK BIM file from [/users/k19049801/project/JZ_GED_PHD_C1/data/geno/GLADv3_EDGIv1_NBRv2/imputed/bfiles/GLAD_EDGI_NBR.bim].
+15009228 SNPs to be included from [/users/k19049801/project/JZ_GED_PHD_C1/data/geno/GLADv3_EDGIv1_NBRv2/imputed/bfiles/GLAD_EDGI_NBR.bim].
+Reading PLINK BED file from [/users/k19049801/project/JZ_GED_PHD_C1/data/geno/GLADv3_EDGIv1_NBRv2/imputed/bfiles/GLAD_EDGI_NBR.bed] in SNP-major format ...
+Genotype data for 37557 individuals and 15009228 SNPs to be included from [/users/k19049801/project/JZ_GED_PHD_C1/data/geno/GLADv3_EDGIv1_NBRv2/imputed/bfiles/GLAD_EDGI_NBR.bed].
+Simulation parameters:
+Number of simulation replicate(s) = 1 (Default = 1)
+Heritability  = 0.2 (Default = 0.1)
+
+Reading a list of SNPs (as causal variants) from [/users/k19049801/project/JZ_GED_PHD_C1/working_directory/simEffects1.ld].
+3712059 SNPs (as causal variants) to be included from [/users/k19049801/project/JZ_GED_PHD_C1/working_directory/simEffects1.ld].
+3712059 user-specified QTL effects.
+Calculating allele frequencies ...
+Warning: gender information (the 5th column of the .fam file) is required for analysis on chromosome X. GCTA assumes that those missing samples are females.
+Recoding genotypes (individual major mode) ...
+Simulated QTL effect(s) have been saved in [simTrait1.020.ld.par].
+Simulating GWAS based on the real genotyped data with 1 replicate(s) ...
+Simulated phenotypes of 37557 individuals have been saved in [simTrait1.020.ld.phen].
+
+Analysis finished at 21:34:06 BST on Wed May 15 2024
+Overall computational time: 3 hours 3 minutes 25 sec.
+
+```
+
+
+#Create joint pheno-file for GCTA bivariate GREML
+```{r}
+
+pheno1 <- shru::readFile(filePath = file.path(p$folderpath.workingDirectory,"simTrait1.020.ld.phen"),nThreads = p$nThread)
+
+pheno2 <- shru::readFile(filePath = file.path(p$folderpath.workingDirectory,"simTrait2.020.ld.phen"),nThreads = p$nThread)
+
+pheno1[pheno2,on=c("V1"),V4:=i.V3]
+
+fwrite(x = pheno1,file = file.path(p$folderpath.workingDirectory,"simTrait1and2.020.ld.phen"),col.names = F, sep = "\t")
+
+rm(pheno1)
+rm(pheno2)
+
+```
+
+# Confirm h2 etc with GCTA
+
+These do not actually work for me for some strange reason. I need to confirm the bivariate covG.
+
+```{shell }
+
+#test with gcta greml - redundant? - we get the h2 from the GWAS below
+sbatch --time 10:00:00 --partition cpu --job-name="greml1" --ntasks 1 --cpus-per-task 10 --mem 64G --wrap="gcta64 --bfile /users/k19049801/project/JZ_GED_PHD_C1/data/geno/GLADv3_EDGIv1_NBRv2/imputed/bfiles/GLAD_EDGI_NBR --grm /users/k19049801/project/personality-SEM-2021/work/UKB_GLADv3_EDGIv1_NBRv2.LD_Pruned.grm --pheno simTrait1.020.ld.phen --qcovar covar.q.txt --covar covar.c.txt --keep keep.all.txt --thread-num 10 --reml --out sim1ld" --output fastGWA.sim1.reml.$(date +%Y%m%d).out.txt
+sbatch --time 10:00:00 --partition cpu --job-name="greml2" --ntasks 1 --cpus-per-task 10 --mem 64G --wrap="gcta64 --bfile /users/k19049801/project/JZ_GED_PHD_C1/data/geno/GLADv3_EDGIv1_NBRv2/imputed/bfiles/GLAD_EDGI_NBR --grm /users/k19049801/project/personality-SEM-2021/work/UKB_GLADv3_EDGIv1_NBRv2.LD_Pruned.grm --pheno simTrait2.020.ld.phen --qcovar covar.q.txt --covar covar.c.txt --keep keep.all.txt --thread-num 10 --reml --out sim2ld" --output fastGWA.sim2.reml.$(date +%Y%m%d).out.txt
+
+#bivariate gcta greml
+sbatch --time 2:00:00 --partition cpu --job-name="greml12" --ntasks 1 --cpus-per-task 10 --mem 64G --wrap="gcta64 --reml-bivar --bfile /users/k19049801/project/JZ_GED_PHD_C1/data/geno/GLADv3_EDGIv1_NBRv2/imputed/bfiles/GLAD_EDGI_NBR --grm /users/k19049801/project/personality-SEM-2021/work/UKB_GLADv3_EDGIv1_NBRv2.LD_Pruned.grm --pheno simTrait1and2.020.ld.phen --qcovar covar.q.txt --covar covar.c.txt --keep keep.all.txt --thread-num 10 --out sim1and2ld" --output fastGWA.sim1and2.reml.$(date +%Y%m%d).out.txt
+
+
+```
+
+#Run GWAS in GCTA fastGWA
+
+```{shell }
+
+sbatch --time 10:00:00 --partition cpu --job-name="gas1" --ntasks 1 --cpus-per-task 10 --mem 64G --wrap="gcta64 --bfile /users/k19049801/project/JZ_GED_PHD_C1/data/geno/GLADv3_EDGIv1_NBRv2/imputed/bfiles/GLAD_EDGI_NBR --grm-sparse UKB_GLADv3_EDGIv1_NBRv2.LD_Pruned.grm.sparse --fastGWA-mlm --pheno simTrait1.020.ld.phen --qcovar covar.q.txt --covar covar.c.txt --keep keep.all.txt --thread-num 10 --out sim1.ld.assoc" --output fastGWA.sim1.assoc.$(date +%Y%m%d).out.txt
+sbatch --time 10:00:00 --partition cpu --job-name="gas2" --ntasks 1 --cpus-per-task 10 --mem 64G --wrap="gcta64 --bfile /users/k19049801/project/JZ_GED_PHD_C1/data/geno/GLADv3_EDGIv1_NBRv2/imputed/bfiles/GLAD_EDGI_NBR --grm-sparse UKB_GLADv3_EDGIv1_NBRv2.LD_Pruned.grm.sparse --fastGWA-mlm --pheno simTrait2.020.ld.phen --qcovar covar.q.txt --covar covar.c.txt --keep keep.all.txt --thread-num 10 --out sim2.ld.assoc" --output fastGWA.sim2.assoc.$(date +%Y%m%d).out.txt
+
+
+```
+
+## The log from the trait 1 GWAS above
+
+The h2 is very close to 0.2 (which is not surprising since I specified this in the simulation argument).
+GCTA seems to infer LD from the sample used.
+```{text }
+
+*******************************************************************
+* GCTA (Genome-wide Complex Trait Analysis)
+* Version v1.94.1 Linux
+* Built at Jan 16 2024 14:19:02, by GCC 8.3
+* (C) 2010-present, Yang Lab, Westlake University
+* Please report bugs to Jian Yang jian.yang@westlake.edu.cn
+* MIT License
+*******************************************************************
+Analysis started at 18:26:09 BST on Wed May 15 2024.
+Hostname: erc-hpc-comp184
+
+Options:
+
+--bfile /users/k19049801/project/JZ_GED_PHD_C1/data/geno/GLADv3_EDGIv1_NBRv2/imputed/bfiles/GLAD_EDGI_NBR
+--grm-sparse UKB_GLADv3_EDGIv1_NBRv2.LD_Pruned.grm.sparse
+--fastGWA-mlm
+--pheno simTrait2.020.ld.phen
+--qcovar covar.q.txt
+--covar covar.c.txt
+--keep keep.all.txt
+--thread-num 10
+--out sim2.ld.assoc
+
+The program will be running with up to 10 threads.
+Reading PLINK FAM file from [/users/k19049801/project/JZ_GED_PHD_C1/data/geno/GLADv3_EDGIv1_NBRv2/imputed/bfiles/GLAD_EDGI_NBR.fam]...
+37557 individuals to be included from FAM file.
+Get 36746 samples from list [keep.all.txt].
+After keeping individuals, 36746 subjects remain.
+Reading phenotype data from [simTrait2.020.ld.phen]...
+36746 overlapping individuals with non-missing data to be included from the phenotype file.
+36746 individuals to be included. 9633 males, 27109 females, 4 unknown.
+Reading PLINK BIM file from [/users/k19049801/project/JZ_GED_PHD_C1/data/geno/GLADv3_EDGIv1_NBRv2/imputed/bfiles/GLAD_EDGI_NBR.bim]...
+15009228 SNPs to be included from BIM file(s).
+Reading quantitative covariates from [covar.q.txt].
+7 covariates of 36746 samples to be included.
+Reading discrete covariates from [covar.c.txt].
+3 covariates of 36746 samples to be included.
+7 qcovar, 3 covar and 0 rcovar to be included.
+36746 common individuals among the covariate files to be included.
+36746 overlapping individuals with non-missing data to be included from the covariate file(s).
+Reading the sparse GRM file from [UKB_GLADv3_EDGIv1_NBRv2.LD_Pruned.grm.sparse]...
+After matching all the files, 36746 individuals to be included in the analysis.
+Estimating the genetic variance (Vg) by fastGWA-REML (grid search)...
+Iteration 1, step size: 183540, logL: -317026. Vg: 2.38602e+06, searching range: 2.20248e+06 to 2.56956e+06
+Iteration 2, step size: 24472, logL: -317026. Vg: 2.4472e+06, searching range: 2.42273e+06 to 2.47167e+06
+Iteration 3, step size: 3262.94, logL: -317026. Vg: 2.45862e+06, searching range: 2.45536e+06 to 2.46189e+06
+Iteration 4, step size: 435.058, logL: -317026. Vg: 2.45884e+06, searching range: 2.45841e+06 to 2.45928e+06
+Iteration 5, step size: 58.0078, logL: -317026. Vg: 2.45893e+06, searching range: 2.45887e+06 to 2.45899e+06
+Iteration 6, step size: 7.73437, logL: -317026. Vg: 2.45892e+06, searching range: 2.45891e+06 to 2.45892e+06
+Iteration 7, step size: 1.03125, logL: -317026. Vg: 2.45891e+06, searching range: 2.45891e+06 to 2.45891e+06
+Iteration 8, step size: 0.1375, logL: -317026. Vg: 2.45891e+06, searching range: 2.45891e+06 to 2.45891e+06
+Iteration 9, step size: 0.0183333, logL: -317026. Vg: 2.45891e+06, searching range: 2.45891e+06 to 2.45891e+06
+Iteration 10, step size: 0.00244444, logL: -317026. Vg: 2.45891e+06, searching range: 2.45891e+06 to 2.45891e+06
+Iteration 11, step size: 0.000325926, logL: -317026. Vg: 2.45891e+06, searching range: 2.45891e+06 to 2.45891e+06
+Iteration 12, step size: 4.34568e-05, logL: -317026. Vg: 2.45891e+06, searching range: 2.45891e+06 to 2.45891e+06
+Iteration 13, step size: 5.79422e-06, logL: -317026. Vg: 2.45891e+06, searching range: 2.45891e+06 to 2.45891e+06
+fastGWA-REML converged.
+logL: -317026
+Sampling variance/covariance of the estimates of Vg and Ve:
+9.15282e+11 -9.1058e+11
+-9.1058e+11 9.13048e+11
+
+Source	Variance	SE
+Vg	2.45891e+06	956704
+Ve	9.01235e+06	955536
+Vp	1.14713e+07
+
+Heritability = 0.214354 (Pval = 0.0101643)
+fastGWA-REML runtime: 0.587872 sec.
+
+Tuning parameters using 2000 null SNPs...
+  reading genotypes...
+  100% finished in 39.5 sec
+2000 SNPs have been processed.
+Tuning of Gamma finished at the 1000th SNP.
+Mean GRAMMAR-Gamma value = 0.000000
+Tuning of Gamma finished 39.8922 seconds.
+
+Performing fastGWA mixed model association analysis...
+fastGWA results will be saved in text format to [sim2.ld.assoc.fastGWA].
+  Filtering out variants with MAF < 0.0001, or customise it with --maf flag.
+  Filtering out variants with missingness rate > 0.10, or customise it with --geno flag.
+  97.3% Estimated time remaining 0.1 min
+  100% finished in 308.1 sec
+15009228 SNPs have been processed.
+Saved 13894697 SNPs.
+
+Analysis finished at 18:32:15 BST on Wed May 15 2024
+Overall computational time: 6 minutes 5 sec.
+
+```
+
+
+#LD score regression
+
+Genomic SEM LDSC, HM3 LD scores
+
+This is the Genomic SEM LDSC with an added extra duplicate removal step as duplicates across 'SNP' was causing differences otherwise between the implementations:
+https://github.com/johanzvrskovec/shru/blob/f8051a56858c887fc6e3da76db22cf4069b2595d/R/ldsc.orig.mod-jz.R#L213
+
+
+```{r}
+cat("\n\n*** LDSC: covstruct.GSEMmvLDSC.hm3.sim ***\n") #this is the MODIFIED main branch implementation, changed to remove duplicate variants over SNP - the seemingly main difference between the LDSC++ and original Genomic SEM implementations when running with original LDSC-settings (block jackknife, 200 fixed blocks etc.)
+  p$mvLD$covstruct.GSEMmvLDSC.hm3.sim<-ldsc.orig.mod(
+    traits = p$sumstats.sel.sim$mungedpath.ldsc.hm3,
+    sample.prev =  p$sumstats.sel.sim$samplePrevalence.balanced,
+    population.prev = p$sumstats.sel.sim$populationPrevalence,
+    trait.names = p$sumstats.sel.sim$code,
+    ld = p$folderpath.data.mvLDSC.ld.hm3,
+    n.blocks = 200,
+    ldsc.log = p$setup.code.date
+    )
+  saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+cat("\n\n***END LDSC: covstruct.GSEMmvLDSC.hm3.sim ***\n")
+```
+
+## LD score regression results
+Genomic SEM LDSC, HM3 LD scores
+```{text }
+
+*** LDSC: covstruct.GSEMmvLDSC.hm3.sim ***
+Multivariate ld-score regression of 2 traits (/scratch/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/munged_hm3_eur_supermunge_ldsc_maf_0.01/SMRV01.sumstats.gz /scratch/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/munged_hm3_eur_supermunge_ldsc_maf_0.01/SMRV02.sumstats.gz) began at: 2024-05-16 11:40:53.410902
+Reading in LD scores
+Read in summary statistics [1/2] from: /scratch/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/munged_hm3_eur_supermunge_ldsc_maf_0.01/SMRV01.sumstats.gz
+Length of unique SNPs: 752447 vs total no. SNPs: 895457
+Removing residual SNP id duplicates.
+Out of 755149 SNPs, 752447 remain after merging with LD-score files
+Removing 6 SNPs with Chi^2 > 80; 752441 remain
+Read in summary statistics [2/2] from: /scratch/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/munged_hm3_eur_supermunge_ldsc_maf_0.01/SMRV02.sumstats.gz
+Length of unique SNPs: 752447 vs total no. SNPs: 895457
+Removing residual SNP id duplicates.
+Out of 755149 SNPs, 752447 remain after merging with LD-score files
+Removing 142 SNPs with Chi^2 > 80; 752305 remain
+Estimating heritability [1/3] for: /scratch/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/munged_hm3_eur_supermunge_ldsc_maf_0.01/SMRV01.sumstats.gz
+Heritability Results for trait: /scratch/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/munged_hm3_eur_supermunge_ldsc_maf_0.01/SMRV01.sumstats.gz
+Mean Chi^2 across remaining SNPs: 1.2124
+Lambda GC: 1.1312
+Intercept: 0.9363 (0.0057)
+Ratio: -0.2999 (0.0267)
+Total Observed Scale h2: 0.3179 (0.0098)
+h2 Z: 32.5
+Calculating genetic covariance [2/3] for traits: /scratch/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/munged_hm3_eur_supermunge_ldsc_maf_0.01/SMRV01.sumstats.gz and /scratch/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/munged_hm3_eur_supermunge_ldsc_maf_0.01/SMRV02.sumstats.gz
+752299 SNPs remain after merging /scratch/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/munged_hm3_eur_supermunge_ldsc_maf_0.01/SMRV01.sumstats.gz and /scratch/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/munged_hm3_eur_supermunge_ldsc_maf_0.01/SMRV02.sumstats.gz summary statistics
+Results for genetic covariance between: /scratch/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/munged_hm3_eur_supermunge_ldsc_maf_0.01/SMRV01.sumstats.gz and /scratch/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/munged_hm3_eur_supermunge_ldsc_maf_0.01/SMRV02.sumstats.gz
+Mean Z*Z: 0.0894
+Cross trait Intercept: 0.0321 (0.0036)
+Total Observed Scale Genetic Covariance (g_cov): 0.0713 (0.0066)
+g_cov Z: 10.9
+g_cov P-value: 1.4328e-27
+Estimating heritability [3/3] for: /scratch/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/munged_hm3_eur_supermunge_ldsc_maf_0.01/SMRV02.sumstats.gz
+Heritability Results for trait: /scratch/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/munged_hm3_eur_supermunge_ldsc_maf_0.01/SMRV02.sumstats.gz
+Mean Chi^2 across remaining SNPs: 1.2475
+Lambda GC: 1.1596
+Intercept: 0.9493 (0.0052)
+Ratio: -0.205 (0.021)
+Total Observed Scale h2: 0.339 (0.0102)
+h2 Z: 33.2
+Genetic Correlation Results
+Genetic Correlation between SMRV01 and SMRV02: 0.2172 (0.02)
+LDSC finished running at 2024-05-16 11:42:43.549476
+Running LDSC for all files took 1 minutes and 50 seconds
+
+
+***END LDSC: covstruct.GSEMmvLDSC.hm3.sim ***
+
+
+
+```
+
+##Extending to 1kG LD scores
+
+Note this was done in LDSC++ emulating Genomic SEM settings (no extensions added) - should produce the same results as genomic SEM LDSC.
+
+```{text }
+
+*** LDSC: covstruct.mvLDSC.GSEMemulation.1kg.maf0_01.sim ***
+[1] "Multivariate ld-score regression of 2 traits (/scratch/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/munged_1kg_orig_eur_supermunge_unfiltered/SMRV01.gz /scratch/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/munged_1kg_orig_eur_supermunge_unfiltered/SMRV02.gz) began at: 2024-05-16 11:44:30.099334"
+[1] "resamplingMethod=jn"
+[1] "filter.maf=0.01"
+[1] "filter.info=0.6"
+[1] "filter.info.lt=NA"
+[1] "filter.chisq.max=NA"
+[1] "filter.chisq.min=NA"
+[1] "filter.simpute.fraction=NA"
+[1] "filter.sinfo.imputed=0.9"
+[1] "filter.sinfo=0.9"
+[1] "filter.ldimp.k=NA"
+[1] "doubleRegressionRoutine=FALSE"
+[1] "preweight.ChiSquare=FALSE"
+[1] "preweight.INFO=FALSE"
+[1] "preweight.SINFO=TRUE"
+[1] "correctAttenuationBias=FALSE"
+[1] "attenuationBiasCorrectionFactorExponent=0.25"
+[1] "reinflateImputedGWAS=TRUE"
+[1] "reinflateImputedGWAS.inflationFactorExponent=0.5"
+[1] "Reading in LD scores"
+[1] "Head of LD scores"
+Key: <SNP>
+            CHR            SNP        BP      L2
+          <int>         <char>     <int>   <num>
+       1:     1   .;esv3585028   2397655   1.364
+       2:     1   .;esv3585524  25672907 -13.264
+       3:     1   .;esv3585885  44879444  -7.453
+       4:     1   .;esv3588592 203077863  -5.019
+       5:     2   .;esv3593789 193529303   7.879
+      ---
+23247199:    23 yl_cn_tsi_4483 144326342   3.006
+23247200:    23 yl_cn_yri_5495   2366748  16.017
+23247201:    23 yl_cn_yri_5574  61802566  10.258
+23247202:    23 yl_cn_yri_5603  81292278  10.085
+23247203:    23 yl_cn_yri_5614  94525650  -3.924
+[1] "Total M (forced from argument): 7184778"
+[1] "Read in summary statistics [1/2] from: /scratch/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/munged_1kg_orig_eur_supermunge_unfiltered/SMRV01.gz"
+[1] "Columns: "
+ [1] "SNP  "  "A1  "   "A2  "   "CHR  "  "BP  "   "FRQ  "  "BETA  " "SE  "
+ [9] "Z  "    "P  "    "N  "    "NEFF  "
+[1] "Dataset specific ancestry setting: MIX"
+[1] "Cap NEFF: TRUE"
+[1] "N - median, min, max: 36592, 33072, 36746"
+[1] "Removing 3399956 SNPs with MAF <0.01; 5411261 remain"
+[1] "Warning: The dataset does not contain an INFO column to apply the specified filter on."
+[1] "Length of unique SNPs: 5411255 vs total no. SNPs: 5411255"
+[1] "Out of 5411261 SNPs, 5411255 remain after merging with LD-score files"
+[1] "Columns after merge: SNP A1 A2 CHR BP FRQ BETA SE Z P N NEFF CHR_REF BP_REF L2 wLD"
+[1] "Removing 41 SNPs with Chi^2 > 80; 5411214 remain"
+[1] "Read in summary statistics [2/2] from: /scratch/users/k19049801/project/JZ_GED_PHD_ADMIN_GENERAL/data/gwas_sumstats/munged_1kg_orig_eur_supermunge_unfiltered/SMRV02.gz"
+[1] "Columns: "
+ [1] "SNP  "  "A1  "   "A2  "   "CHR  "  "BP  "   "FRQ  "  "BETA  " "SE  "
+ [9] "Z  "    "P  "    "N  "    "NEFF  "
+[1] "Dataset specific ancestry setting: MIX"
+[1] "Cap NEFF: TRUE"
+[1] "N - median, min, max: 36592, 33072, 36746"
+[1] "Removing 3399957 SNPs with MAF <0.01; 5411262 remain"
+[1] "Warning: The dataset does not contain an INFO column to apply the specified filter on."
+[1] "Length of unique SNPs: 5411256 vs total no. SNPs: 5411256"
+[1] "Out of 5411262 SNPs, 5411256 remain after merging with LD-score files"
+[1] "Columns after merge: SNP A1 A2 CHR BP FRQ BETA SE Z P N NEFF CHR_REF BP_REF L2 wLD"
+[1] "Removing 2443 SNPs with Chi^2 > 80; 5408813 remain"
+[1] "N per dataset"
+[1] "The total number of variants (non unique) in the analysis is 10820027"
+[1] "The overall genetic variant intersect across datasets is 1 of the median dataset (5408769 vs. 5410013.5)"
+[1] "Using jackknife resampling"
+[1] "M = 7184778"
+[1] "Calculating genetic covariance [1/3] for traits: SMRV01 and SMRV01"
+[1] "Trait pair has an overlap of 5411214 variants, 1 of the median merged dataset."
+[1] "5411214 SNPs remain after merging (and merge filters: SINFO, ZZ)"
+[1] "200 blocks to be used"
+[1] "Calculating genetic covariance [2/3] for traits: SMRV01 and SMRV02"
+[1] "Trait pair has an overlap of 5408769 variants, 1 of the median merged dataset."
+[1] "5408769 SNPs remain after merging (and merge filters: SINFO, ZZ)"
+[1] "200 blocks to be used"
+[1] "Calculating genetic covariance [3/3] for traits: SMRV02 and SMRV02"
+[1] "Trait pair has an overlap of 5408813 variants, 1 of the median merged dataset."
+[1] "5408813 SNPs remain after merging (and merge filters: SINFO, ZZ)"
+[1] "200 blocks to be used"
+[1] "(Liability) Scale Results"
+[1] "Total Liability Scale h2 for: SMRV01: 0.232 (0.0162) [0.07] {1.616}"
+[1] "Total Liability Scale covG for SMRV01 and SMRV02: 0.069 (0.0119) [0.171] {2.306}"
+[1] "Total Liability Scale h2 for: SMRV02: 0.241 (0.023) [0.096] {0.98}"
+[1] "Genetic Correlation Results"
+[1] "Genetic Correlation between SMRV01 and SMRV02: 0.2941 (0.0504)"
+[1] "LDSC finished running at 2024-05-16 11:56:23.12499"
+[1] "Running LDSC for all files took 11 minutes and 53 seconds"
+
+
+***END LDSC: covstruct.mvLDSC.GSEMemulation.1kg.maf0_01.sim ***
+
+```
+
+
+
+
