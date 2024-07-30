@@ -1,6 +1,7 @@
 #Create refpanel variant list
 
 #revision history
+#version 3 - the mix ld-scores are available now?
 #version 2 - adapted for the jz2024 version. the mix ld-scores are not available yet because they take > 2 days to run on CREATE.
 
 library(data.table)
