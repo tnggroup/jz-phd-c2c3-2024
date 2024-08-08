@@ -3302,23 +3302,23 @@ if(p$clOptions$task=="mvLD" || (!file.exists(p$filepath.mvLD) & p$clOptions$task
   #GSEM LDSC
   
   
-   cat("\n\n*** LDSC: covstruct.GSEMmvLDSC.gladp.sim ***\n") #this is the MODIFIED main branch implementation, changed to remove duplicate variants over SNP - the seemingly main difference between the LDSC++ and original Genomic SEM implementations when running with original LDSC-settings (block jackknife, 200 fixed blocks etc.)
-  p$mvLD$covstruct.GSEMmvLDSC.gladp.sim<-ldsc.orig.mod(
-    traits = p$sumstats.sel.sim$mungedpath.supermunge.1kg.orig.unfiltered,
-    sample.prev =  p$sumstats.sel.sim$samplePrevalence.balanced,
-    population.prev = p$sumstats.sel.sim$populationPrevalence,
-    trait.names = p$sumstats.sel.sim$code,
-    ld = p$folderpath.data.mvLDSC.ld.GLADp,
-    n.blocks = 200,
-    filter.info = 0.6,
-    filter.maf = 0.01,
-    stand = T,
-    force.M = 6369726,  #from previous ldscpp run logs
-    do.filter.unique.SNP = F, #we do not want to filter these as we did not for the real world data
-    ldsc.log = p$setup.code.date
-    )
-  saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  cat("\n\n***END LDSC: covstruct.GSEMmvLDSC.gladp.sim ***\n")
+  #  cat("\n\n*** LDSC: covstruct.GSEMmvLDSC.gladp.sim ***\n") #this is the MODIFIED main branch implementation, changed to remove duplicate variants over SNP - the seemingly main difference between the LDSC++ and original Genomic SEM implementations when running with original LDSC-settings (block jackknife, 200 fixed blocks etc.)
+  # p$mvLD$covstruct.GSEMmvLDSC.gladp.sim<-ldsc.orig.mod(
+  #   traits = p$sumstats.sel.sim$mungedpath.supermunge.1kg.orig.unfiltered,
+  #   sample.prev =  p$sumstats.sel.sim$samplePrevalence.balanced,
+  #   population.prev = p$sumstats.sel.sim$populationPrevalence,
+  #   trait.names = p$sumstats.sel.sim$code,
+  #   ld = p$folderpath.data.mvLDSC.ld.GLADp,
+  #   n.blocks = 200,
+  #   filter.info = 0.6,
+  #   filter.maf = 0.01,
+  #   stand = T,
+  #   force.M = 6369726,  #from previous ldscpp run logs
+  #   do.filter.unique.SNP = F, #we do not want to filter these as we did not for the real world data
+  #   ldsc.log = p$setup.code.date
+  #   )
+  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  # cat("\n\n***END LDSC: covstruct.GSEMmvLDSC.gladp.sim ***\n")
   
 # 
 #   cat("\n\n*** LDSC: covstruct.GSEMmvLDSC.hm3 ***\n")
@@ -3409,30 +3409,30 @@ if(p$clOptions$task=="mvLD" || (!file.exists(p$filepath.mvLD) & p$clOptions$task
 #   saveRDS(object = p$mvLD,file = p$filepath.mvLD)
 #   cat("\n\n***END LDSC: covstruct.mvLDSC.GSEMemulation.1kg.maf0_01 ***\n")
 # 
-#   #this is just called 1kg because of legacy
-#   cat("\n\n*** LDSC: covstruct.mvLDSC.GSEMemulation.1kg.maf0_01.sim ***\n")
-#   p$mvLD$covstruct.mvLDSC.GSEMemulation.1kg.maf0_01.sim<-ldscpp(
-#     traits = p$sumstats.sel.sim$mungedpath.supermunge.1kg.orig.unfiltered, #USES THE UNFILTERED FOLDER BECAUSE OF 0.01
-#     sample.prev =  p$sumstats.sel.sim$samplePrevalence.balanced,
-#     population.prev = p$sumstats.sel.sim$populationPrevalence,
-#     trait.names = p$sumstats.sel.sim$code,
-#     ld = p$folderpath.data.mvLDSC.ld.GLADp,
-#     n.blocks = 200,
-#     ldsc.log = p$setup.code.date,
-#     preweight.alternativeCorrelationCorrection = F,
-#     preweight.ChiSquare = F,
-#     correctAttenuationBias = F,
-#     doubleRegressionRoutine = F,
-#     preweight.INFO=F,
-#     resamplingMethod="jn",
-#     blocksizeCM = NA, #inactivate CM window def
-#     filter.info = 0.6,
-#     filter.maf = 0.01,
-#     filter.zz.min = 0
-#     #force.M = 7184778
-#     )
-#   saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-#   cat("\n\n***END LDSC: covstruct.mvLDSC.GSEMemulation.1kg.maf0_01.sim ***\n")
+  #this is just called 1kg because of legacy
+  cat("\n\n*** LDSC: covstruct.mvLDSC.GSEMemulation.1kg.maf0_01.sim ***\n")
+  p$mvLD$covstruct.mvLDSC.GSEMemulation.1kg.maf0_01.sim<-ldscpp(
+    traits = p$sumstats.sel.sim$mungedpath.supermunge.1kg.orig.unfiltered, #USES THE UNFILTERED FOLDER BECAUSE OF 0.01
+    sample.prev =  p$sumstats.sel.sim$samplePrevalence.balanced,
+    population.prev = p$sumstats.sel.sim$populationPrevalence,
+    trait.names = p$sumstats.sel.sim$code,
+    ld = p$folderpath.data.mvLDSC.ld.GLADp,
+    n.blocks = 200,
+    ldsc.log = p$setup.code.date,
+    preweight.alternativeCorrelationCorrection = F,
+    preweight.ChiSquare = F,
+    correctAttenuationBias = F,
+    doubleRegressionRoutine = F,
+    preweight.INFO=F,
+    resamplingMethod="jn",
+    blocksizeCM = NA, #inactivate CM window def
+    filter.info = 0.6,
+    filter.maf = 0.01,
+    filter.zz.min = 0
+    #force.M = 7184778
+    )
+  saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  cat("\n\n***END LDSC: covstruct.mvLDSC.GSEMemulation.1kg.maf0_01.sim ***\n")
 
   
   # cat("\n\n*** LDSC: covstruct.mvLDSC.GSEMemulation.1kg.maf0_05 ***\n")
@@ -3576,28 +3576,28 @@ if(p$clOptions$task=="mvLD" || (!file.exists(p$filepath.mvLD) & p$clOptions$task
   # #View(p$mvLD$covstruct.mvLDSC.1kg.jn.varblock$S.SE)
   
 
-  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.jn.varblock.sim ***\n")
-  # p$mvLD$covstruct.mvLDSC.1kg.jn.varblock.sim<-ldscpp(
-  #   traits = p$sumstats.sel.sim$mungedpath.supermunge.1kg.orig.unfiltered,
-  #   sample.prev =  p$sumstats.sel.sim$samplePrevalence.balanced,
-  #   population.prev = p$sumstats.sel.sim$populationPrevalence,
-  #   trait.names = p$sumstats.sel.sim$code,
-  #   ld = p$folderpath.data.mvLDSC.ld.GLADp,
-  #   ldsc.log = p$setup.code.date,
-  #   preweight.alternativeCorrelationCorrection = F,
-  #   preweight.ChiSquare = F,
-  #   correctAttenuationBias = F,
-  #   doubleRegressionRoutine = F,
-  #   preweight.INFO=F,
-  #   resamplingMethod="jn",
-  #   blocksizeCM = NA, #inactivate CM window def
-  #   filter.info = 0.6,
-  #   filter.maf = 0.01,
-  #   filter.zz.min = 0
-  #   #force.M = 7184778
-  #   )
-  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  # cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.jn.varblock.sim ***\n")
+  cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.jn.varblock.sim ***\n")
+  p$mvLD$covstruct.mvLDSC.1kg.jn.varblock.sim<-ldscpp(
+    traits = p$sumstats.sel.sim$mungedpath.supermunge.1kg.orig.unfiltered,
+    sample.prev =  p$sumstats.sel.sim$samplePrevalence.balanced,
+    population.prev = p$sumstats.sel.sim$populationPrevalence,
+    trait.names = p$sumstats.sel.sim$code,
+    ld = p$folderpath.data.mvLDSC.ld.GLADp,
+    ldsc.log = p$setup.code.date,
+    preweight.alternativeCorrelationCorrection = F,
+    preweight.ChiSquare = F,
+    correctAttenuationBias = F,
+    doubleRegressionRoutine = F,
+    preweight.INFO=F,
+    resamplingMethod="jn",
+    blocksizeCM = NA, #inactivate CM window def
+    filter.info = 0.6,
+    filter.maf = 0.01,
+    filter.zz.min = 0
+    #force.M = 7184778
+    )
+  saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.jn.varblock.sim ***\n")
 
   
   # 
@@ -3748,29 +3748,29 @@ if(p$clOptions$task=="mvLD" || (!file.exists(p$filepath.mvLD) & p$clOptions$task
   # cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.jn.rblock ***\n")
   # 
   
-  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.jn.rblock.sim ***\n")
-  # p$mvLD$covstruct.mvLDSC.1kg.jn.rblock.sim<-ldscpp(
-  #   traits = p$sumstats.sel.sim$mungedpath.supermunge.1kg.orig.unfiltered,
-  #   sample.prev =  p$sumstats.sel.sim$samplePrevalence.balanced,
-  #   population.prev = p$sumstats.sel.sim$populationPrevalence,
-  #   trait.names = p$sumstats.sel.sim$code,
-  #   ld = p$folderpath.data.mvLDSC.ld.GLADp,
-  #   filepathVariantsAdditional = p$filepath.SNPReference.gladp,
-  #   ldsc.log = p$setup.code.date,
-  #   preweight.alternativeCorrelationCorrection = F,
-  #   preweight.ChiSquare = F,
-  #   correctAttenuationBias = F,
-  #   doubleRegressionRoutine = F,
-  #   preweight.INFO=F,
-  #   resamplingMethod="jn",
-  #   #blocksizeCM = NA, #inactivate CM window def
-  #   filter.info = 0.6,
-  #   filter.maf = 0.01,
-  #   filter.zz.min = 0
-  #   #force.M = 7184778
-  #   )
-  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  # cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.jn.rblock.sim ***\n")
+  cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.jn.rblock.sim ***\n")
+  p$mvLD$covstruct.mvLDSC.1kg.jn.rblock.sim<-ldscpp(
+    traits = p$sumstats.sel.sim$mungedpath.supermunge.1kg.orig.unfiltered,
+    sample.prev =  p$sumstats.sel.sim$samplePrevalence.balanced,
+    population.prev = p$sumstats.sel.sim$populationPrevalence,
+    trait.names = p$sumstats.sel.sim$code,
+    ld = p$folderpath.data.mvLDSC.ld.GLADp,
+    filepathVariantsAdditional = p$filepath.SNPReference.gladp,
+    ldsc.log = p$setup.code.date,
+    preweight.alternativeCorrelationCorrection = F,
+    preweight.ChiSquare = F,
+    correctAttenuationBias = F,
+    doubleRegressionRoutine = F,
+    preweight.INFO=F,
+    resamplingMethod="jn",
+    #blocksizeCM = NA, #inactivate CM window def
+    filter.info = 0.6,
+    filter.maf = 0.01,
+    filter.zz.min = 0
+    #force.M = 7184778
+    )
+  saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.jn.rblock.sim ***\n")
 
   
   
@@ -3846,28 +3846,28 @@ if(p$clOptions$task=="mvLD" || (!file.exists(p$filepath.mvLD) & p$clOptions$task
   # cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.jn.varblock.altcw ***\n")
   # 
   
-  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.jn.varblock.altcw.sim ***\n")
-  # p$mvLD$covstruct.mvLDSC.1kg.jn.varblock.altcw.sim<-ldscpp(
-  #   traits = p$sumstats.sel.sim$mungedpath.supermunge.1kg.orig.unfiltered,
-  #   sample.prev =  p$sumstats.sel.sim$samplePrevalence.balanced,
-  #   population.prev = p$sumstats.sel.sim$populationPrevalence,
-  #   trait.names = p$sumstats.sel.sim$code,
-  #   ld = p$folderpath.data.mvLDSC.ld.GLADp,
-  #   ldsc.log = p$setup.code.date,
-  #   preweight.alternativeCorrelationCorrection = T,
-  #   preweight.ChiSquare = F,
-  #   correctAttenuationBias = F,
-  #   doubleRegressionRoutine = F,
-  #   preweight.INFO=F,
-  #   resamplingMethod="jn",
-  #   blocksizeCM = NA, #inactivate CM window def
-  #   filter.info = 0.6,
-  #   filter.maf = 0.01,
-  #   filter.zz.min = 0
-  #   #force.M = 7184778
-  #   )
-  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  # cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.jn.varblock.altcw.sim ***\n")
+  cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.jn.varblock.altcw.sim ***\n")
+  p$mvLD$covstruct.mvLDSC.1kg.jn.varblock.altcw.sim<-ldscpp(
+    traits = p$sumstats.sel.sim$mungedpath.supermunge.1kg.orig.unfiltered,
+    sample.prev =  p$sumstats.sel.sim$samplePrevalence.balanced,
+    population.prev = p$sumstats.sel.sim$populationPrevalence,
+    trait.names = p$sumstats.sel.sim$code,
+    ld = p$folderpath.data.mvLDSC.ld.GLADp,
+    ldsc.log = p$setup.code.date,
+    preweight.alternativeCorrelationCorrection = T,
+    preweight.ChiSquare = F,
+    correctAttenuationBias = F,
+    doubleRegressionRoutine = F,
+    preweight.INFO=F,
+    resamplingMethod="jn",
+    blocksizeCM = NA, #inactivate CM window def
+    filter.info = 0.6,
+    filter.maf = 0.01,
+    filter.zz.min = 0
+    #force.M = 7184778
+    )
+  saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.jn.varblock.altcw.sim ***\n")
 
   
   # 
@@ -3920,29 +3920,29 @@ if(p$clOptions$task=="mvLD" || (!file.exists(p$filepath.mvLD) & p$clOptions$task
   # cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.jn.rblock.altcw ***\n")
   # 
   
-  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.jn.rblock.altcw.sim ***\n")
-  # p$mvLD$covstruct.mvLDSC.1kg.jn.rblock.altcw.sim<-ldscpp(
-  #   traits = p$sumstats.sel.sim$mungedpath.supermunge.1kg.orig.unfiltered,
-  #   sample.prev =  p$sumstats.sel.sim$samplePrevalence.balanced,
-  #   population.prev = p$sumstats.sel.sim$populationPrevalence,
-  #   trait.names = p$sumstats.sel.sim$code,
-  #   ld = p$folderpath.data.mvLDSC.ld.GLADp,
-  #   filepathVariantsAdditional = p$filepath.SNPReference.1kg,
-  #   ldsc.log = p$setup.code.date,
-  #   preweight.alternativeCorrelationCorrection = T,
-  #   preweight.ChiSquare = F,
-  #   correctAttenuationBias = F,
-  #   doubleRegressionRoutine = F,
-  #   preweight.INFO=F,
-  #   resamplingMethod="jn",
-  #   #blocksizeCM = NA, #inactivate CM window def
-  #   filter.info = 0.6,
-  #   filter.maf = 0.01,
-  #   filter.zz.min = 0
-  #   #force.M = 7184778
-  #   )
-  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  # cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.jn.rblock.altcw.sim ***\n")
+  cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.jn.rblock.altcw.sim ***\n")
+  p$mvLD$covstruct.mvLDSC.1kg.jn.rblock.altcw.sim<-ldscpp(
+    traits = p$sumstats.sel.sim$mungedpath.supermunge.1kg.orig.unfiltered,
+    sample.prev =  p$sumstats.sel.sim$samplePrevalence.balanced,
+    population.prev = p$sumstats.sel.sim$populationPrevalence,
+    trait.names = p$sumstats.sel.sim$code,
+    ld = p$folderpath.data.mvLDSC.ld.GLADp,
+    filepathVariantsAdditional = p$filepath.SNPReference.1kg,
+    ldsc.log = p$setup.code.date,
+    preweight.alternativeCorrelationCorrection = T,
+    preweight.ChiSquare = F,
+    correctAttenuationBias = F,
+    doubleRegressionRoutine = F,
+    preweight.INFO=F,
+    resamplingMethod="jn",
+    #blocksizeCM = NA, #inactivate CM window def
+    filter.info = 0.6,
+    filter.maf = 0.01,
+    filter.zz.min = 0
+    #force.M = 7184778
+    )
+  saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.jn.rblock.altcw.sim ***\n")
 
   
   # 
@@ -4362,28 +4362,28 @@ if(p$clOptions$task=="mvLD" || (!file.exists(p$filepath.mvLD) & p$clOptions$task
   # #View(p$mvLD$covstruct.mvLDSC.1kg.jn.varblock$S.SE)
   
   
-  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.varblock.sim ***\n")
-  # p$mvLD$covstruct.mvLDSC.1kg.vbcs.varblock.sim<-ldscpp(
-  #   traits = p$sumstats.sel.sim$mungedpath.supermunge.1kg.orig.unfiltered,
-  #   sample.prev =  p$sumstats.sel.sim$samplePrevalence.balanced,
-  #   population.prev = p$sumstats.sel.sim$populationPrevalence,
-  #   trait.names = p$sumstats.sel.sim$code,
-  #   ld = p$folderpath.data.mvLDSC.ld.GLADp,
-  #   ldsc.log = p$setup.code.date,
-  #   preweight.alternativeCorrelationCorrection = F,
-  #   preweight.ChiSquare = F,
-  #   correctAttenuationBias = F,
-  #   doubleRegressionRoutine = F,
-  #   preweight.INFO=F,
-  #   resamplingMethod="vbcs",
-  #   blocksizeCM = NA, #inactivate CM window def
-  #   filter.info = 0.6,
-  #   filter.maf = 0.01,
-  #   filter.zz.min = 0
-  #   #force.M = 7184778
-  #   )
-  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  # cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.vbcs.varblock.sim ***\n")
+  cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.varblock.sim ***\n")
+  p$mvLD$covstruct.mvLDSC.1kg.vbcs.varblock.sim<-ldscpp(
+    traits = p$sumstats.sel.sim$mungedpath.supermunge.1kg.orig.unfiltered,
+    sample.prev =  p$sumstats.sel.sim$samplePrevalence.balanced,
+    population.prev = p$sumstats.sel.sim$populationPrevalence,
+    trait.names = p$sumstats.sel.sim$code,
+    ld = p$folderpath.data.mvLDSC.ld.GLADp,
+    ldsc.log = p$setup.code.date,
+    preweight.alternativeCorrelationCorrection = F,
+    preweight.ChiSquare = F,
+    correctAttenuationBias = F,
+    doubleRegressionRoutine = F,
+    preweight.INFO=F,
+    resamplingMethod="vbcs",
+    blocksizeCM = NA, #inactivate CM window def
+    filter.info = 0.6,
+    filter.maf = 0.01,
+    filter.zz.min = 0
+    #force.M = 7184778
+    )
+  saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.vbcs.varblock.sim ***\n")
 
   
   
@@ -4533,29 +4533,29 @@ if(p$clOptions$task=="mvLD" || (!file.exists(p$filepath.mvLD) & p$clOptions$task
   # 
   
   
-  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.rblock.sim ***\n")
-  # p$mvLD$covstruct.mvLDSC.1kg.vbcs.rblock.sim<-ldscpp(
-  #   traits = p$sumstats.sel.sim$mungedpath.supermunge.1kg.orig.unfiltered,
-  #   sample.prev =  p$sumstats.sel.sim$samplePrevalence.balanced,
-  #   population.prev = p$sumstats.sel.sim$populationPrevalence,
-  #   trait.names = p$sumstats.sel.sim$code,
-  #   ld = p$folderpath.data.mvLDSC.ld.GLADp,
-  #   filepathVariantsAdditional = p$filepath.SNPReference.gladp,
-  #   ldsc.log = p$setup.code.date,
-  #   preweight.alternativeCorrelationCorrection = F,
-  #   preweight.ChiSquare = F,
-  #   correctAttenuationBias = F,
-  #   doubleRegressionRoutine = F,
-  #   preweight.INFO=F,
-  #   resamplingMethod="vbcs",
-  #   #blocksizeCM = NA, #inactivate CM window def
-  #   filter.info = 0.6,
-  #   filter.maf = 0.01,
-  #   filter.zz.min = 0
-  #   #force.M = 7184778
-  #   )
-  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  # cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.vbcs.rblock.sim ***\n")
+  cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.rblock.sim ***\n")
+  p$mvLD$covstruct.mvLDSC.1kg.vbcs.rblock.sim<-ldscpp(
+    traits = p$sumstats.sel.sim$mungedpath.supermunge.1kg.orig.unfiltered,
+    sample.prev =  p$sumstats.sel.sim$samplePrevalence.balanced,
+    population.prev = p$sumstats.sel.sim$populationPrevalence,
+    trait.names = p$sumstats.sel.sim$code,
+    ld = p$folderpath.data.mvLDSC.ld.GLADp,
+    filepathVariantsAdditional = p$filepath.SNPReference.gladp,
+    ldsc.log = p$setup.code.date,
+    preweight.alternativeCorrelationCorrection = F,
+    preweight.ChiSquare = F,
+    correctAttenuationBias = F,
+    doubleRegressionRoutine = F,
+    preweight.INFO=F,
+    resamplingMethod="vbcs",
+    #blocksizeCM = NA, #inactivate CM window def
+    filter.info = 0.6,
+    filter.maf = 0.01,
+    filter.zz.min = 0
+    #force.M = 7184778
+    )
+  saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.vbcs.rblock.sim ***\n")
 
   
   # # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.rblock5 ***\n")
@@ -4630,28 +4630,28 @@ if(p$clOptions$task=="mvLD" || (!file.exists(p$filepath.mvLD) & p$clOptions$task
   # cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.vbcs.varblock.altcw ***\n")
   # 
   
-  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.varblock.altcw.sim ***\n")
-  # p$mvLD$covstruct.mvLDSC.1kg.vbcs.varblock.altcw.sim<-ldscpp(
-  #   traits = p$sumstats.sel.sim$mungedpath.supermunge.1kg.orig.unfiltered,
-  #   sample.prev =  p$sumstats.sel.sim$samplePrevalence.balanced,
-  #   population.prev = p$sumstats.sel.sim$populationPrevalence,
-  #   trait.names = p$sumstats.sel.sim$code,
-  #   ld = p$folderpath.data.mvLDSC.ld.GLADp,
-  #   ldsc.log = p$setup.code.date,
-  #   preweight.alternativeCorrelationCorrection = T,
-  #   preweight.ChiSquare = F,
-  #   correctAttenuationBias = F,
-  #   doubleRegressionRoutine = F,
-  #   preweight.INFO=F,
-  #   resamplingMethod="vbcs",
-  #   blocksizeCM = NA, #inactivate CM window def
-  #   filter.info = 0.6,
-  #   filter.maf = 0.01,
-  #   filter.zz.min = 0
-  #   #force.M = 7184778
-  #   )
-  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  # cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.vbcs.varblock.altcw.sim ***\n")
+  cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.varblock.altcw.sim ***\n")
+  p$mvLD$covstruct.mvLDSC.1kg.vbcs.varblock.altcw.sim<-ldscpp(
+    traits = p$sumstats.sel.sim$mungedpath.supermunge.1kg.orig.unfiltered,
+    sample.prev =  p$sumstats.sel.sim$samplePrevalence.balanced,
+    population.prev = p$sumstats.sel.sim$populationPrevalence,
+    trait.names = p$sumstats.sel.sim$code,
+    ld = p$folderpath.data.mvLDSC.ld.GLADp,
+    ldsc.log = p$setup.code.date,
+    preweight.alternativeCorrelationCorrection = T,
+    preweight.ChiSquare = F,
+    correctAttenuationBias = F,
+    doubleRegressionRoutine = F,
+    preweight.INFO=F,
+    resamplingMethod="vbcs",
+    blocksizeCM = NA, #inactivate CM window def
+    filter.info = 0.6,
+    filter.maf = 0.01,
+    filter.zz.min = 0
+    #force.M = 7184778
+    )
+  saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.vbcs.varblock.altcw.sim ***\n")
 
   
   
@@ -4704,29 +4704,29 @@ if(p$clOptions$task=="mvLD" || (!file.exists(p$filepath.mvLD) & p$clOptions$task
   # cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.vbcs.rblock.altcw ***\n")
   # 
   # 
-  # cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.rblock.altcw.sim ***\n")
-  # p$mvLD$covstruct.mvLDSC.1kg.vbcs.rblock.altcw.sim<-ldscpp(
-  #   traits = p$sumstats.sel.sim$mungedpath.supermunge.1kg.orig.unfiltered,
-  #   sample.prev =  p$sumstats.sel.sim$samplePrevalence.balanced,
-  #   population.prev = p$sumstats.sel.sim$populationPrevalence,
-  #   trait.names = p$sumstats.sel.sim$code,
-  #   ld = p$folderpath.data.mvLDSC.ld.GLADp,
-  #   filepathVariantsAdditional = p$filepath.SNPReference.gladp,
-  #   ldsc.log = p$setup.code.date,
-  #   preweight.alternativeCorrelationCorrection = T,
-  #   preweight.ChiSquare = F,
-  #   correctAttenuationBias = F,
-  #   doubleRegressionRoutine = F,
-  #   preweight.INFO=F,
-  #   resamplingMethod="vbcs",
-  #   #blocksizeCM = NA, #inactivate CM window def
-  #   filter.info = 0.6,
-  #   filter.maf = 0.01,
-  #   filter.zz.min = 0,
-  #   #force.M = 7184778
-  #   )
-  # saveRDS(object = p$mvLD,file = p$filepath.mvLD)
-  # cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.vbcs.rblock.altcw.sim ***\n")
+  cat("\n\n*** LDSC: covstruct.mvLDSC.1kg.vbcs.rblock.altcw.sim ***\n")
+  p$mvLD$covstruct.mvLDSC.1kg.vbcs.rblock.altcw.sim<-ldscpp(
+    traits = p$sumstats.sel.sim$mungedpath.supermunge.1kg.orig.unfiltered,
+    sample.prev =  p$sumstats.sel.sim$samplePrevalence.balanced,
+    population.prev = p$sumstats.sel.sim$populationPrevalence,
+    trait.names = p$sumstats.sel.sim$code,
+    ld = p$folderpath.data.mvLDSC.ld.GLADp,
+    filepathVariantsAdditional = p$filepath.SNPReference.gladp,
+    ldsc.log = p$setup.code.date,
+    preweight.alternativeCorrelationCorrection = T,
+    preweight.ChiSquare = F,
+    correctAttenuationBias = F,
+    doubleRegressionRoutine = F,
+    preweight.INFO=F,
+    resamplingMethod="vbcs",
+    #blocksizeCM = NA, #inactivate CM window def
+    filter.info = 0.6,
+    filter.maf = 0.01,
+    filter.zz.min = 0,
+    #force.M = 7184778
+    )
+  saveRDS(object = p$mvLD,file = p$filepath.mvLD)
+  cat("\n\n***END LDSC: covstruct.mvLDSC.1kg.vbcs.rblock.altcw.sim ***\n")
   # 
   # 
   # 
@@ -7586,13 +7586,20 @@ p$df.summary.rw_data.table %>%
 ```{r comparison table for simulated trait results, fig.width=9, fig.height=6, out.width="1600px", out.height="1000px", eval=FALSE, purl=FALSE}
 
 simulatedTraitsTableS<-as.data.frame(matrix(data=NA,nrow = 0,ncol = 0))
-
+ltCovstructS<-as.matrix(Matrix::tril(p$mvLD$covstruct.GCTA$S)) #something goes wrong with using lower.tri here
+ltCovstructS[upper.tri(ltCovstructS)]<-NA
+#View(ltCovstructS)
 diagCovstructS<-p$mvLD$covstruct.GCTA$S
 diagCovstructS[upper.tri(diagCovstructS)]<-NA
 diagCovstructS[lower.tri(diagCovstructS)]<-NA
-offDiagCovstructS<-p$mvLD$covstruct.GCTA$S
+offDiagCovstructS<-ltCovstructS
 diag(offDiagCovstructS)<-NA
 
+
+#test
+#code<-"gladp.sim.gsem"
+#cCovstruct <-p$mvLD$covstruct.mvLDSC.GSEMemulation.1kg.maf0_01.sim
+#simulatedTraitsTable<-simulatedTraitsTableS
 createTableEntriesFull<-function(code,cCovstruct,simulatedTraitsTable){
   # cols <-c("Avg. SIM1 LDSR h2","Avg. SIM1 REML h2","Avg. SIM2 LDSR h2","Avg. SIM2 REML h2","Avg. SIM LDSR h2","Avg. SIM REML h2","Avg. SIM1 & SIM2 LDSR covG","Avg. SIM1 & SIM2 REML covG","RMSE(S)","RMSE(diag S)","RMSE(off diag S)")
   cols <-c("Avg. SIM1 h2","Avg. SIM2 h2","Avg. SIM h2","Avg. SIM1 & SIM2 covG","RMSE(S)","RMSE(diag S)","RMSE(off diag S)")
@@ -7620,7 +7627,7 @@ createTableEntriesFull<-function(code,cCovstruct,simulatedTraitsTable){
    # (p$mvLD$covstruct.GCTA$S["SMRV01","SMRV02"] + p$mvLD$covstruct.GCTA$S["SMRV03","SMRV04"] + 
    #  p$mvLD$covstruct.GCTA$S["SMRV05","SMRV06"] + p$mvLD$covstruct.GCTA$S["SMRV07","SMRV08"])/4,
   
-  sqrt(mean((cCovstruct$S-p$mvLD$covstruct.GCTA$S)^2,na.rm=T)),
+  sqrt(mean((cCovstruct$S-ltCovstructS)^2,na.rm=T)),
   sqrt(mean((cCovstruct$S-diagCovstructS)^2,na.rm=T)),
   sqrt(mean((cCovstruct$S-offDiagCovstructS)^2,na.rm=T))
   
@@ -7683,7 +7690,7 @@ createTableEntriesPairwise<-function(code,cCovstruct,simulatedTraitsTable,t1,t2)
   
   #p$mvLD$covstruct.GCTA$S[t1,t2],
   
-  sqrt(mean((cCovstruct$S[c(t1,t2),c(t1,t2)]-p$mvLD$covstruct.GCTA$S[c(t1,t2),c(t1,t2)])^2,na.rm=T)),
+  sqrt(mean((cCovstruct$S[c(t1,t2),c(t1,t2)]-ltCovstructS[c(t1,t2),c(t1,t2)])^2,na.rm=T)),
   sqrt(mean((cCovstruct$S[c(t1,t2),c(t1,t2)]-diagCovstructS[c(t1,t2),c(t1,t2)])^2,na.rm=T)),
   sqrt(mean((cCovstruct$S[c(t1,t2),c(t1,t2)]-offDiagCovstructS[c(t1,t2),c(t1,t2)])^2,na.rm=T))
   
@@ -7846,15 +7853,41 @@ plotAndTestBatteryForMVLDSC(mvldsc = pretendGCTAcovstruct, folderpath.plots = p$
 
 simulatedTraitsTableS.SE<-as.data.frame(matrix(data=NA,nrow = 0,ncol = 0))
 
+ltCovstructS.SE<-as.matrix(Matrix::tril(p$mvLD$covstruct.GCTA$S.SE)) #something goes wrong with using lower.tri here
+ltCovstructS.SE[upper.tri(ltCovstructS.SE)]<-NA
+
 diagCovstructS.SE<-p$mvLD$covstruct.GCTA$S.SE
 diagCovstructS.SE[upper.tri(diagCovstructS.SE)]<-NA
 diagCovstructS.SE[lower.tri(diagCovstructS.SE)]<-NA
-offDiagCovstructS.SE<-p$mvLD$covstruct.GCTA$S.SE
+offDiagCovstructS.SE<-ltCovstructS.SE
 diag(offDiagCovstructS.SE)<-NA
+
+#needs the computations for the comparison table above
+ltCovstructS_ForCV<-abs(ltCovstructS)
+ltCovstruct_g_se <- sqrt(diag(ltCovstructS_ForCV))
+ltCovstructS_se2 <- ltCovstruct_g_se %*% t(ltCovstruct_g_se) #this is the diagonal based genetic covariance
+condCap<-(ltCovstructS_ForCV < ltCovstructS_se2 * 0.05)
+condCap[is.na(condCap)]<-F
+ltCovstructS_ForCV[condCap] <- (ltCovstructS_se2 * 0.05)[condCap] #cap at min rg 0.05 to avoid extreme values
+ltCovstructS.CV<-(ltCovstructS.SE/ltCovstructS_ForCV)
+diagCovstructS.CV<-ltCovstructS.CV
+diagCovstructS.CV[upper.tri(diagCovstructS.CV)]<-NA
+diagCovstructS.CV[lower.tri(diagCovstructS.CV)]<-NA
+offDiagCovstructS.CV<-ltCovstructS.CV
+diag(offDiagCovstructS.CV)<-NA
 
 createTableEntriesFull<-function(code,cCovstruct,simulatedTraitsTable){
   #cols <-c("Avg. SIM1 LDSR h2 S.E.","Avg. SIM1 REML h2 S.E.","Avg. SIM2 LDSR h2 S.E.","Avg. SIM2 REML h2 S.E.","Avg. SIM LDSR h2 S.E.","Avg. SIM REML h2 S.E.","Avg. SIM1 & SIM2 LDSR covG S.E.","Avg. SIM1 & SIM2 REML covG S.E.","RMSE(S S.E.)","RMSE(diag S S.E.)","RMSE(off diag S S.E.)")
-   cols <-c("Avg. SIM1 h2 S.E.","Avg. SIM2 h2 S.E.","Avg. SIM h2 S.E.","Avg. SIM1 & SIM2 covG S.E.","RMSE(S S.E.)","RMSE(diag S S.E.)","RMSE(off diag S S.E.)")
+   cols <-c("Avg. SIM1 h2 S.E.","Avg. SIM2 h2 S.E.","Avg. SIM h2 S.E.","Avg. SIM1 & SIM2 covG S.E.","RMSE(S S.E.)","RMSE(diag S S.E.)","RMSE(off diag S S.E.)","Avg. SIM1 h2 CV","Avg. SIM2 h2 CV","Avg. SIM h2 CV","Avg. SIM1 & SIM2 covG CV","RMSE(CV)","RMSE(diag S CV)","RMSE(off diag S CV)")
+   
+  S_ForCV<-abs(cCovstruct$S)
+  g_se <- sqrt(diag(S_ForCV))
+  S_se2 <- g_se %*% t(g_se) #this is the diagonal based genetic covariance
+  condCap<-(S_ForCV < S_se2 * 0.05)
+  condCap[is.na(condCap)]<-F
+  S_ForCV[condCap] <- (S_se2 * 0.05)[condCap] #cap at min rg 0.05 to avoid extreme values
+  S.CV<-(cCovstruct$S.SE/S_ForCV)
+   
   simulatedTraitsTable[code,cols]<-c(
   
   (cCovstruct$S.SE["SMRV01","SMRV01"] + cCovstruct$S.SE["SMRV03","SMRV03"] + 
@@ -7879,10 +7912,22 @@ createTableEntriesFull<-function(code,cCovstruct,simulatedTraitsTable){
    # (p$mvLD$covstruct.GCTA$S.SE["SMRV01","SMRV02"] + p$mvLD$covstruct.GCTA$S.SE["SMRV03","SMRV04"] + 
    #  p$mvLD$covstruct.GCTA$S.SE["SMRV05","SMRV06"] + p$mvLD$covstruct.GCTA$S.SE["SMRV07","SMRV08"])/4,
   
-  sqrt(mean((cCovstruct$S.SE-p$mvLD$covstruct.GCTA$S.SE)^2,na.rm=T)),
+  sqrt(mean((cCovstruct$S.SE-ltCovstructS.SE)^2,na.rm=T)),
   sqrt(mean((cCovstruct$S.SE-diagCovstructS.SE)^2,na.rm=T)),
-  sqrt(mean((cCovstruct$S.SE-offDiagCovstructS.SE)^2,na.rm=T))
+  sqrt(mean((cCovstruct$S.SE-offDiagCovstructS.SE)^2,na.rm=T)),
   
+  
+  (S.CV["SMRV01","SMRV01"] + S.CV["SMRV03","SMRV03"] + 
+    S.CV["SMRV05","SMRV05"] + S.CV["SMRV07","SMRV07"])/4,
+   (S.CV["SMRV02","SMRV02"] + S.CV["SMRV04","SMRV04"] + 
+    S.CV["SMRV06","SMRV06"] + S.CV["SMRV08","SMRV08"])/4,
+  mean(diag(S.CV),na.rm=T),
+  (S.CV["SMRV01","SMRV02"] + S.CV["SMRV03","SMRV04"] + 
+    S.CV["SMRV05","SMRV06"] + S.CV["SMRV07","SMRV08"])/4,
+   sqrt(mean((S.CV-ltCovstructS.CV)^2,na.rm=T)),
+  sqrt(mean((S.CV-diagCovstructS.CV)^2,na.rm=T)),
+  sqrt(mean((S.CV-offDiagCovstructS.CV)^2,na.rm=T))
+
 )
   simulatedTraitsTable
 }
@@ -7923,7 +7968,16 @@ simulatedTraitsTableS.SE<-createTableEntriesFull("gladp.sim.jn.r",p$mvLD$covstru
 
 createTableEntriesPairwise<-function(code,cCovstruct,simulatedTraitsTable,t1,t2){
   #cols <-c("Avg. SIM1 LDSR h2 S.E.","Avg. SIM1 REML h2 S.E.","Avg. SIM2 LDSR h2 S.E.","Avg. SIM2 REML h2 S.E.","Avg. SIM LDSR h2 S.E.","Avg. SIM REML h2 S.E.","Avg. SIM1 & SIM2 LDSR covG S.E.","Avg. SIM1 & SIM2 REML covG S.E.","RMSE(S S.E.)","RMSE(diag S S.E.)","RMSE(off diag S S.E.)")
-  cols <-c("Avg. SIM1 h2 S.E.","Avg. SIM2 h2 S.E.","Avg. SIM h2 S.E.","Avg. SIM1 & SIM2 covG S.E.","RMSE(S S.E.)","RMSE(diag S S.E.)","RMSE(off diag S S.E.)")
+  cols <-c("Avg. SIM1 h2 S.E.","Avg. SIM2 h2 S.E.","Avg. SIM h2 S.E.","Avg. SIM1 & SIM2 covG S.E.","RMSE(S S.E.)","RMSE(diag S S.E.)","RMSE(off diag S S.E.)","Avg. SIM1 h2 CV","Avg. SIM2 h2 CV","Avg. SIM h2 CV","Avg. SIM1 & SIM2 covG CV","RMSE(CV)","RMSE(diag S CV)","RMSE(off diag S CV)")
+  
+  S_ForCV<-abs(cCovstruct$S)
+  g_se <- sqrt(diag(S_ForCV))
+  S_se2 <- g_se %*% t(g_se) #this is the diagonal based genetic covariance
+  condCap<-(S_ForCV < S_se2 * 0.05)
+  condCap[is.na(condCap)]<-F
+  S_ForCV[condCap] <- (S_se2 * 0.05)[condCap] #cap at min rg 0.05 to avoid extreme values
+  S.CV<-(cCovstruct$S.SE/S_ForCV)
+  
   simulatedTraitsTable[code,cols]<-c(
   
   cCovstruct$S.SE[t1,t1],
@@ -7944,7 +7998,28 @@ createTableEntriesPairwise<-function(code,cCovstruct,simulatedTraitsTable,t1,t2)
   
   sqrt(mean((cCovstruct$S.SE[c(t1,t2),c(t1,t2)]-p$mvLD$covstruct.GCTA$S.SE[c(t1,t2),c(t1,t2)])^2,na.rm=T)),
   sqrt(mean((cCovstruct$S.SE[c(t1,t2),c(t1,t2)]-diagCovstructS.SE[c(t1,t2),c(t1,t2)])^2,na.rm=T)),
-  sqrt(mean((cCovstruct$S.SE[c(t1,t2),c(t1,t2)]-offDiagCovstructS.SE[c(t1,t2),c(t1,t2)])^2,na.rm=T))
+  sqrt(mean((cCovstruct$S.SE[c(t1,t2),c(t1,t2)]-offDiagCovstructS.SE[c(t1,t2),c(t1,t2)])^2,na.rm=T)),
+  
+  #cv results
+  S.CV[t1,t1],
+  
+  #p$mvLD$covstruct.GCTA$S.SE[t1,t1],
+  
+  S.CV[t2,t2],
+  
+  #p$mvLD$covstruct.GCTA$S.SE[t2,t2],
+  
+  mean(diag(S.CV[c(t1,t2),c(t1,t2)]),na.rm=T),
+  
+  #mean(diag(p$mvLD$covstruct.GCTA$S.SE[c(t1,t2),c(t1,t2)]),na.rm=T),
+  
+  S.CV[t1,t2],
+  
+  #p$mvLD$covstruct.GCTA$S.SE[t1,t2],
+  
+  sqrt(mean((S.CV[c(t1,t2),c(t1,t2)]-ltCovstructS.CV[c(t1,t2),c(t1,t2)])^2,na.rm=T)),
+  sqrt(mean((S.CV[c(t1,t2),c(t1,t2)]-diagCovstructS.CV[c(t1,t2),c(t1,t2)])^2,na.rm=T)),
+  sqrt(mean((S.CV[c(t1,t2),c(t1,t2)]-offDiagCovstructS.CV[c(t1,t2),c(t1,t2)])^2,na.rm=T))
   
 )
   simulatedTraitsTable
@@ -8082,7 +8157,7 @@ simulatedTraitsTableS.SE<-createTableEntriesPairwise("gladp.sim25.jn.r",p$mvLD$c
 
 ```
 
-# Create simulation results table for main manuscript
+# Create simulation results table and plot for main manuscript
 The table for real world data is created in the rg overview.
 ```{r simulation results stable, fig.width=9, fig.height=6, out.width="1600px", out.height="1000px", eval=FALSE, purl=FALSE}
 
@@ -8107,17 +8182,24 @@ selRows<-c(
   "RMSE(S)",
   "RMSE(diag S)",
   "RMSE(off diag S)",
-  "Avg. SIM h2 S.E.",
-  "Avg. SIM1 & SIM2 covG S.E.",
-  "RMSE(S S.E.)",
-  "RMSE(diag S S.E.)",
-  "RMSE(off diag S S.E.)"
+  # "Avg. SIM h2 S.E.",
+  # "Avg. SIM1 & SIM2 covG S.E.",
+  # "RMSE(S S.E.)",
+  # "RMSE(diag S S.E.)",
+  # "RMSE(off diag S S.E.)",
+  "Avg. SIM h2 CV",
+  "Avg. SIM1 & SIM2 covG CV",
+  "RMSE(CV)",
+  "RMSE(diag S CV)",
+  "RMSE(off diag S CV)"
 )
 #selRows %in% rownames(simulationResultsTableDf)
 simulationResultsTableDf<-simulationResultsTableDf[selRows,]
 
 rownames(simulationResultsTableDf)[rownames(simulationResultsTableDf)=="Avg. SIM h2"]<-"Avg. SIM h²"
-rownames(simulationResultsTableDf)[rownames(simulationResultsTableDf)=="Avg. SIM h2 S.E."]<-"Avg. SIM h² S.E."
+# rownames(simulationResultsTableDf)[rownames(simulationResultsTableDf)=="Avg. SIM h2 S.E."]<-"Avg. SIM h² S.E."
+rownames(simulationResultsTableDf)[rownames(simulationResultsTableDf)=="Avg. SIM h2 CV"]<-"Avg. SIM h² CV"
+rownames(simulationResultsTableDf)[rownames(simulationResultsTableDf)=="RMSE(CV)"]<-"RMSE(S CV)"
 
 
 as.data.frame(simulationResultsTableDf) %>% 
@@ -8138,7 +8220,8 @@ gladp.sim.jn.r="LDSC++ block jackknife resampling, blocks defined by recombinati
     decimals = 4
   ) |>
    tab_row_group(
-    label = "Heritability and covG standard error",
+    #label = "Heritability and covG standard error",
+    label = "Heritability and covG CV",
     rows = 6:10
   ) %>%
  tab_row_group(
@@ -8151,6 +8234,60 @@ gladp.sim.jn.r="LDSC++ block jackknife resampling, blocks defined by recombinati
   ) |>
   tab_source_note("")
 
+
+#plots
+plotTable<- as.data.frame(t(simulationResultsTableDf))
+plotTable$methodName <- unlist(list(
+  "GCTA-GREML",
+  "LDSC (Genomic SEM)",
+  "LDSC++ varible block count sampling,\nno. variants blocks",
+  "LDSC++ varible block count sampling,\nrecombination distance blocks",
+  "LDSC++ block jackknife resampling,\nno. variants blocks",
+  "LDSC++ block jackknife resampling,\nrecombination distance blocks"
+  ))
+plotTable$code<-rownames(plotTable)
+plotTable$`Method`<-as.factor(plotTable$methodName)
+
+plotTable$`Avg. SIM covG`<-(plotTable$`Avg. SIM h²`+plotTable$`Avg. SIM1 & SIM2 covG`)/2
+plotTable$`Avg. SIM covG CV`<-(plotTable$`Avg. SIM h² CV`+plotTable$`Avg. SIM1 & SIM2 covG CV`)/2
+
+plotTable_h2<-plotTable[,c("Avg. SIM h²","Avg. SIM h² CV","RMSE(diag S)","RMSE(diag S CV)","Method")]
+plotTable_covG<-plotTable[,c("Avg. SIM1 & SIM2 covG","Avg. SIM1 & SIM2 covG CV","RMSE(off diag S)","RMSE(off diag S CV)","Method")]
+plotTable_covG_tot<-plotTable[,c("Avg. SIM covG","Avg. SIM covG CV","RMSE(S)","RMSE(S CV)","Method")]
+colnames(plotTable_h2)<-colnames(plotTable_covG)<-colnames(plotTable_covG_tot)<-c("covG","cv","RMSE(covG)","RMSE(covG CV)","Method")
+plotTable_h2$group<-"Diagonal\ncovG (h²)"
+plotTable_covG$group<-"Off-diagonal\ncovG"
+plotTable_covG_tot$group<-"Total covG"
+plotTable2<-rbind(plotTable_h2,plotTable_covG,plotTable_covG_tot)
+
+#plotTable$cMean<-plotTable$`Avg. SIM h²`
+#plotTable$cCV<-plotTable$`Avg. SIM h² CV`
+plotTable2$upperCV<-plotTable2$covG+plotTable2$cv
+plotTable2$lowerCV<-plotTable2$covG-plotTable2$cv
+
+#cvScaleScalingFactor<-mean(plotTable2$covG) #what should this be????
+
+h2plot <- plotTable2 %>% ggplot(aes(x=Method, y=covG)) + #"Method"
+  geom_point(show.legend = F) +
+  geom_errorbar(aes(ymin=lowerCV, ymax=upperCV), show.legend = F) +
+  geom_line(stat = "identity", aes(x=Method, y=(`RMSE(covG)` - 0.04)*10, colour="red",fill="red", group = group), show.legend = F) + #aes(x=Method, y = `RMSE(covG)`, color="red") stat = "identity"
+  geom_line(stat = "identity", aes(x=Method, y=(`RMSE(covG CV)` - 0.04)*10, colour="blue", fill="blue", group = group), show.legend = F) +
+  scale_color_manual(values=c("blue", "red"))+
+  scale_y_continuous(
+    "covG and covG CV estimates on the same scale",
+    sec.axis = sec_axis(~ (. + 0.4)/10, name = "RMSE (covG or covG CV)")
+  ) +
+  theme(axis.line.y.right = element_line(color = "red"), 
+        axis.ticks.y.right = element_line(color = "red"),
+        axis.text.y.right = element_text(color = "red"), 
+        axis.title.y.right = element_text(color = "red")
+        ) +
+  scale_x_discrete(guide = guide_axis(angle = 45)) + #n.dodge = 0
+  facet_grid(rows = vars(group))
+
+h2plot
+
+ggsave(filename=file.path(p$folderpath.plots, paste0("method.covG.CV.png")), plot = h2plot, width = 297, height = 210, units = "mm", dpi = 320, scale = 0.8)
 
 ```
 
