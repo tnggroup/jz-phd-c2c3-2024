@@ -1239,12 +1239,12 @@ rownames(p$mvLD$covstruct.mvLDSC.1kg$S_Stand.forPlot)<-p$sumstats.sel$name.nice.
 colnames(p$mvLD$covstruct.mvLDSC.1kg$S_Stand.forPlot)<-p$sumstats.sel$code
 
 p$mvLD$covstruct.mvLDSC.1kg$S_Stand_diff.forPlot<-p$mvLD$covstruct.mvLDSC.1kg$S_Stand - p$mvLD$covstruct.mvLDSC.hm3$S_Stand
-# rownames(p$mvLD$covstruct.mvLDSC.1kg$S_Stand_diff.forPlot)<-p$sumstats.sel$name.nice.and_code
-# colnames(p$mvLD$covstruct.mvLDSC.1kg$S_Stand_diff.forPlot)<-p$sumstats.sel$code
+rownames(p$mvLD$covstruct.mvLDSC.1kg$S_Stand_diff.forPlot)<-p$sumstats.sel$name.nice.and_code
+colnames(p$mvLD$covstruct.mvLDSC.1kg$S_Stand_diff.forPlot)<-p$sumstats.sel$code
 
 p$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE_diff.forPlot<-p$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE - p$mvLD$covstruct.mvLDSC.hm3$S_Stand.SE
-# rownames(p$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE_diff.forPlot)<-p$sumstats.sel$name.nice.and_code
-# colnames(p$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE_diff.forPlot)<-p$sumstats.sel$code
+rownames(p$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE_diff.forPlot)<-p$sumstats.sel$name.nice.and_code
+colnames(p$mvLD$covstruct.mvLDSC.1kg$S_Stand.SE_diff.forPlot)<-p$sumstats.sel$code
 
 p$printCorrSimplified(
   corr = clipValues(p$mvLD$covstruct.mvLDSC.1kg$S_Stand.forPlot,-1,1),
@@ -1949,7 +1949,7 @@ p$CFA$models.selected$parsedGsemResults<-NA
 p$CFA$models.selected$lModel.fixed<-NA
 for(iSelected in 1:nrow(p$CFA$models.selected)){
   #test
-  #iSelected<-1
+  #iSelected<-2
   p$CFA$models.selected[[iSelected,c("parsedGsemResults")]]<-list(semplate$parseGenomicSEMResultAsMatrices(p$CFA$models.selected[iSelected,]$gsemResults[[1]][[1]]$results))
   
   # model explained variance is calculated by the parse function from the standardised residuals
@@ -2006,7 +2006,7 @@ library(DiagrammeR)
 for(iSelected in 1:nrow(p$CFA$models.selected)){
 
   #test
-  #iSelected<-1
+  #iSelected<-2
   
   #plot full model
   cModel<-p$CFA$models.selected[iSelected,]
@@ -2044,7 +2044,7 @@ for(iSelected in 1:nrow(p$CFA$models.selected)){
   df<-rownames_to_column(df,var = "var")
   
   #set nice rownames
-  df$var <- p$sumstats.sel[df$var, ]$name.nice
+  df$var <- p$sumstats.sel[df$var, ]$name.nice.and_code
   #df<-df[order(df$var, decreasing = T,method = "radix"),]
   df$var <- as.factor(df$var)
   
@@ -3698,19 +3698,19 @@ for(iTrait in 1:nrow(chosenSet)){
 }
 
 #set nice names
-names(codesAllSets) <- p$sumstats.sel[names(codesAllSets), ]$name.nice
+names(codesAllSets) <- p$sumstats.sel[names(codesAllSets), ]$name.nice.and_code
 
-#png(filename = file.path(p$folderpath.plots,paste0("ga.png")), width = 800, height = 600, units = "px")
+#png(filename = file.path(p$folderpath.plots,paste0("ga.png")), width = 1200, height = 1200, units = "px")
 pdf(file = file.path(p$folderpath.plots,paste0("ga.pdf")))
 upset(
   fromList(codesAllSets),
   nsets = 12,
-  nintersects = 50,
+  nintersects = 40,
   order.by = "freq",
   matrix.color = theme.color$contrastDark1,
   main.bar.color = theme.color$contrastLight3,
   sets.bar.color = theme.color$contrastLight3,
-  text.scale = c(1, 0.7, 1, 1, 1, 0.6) #c(intersection size title, intersection size tick labels, set size title, set size tick labels, set names, numbers above bars)
+  text.scale = c(1, 0.7, 1, 1, 0.8, 0.6) #c(intersection size title, intersection size tick labels, set size title, set size tick labels, set names, numbers above bars)
   )
 #upset(fromList(codesAllSets),order.by = "freq", nintersects=20)
 #upset(fromList(codesAllSets), group.by = "sets", order.by = "freq")
@@ -3731,7 +3731,7 @@ toprocess<-c("gtex8_rnaseq_median","brainspan_rnaseq_mean","msigdb.h.all.v7.5.1"
 
 
 for(igeneset in 1:length(toprocess)){
-  #igeneset<-2
+  #igeneset<-1
   cGeneSetVariables <-  p$geneSetVariables[[toprocess[igeneset]]]
   if(nrow(cGeneSetVariables)>100) next #safety not to run large sets
   cGeneLevelBeta <- p$mGeneLevelBeta[toprocess[igeneset]][[1]]
@@ -3779,7 +3779,7 @@ chosenSet<-p$sumstats.sel[c("EDUC03","SCHI04","NEUR02","RISK03","GSEM.F1","RISK0
 toprocess<-c("gtex8_rnaseq_median","brainspan_rnaseq_mean","msigdb.h.all.v7.5.1","msigdb.c2.cp.biocarta.v7.5.1","msigdb.c2.cp.kegg.v7.5.1","msigdb.c3.mir.mirdb.v7.5.1","msigdb.c3.tft.gtrd.v7.5.1","msigdb.c5.gobp.v7.5.1","msigdb.c5.gocc.v7.5.1","msigdb.c5.gomf.v7.5.1","msigdb.c5.hpo.v7.5.1","msigdb.c5.other.v7.5.1","msigdb.c7.all.v7.5.1","msigdb.c8.all.v7.5.1") #sets to process
 
 for(igeneset in 1:length(toprocess)){
-  #igeneset<-13
+  #igeneset<-14
   cGeneSetVariables <-  p$geneSetVariables[[toprocess[igeneset]]]
   cGeneLevelBeta <- p$mGeneLevelBeta[toprocess[igeneset]][[1]]
   cGeneLevelBetaSTD <- p$mGeneLevelBetaSTD[toprocess[igeneset]][[1]]

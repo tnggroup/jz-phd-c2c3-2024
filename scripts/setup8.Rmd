@@ -63,6 +63,7 @@ This analysis script is meant to contain most of the analysis steps performed in
 #install.packages("readr")  
 #install.packages("GGally")
 #install.packages("FDRestimation")
+#devtools::install_github("tnggroup/genetic_correlations")
 #devtools::install_github("tnggroup/genetic_correlations",ref = 'dev_jz')
 #devtools::install_github("tnggroup/genetic_correlations",ref = 'dev_jz', auth_token = "YOUR_PAT")
 #install.packages("MASS")
@@ -7601,31 +7602,35 @@ diag(offDiagCovstructS)<-NA
 #cCovstruct <-p$mvLD$covstruct.mvLDSC.GSEMemulation.1kg.maf0_01.sim
 #simulatedTraitsTable<-simulatedTraitsTableS
 createTableEntriesFull<-function(code,cCovstruct,simulatedTraitsTable){
-  # cols <-c("Avg. SIM1 LDSR h2","Avg. SIM1 REML h2","Avg. SIM2 LDSR h2","Avg. SIM2 REML h2","Avg. SIM LDSR h2","Avg. SIM REML h2","Avg. SIM1 & SIM2 LDSR covG","Avg. SIM1 & SIM2 REML covG","RMSE(S)","RMSE(diag S)","RMSE(off diag S)")
-  cols <-c("Avg. SIM1 h2","Avg. SIM2 h2","Avg. SIM h2","Avg. SIM1 & SIM2 covG","RMSE(S)","RMSE(diag S)","RMSE(off diag S)")
+  cols <-c("Avg. SIM1 h2",
+           "Avg. SIM2 h2",
+           "Avg. covG",
+           "Avg. diag. covG",
+           "Avg. off diag. covG",
+           "Avg. covG difference (%) rel. REML",
+           "Avg. diag. covG difference (%) rel. REML",
+           "Avg. off diag. covG difference (%) rel. REML",
+           "RMSE(covG)",
+           "RMSE(diag. covG)",
+           "RMSE(off diag. covG)")
   simulatedTraitsTable[code,cols]<-c(
   
   (cCovstruct$S["SMRV01","SMRV01"] + cCovstruct$S["SMRV03","SMRV03"] +
     cCovstruct$S["SMRV05","SMRV05"] + cCovstruct$S["SMRV07","SMRV07"])/4,
 
-  # (p$mvLD$covstruct.GCTA$S["SMRV01","SMRV01"] + p$mvLD$covstruct.GCTA$S["SMRV03","SMRV03"] +
-  #   p$mvLD$covstruct.GCTA$S["SMRV05","SMRV05"] + p$mvLD$covstruct.GCTA$S["SMRV07","SMRV07"])/4,
-
   (cCovstruct$S["SMRV02","SMRV02"] + cCovstruct$S["SMRV04","SMRV04"] +
     cCovstruct$S["SMRV06","SMRV06"] + cCovstruct$S["SMRV08","SMRV08"])/4,
+  
+  mean(cCovstruct$S,na.rm=T),
 
-  # (p$mvLD$covstruct.GCTA$S["SMRV02","SMRV02"] + p$mvLD$covstruct.GCTA$S["SMRV04","SMRV04"] +
-  #   p$mvLD$covstruct.GCTA$S["SMRV06","SMRV06"] + p$mvLD$covstruct.GCTA$S["SMRV08","SMRV08"])/4,
-  
   mean(diag(cCovstruct$S),na.rm=T),
-  
-  #mean(diag(p$mvLD$covstruct.GCTA$S),na.rm=T),
   
   (cCovstruct$S["SMRV01","SMRV02"] + cCovstruct$S["SMRV03","SMRV04"] + 
     cCovstruct$S["SMRV05","SMRV06"] + cCovstruct$S["SMRV07","SMRV08"])/4,
   
-   # (p$mvLD$covstruct.GCTA$S["SMRV01","SMRV02"] + p$mvLD$covstruct.GCTA$S["SMRV03","SMRV04"] + 
-   #  p$mvLD$covstruct.GCTA$S["SMRV05","SMRV06"] + p$mvLD$covstruct.GCTA$S["SMRV07","SMRV08"])/4,
+  mean(100*(cCovstruct$S-ltCovstructS)/ltCovstructS,na.rm=T),
+  mean(100*(cCovstruct$S-diagCovstructS)/diagCovstructS,na.rm=T),
+  mean(100*(cCovstruct$S-offDiagCovstructS)/offDiagCovstructS,na.rm=T),
   
   sqrt(mean((cCovstruct$S-ltCovstructS)^2,na.rm=T)),
   sqrt(mean((cCovstruct$S-diagCovstructS)^2,na.rm=T)),
@@ -7670,25 +7675,32 @@ simulatedTraitsTableS<-createTableEntriesFull("gladp.sim.jn.r",p$mvLD$covstruct.
 
 
 createTableEntriesPairwise<-function(code,cCovstruct,simulatedTraitsTable,t1,t2){
-  # cols <-c("Avg. SIM1 LDSR h2","Avg. SIM1 REML h2","Avg. SIM2 LDSR h2","Avg. SIM2 REML h2","Avg. SIM LDSR h2","Avg. SIM REML h2","Avg. SIM1 & SIM2 LDSR covG","Avg. SIM1 & SIM2 REML covG","RMSE(S)","RMSE(diag S)","RMSE(off diag S)")
-  cols <-c("Avg. SIM1 h2","Avg. SIM2 h2","Avg. SIM h2","Avg. SIM1 & SIM2 covG","RMSE(S)","RMSE(diag S)","RMSE(off diag S)")
+  cols <-c("Avg. SIM1 h2",
+           "Avg. SIM2 h2",
+           "Avg. covG",
+           "Avg. diag. covG",
+           "Avg. off diag. covG",
+           "Avg. covG difference (%) rel. REML",
+           "Avg. diag. covG difference (%) rel. REML",
+           "Avg. off diag. covG difference (%) rel. REML",
+           "RMSE(covG)",
+           "RMSE(diag. covG)",
+           "RMSE(off diag. covG)")
   simulatedTraitsTable[code,cols]<-c(
   
   cCovstruct$S[t1,t1],
   
-  #p$mvLD$covstruct.GCTA$S[t1,t1],
-  
   cCovstruct$S[t2,t2],
   
-  #p$mvLD$covstruct.GCTA$S[t2,t2],
+  mean(cCovstruct$S[c(t1,t2),c(t1,t2)],na.rm=T),
   
   mean(diag(cCovstruct$S[c(t1,t2),c(t1,t2)]),na.rm=T),
   
-  #mean(diag(p$mvLD$covstruct.GCTA$S[c(t1,t2),c(t1,t2)]),na.rm=T),
-  
   cCovstruct$S[t1,t2],
   
-  #p$mvLD$covstruct.GCTA$S[t1,t2],
+  mean(100*(cCovstruct$S[c(t1,t2),c(t1,t2)]-ltCovstructS[c(t1,t2),c(t1,t2)])/ltCovstructS[c(t1,t2),c(t1,t2)],na.rm=T),
+  mean(100*(cCovstruct$S[c(t1,t2),c(t1,t2)]-diagCovstructS[c(t1,t2),c(t1,t2)])/diagCovstructS[c(t1,t2),c(t1,t2)],na.rm=T),
+  mean(100*(cCovstruct$S[c(t1,t2),c(t1,t2)]-offDiagCovstructS[c(t1,t2),c(t1,t2)])/offDiagCovstructS[c(t1,t2),c(t1,t2)],na.rm=T),
   
   sqrt(mean((cCovstruct$S[c(t1,t2),c(t1,t2)]-ltCovstructS[c(t1,t2),c(t1,t2)])^2,na.rm=T)),
   sqrt(mean((cCovstruct$S[c(t1,t2),c(t1,t2)]-diagCovstructS[c(t1,t2),c(t1,t2)])^2,na.rm=T)),
@@ -7829,6 +7841,8 @@ simulatedTraitsTableS<-createTableEntriesPairwise("gladp.sim25.jn.r",p$mvLD$covs
 
 #to spreadsheet by View(simulatedTraitsTableS)
 
+
+
 #run pretend GCTA covariance structure in test pipeline
 pretendGCTAcovstruct <- p$mvLD$covstruct.mvLDSC.GSEMemulation.1kg.maf0_01.sim
 pretendGCTAcovstruct$S<-p$mvLD$covstruct.GCTA$S
@@ -7877,9 +7891,29 @@ offDiagCovstructS.CV<-ltCovstructS.CV
 diag(offDiagCovstructS.CV)<-NA
 
 createTableEntriesFull<-function(code,cCovstruct,simulatedTraitsTable){
-  #cols <-c("Avg. SIM1 LDSR h2 S.E.","Avg. SIM1 REML h2 S.E.","Avg. SIM2 LDSR h2 S.E.","Avg. SIM2 REML h2 S.E.","Avg. SIM LDSR h2 S.E.","Avg. SIM REML h2 S.E.","Avg. SIM1 & SIM2 LDSR covG S.E.","Avg. SIM1 & SIM2 REML covG S.E.","RMSE(S S.E.)","RMSE(diag S S.E.)","RMSE(off diag S S.E.)")
-   cols <-c("Avg. SIM1 h2 S.E.","Avg. SIM2 h2 S.E.","Avg. SIM h2 S.E.","Avg. SIM1 & SIM2 covG S.E.","RMSE(S S.E.)","RMSE(diag S S.E.)","RMSE(off diag S S.E.)","Avg. SIM1 h2 CV","Avg. SIM2 h2 CV","Avg. SIM h2 CV","Avg. SIM1 & SIM2 covG CV","RMSE(CV)","RMSE(diag S CV)","RMSE(off diag S CV)")
-   
+   cols <-c("Avg. SIM1 h2 SE",
+            "Avg. SIM2 h2 SE",
+            "Avg. covG SE",
+            "Avg. diag. covG SE",
+            "Avg. off diag. SE",
+            "Avg. covG SE difference (%) rel. REML",
+            "Avg. diag. covG SE difference (%) rel. REML",
+            "Avg. off diag. covG SE difference (%) rel. REML",
+            "RMSE(covG SE)",
+            "RMSE(diag. covG SE)",
+            "RMSE(off diag. covG SE)",
+            "Avg. SIM1 h2 CV",
+            "Avg. SIM2 h2 CV",
+            "Avg. covG CV",
+            "Avg. diag. covG CV",
+            "Avg. off diag. CV",
+            "Avg. covG CV difference (%) rel. REML",
+            "Avg. diag. covG CV difference (%) rel. REML",
+            "Avg. off diag. covG CV difference (%) rel. REML",
+            "RMSE(covG CV)",
+            "RMSE(diag. covG CV)",
+            "RMSE(off diag. covG CV)")
+
   S_ForCV<-abs(cCovstruct$S)
   g_se <- sqrt(diag(S_ForCV))
   S_se2 <- g_se %*% t(g_se) #this is the diagonal based genetic covariance
@@ -7893,38 +7927,43 @@ createTableEntriesFull<-function(code,cCovstruct,simulatedTraitsTable){
   (cCovstruct$S.SE["SMRV01","SMRV01"] + cCovstruct$S.SE["SMRV03","SMRV03"] + 
     cCovstruct$S.SE["SMRV05","SMRV05"] + cCovstruct$S.SE["SMRV07","SMRV07"])/4,
   
-  # (p$mvLD$covstruct.GCTA$S.SE["SMRV01","SMRV01"] + p$mvLD$covstruct.GCTA$S.SE["SMRV03","SMRV03"] + 
-  #   p$mvLD$covstruct.GCTA$S.SE["SMRV05","SMRV05"] + p$mvLD$covstruct.GCTA$S.SE["SMRV07","SMRV07"])/4,
-  
   (cCovstruct$S.SE["SMRV02","SMRV02"] + cCovstruct$S.SE["SMRV04","SMRV04"] + 
     cCovstruct$S.SE["SMRV06","SMRV06"] + cCovstruct$S.SE["SMRV08","SMRV08"])/4,
-  
-  # (p$mvLD$covstruct.GCTA$S.SE["SMRV02","SMRV02"] + p$mvLD$covstruct.GCTA$S.SE["SMRV04","SMRV04"] + 
-  #   p$mvLD$covstruct.GCTA$S.SE["SMRV06","SMRV06"] + p$mvLD$covstruct.GCTA$S.SE["SMRV08","SMRV08"])/4,
+
+  mean(cCovstruct$S.SE,na.rm=T),
   
   mean(diag(cCovstruct$S.SE),na.rm=T),
-  
-  #mean(diag(p$mvLD$covstruct.GCTA$S.SE),na.rm=T),
   
   (cCovstruct$S.SE["SMRV01","SMRV02"] + cCovstruct$S.SE["SMRV03","SMRV04"] + 
     cCovstruct$S.SE["SMRV05","SMRV06"] + cCovstruct$S.SE["SMRV07","SMRV08"])/4,
   
-   # (p$mvLD$covstruct.GCTA$S.SE["SMRV01","SMRV02"] + p$mvLD$covstruct.GCTA$S.SE["SMRV03","SMRV04"] + 
-   #  p$mvLD$covstruct.GCTA$S.SE["SMRV05","SMRV06"] + p$mvLD$covstruct.GCTA$S.SE["SMRV07","SMRV08"])/4,
+  mean(100*(cCovstruct$S.SE-ltCovstructS.SE)/ltCovstructS.SE,na.rm=T),
+  mean(100*(cCovstruct$S.SE-diagCovstructS.SE)/diagCovstructS.SE,na.rm=T),
+  mean(100*(cCovstruct$S.SE-offDiagCovstructS.SE)/offDiagCovstructS.SE,na.rm=T),
   
   sqrt(mean((cCovstruct$S.SE-ltCovstructS.SE)^2,na.rm=T)),
   sqrt(mean((cCovstruct$S.SE-diagCovstructS.SE)^2,na.rm=T)),
   sqrt(mean((cCovstruct$S.SE-offDiagCovstructS.SE)^2,na.rm=T)),
   
-  
+  #CV
   (S.CV["SMRV01","SMRV01"] + S.CV["SMRV03","SMRV03"] + 
     S.CV["SMRV05","SMRV05"] + S.CV["SMRV07","SMRV07"])/4,
+  
    (S.CV["SMRV02","SMRV02"] + S.CV["SMRV04","SMRV04"] + 
     S.CV["SMRV06","SMRV06"] + S.CV["SMRV08","SMRV08"])/4,
+  
+  mean(S.CV,na.rm=T),
+  
   mean(diag(S.CV),na.rm=T),
+  
   (S.CV["SMRV01","SMRV02"] + S.CV["SMRV03","SMRV04"] + 
     S.CV["SMRV05","SMRV06"] + S.CV["SMRV07","SMRV08"])/4,
-   sqrt(mean((S.CV-ltCovstructS.CV)^2,na.rm=T)),
+  
+  mean(100*(S.CV-ltCovstructS.CV)/ltCovstructS.CV,na.rm=T),
+  mean(100*(S.CV-diagCovstructS.CV)/diagCovstructS.CV,na.rm=T),
+  mean(100*(S.CV-offDiagCovstructS.CV)/offDiagCovstructS.CV,na.rm=T),
+  
+  sqrt(mean((S.CV-ltCovstructS.CV)^2,na.rm=T)),
   sqrt(mean((S.CV-diagCovstructS.CV)^2,na.rm=T)),
   sqrt(mean((S.CV-offDiagCovstructS.CV)^2,na.rm=T))
 
@@ -7967,8 +8006,28 @@ simulatedTraitsTableS.SE<-createTableEntriesFull("gladp.sim.jn.r",p$mvLD$covstru
 
 
 createTableEntriesPairwise<-function(code,cCovstruct,simulatedTraitsTable,t1,t2){
-  #cols <-c("Avg. SIM1 LDSR h2 S.E.","Avg. SIM1 REML h2 S.E.","Avg. SIM2 LDSR h2 S.E.","Avg. SIM2 REML h2 S.E.","Avg. SIM LDSR h2 S.E.","Avg. SIM REML h2 S.E.","Avg. SIM1 & SIM2 LDSR covG S.E.","Avg. SIM1 & SIM2 REML covG S.E.","RMSE(S S.E.)","RMSE(diag S S.E.)","RMSE(off diag S S.E.)")
-  cols <-c("Avg. SIM1 h2 S.E.","Avg. SIM2 h2 S.E.","Avg. SIM h2 S.E.","Avg. SIM1 & SIM2 covG S.E.","RMSE(S S.E.)","RMSE(diag S S.E.)","RMSE(off diag S S.E.)","Avg. SIM1 h2 CV","Avg. SIM2 h2 CV","Avg. SIM h2 CV","Avg. SIM1 & SIM2 covG CV","RMSE(CV)","RMSE(diag S CV)","RMSE(off diag S CV)")
+  cols <-c("Avg. SIM1 h2 SE",
+            "Avg. SIM2 h2 SE",
+            "Avg. covG SE",
+            "Avg. diag. covG SE",
+            "Avg. off diag. SE",
+            "Avg. covG SE difference (%) rel. REML",
+            "Avg. diag. covG SE difference (%) rel. REML",
+            "Avg. off diag. covG SE difference (%) rel. REML",
+            "RMSE(covG SE)",
+            "RMSE(diag. covG SE)",
+            "RMSE(off diag. covG SE)",
+            "Avg. SIM1 h2 CV",
+            "Avg. SIM2 h2 CV",
+            "Avg. covG CV",
+            "Avg. diag. covG CV",
+            "Avg. off diag. CV",
+            "Avg. covG CV difference (%) rel. REML",
+            "Avg. diag. covG CV difference (%) rel. REML",
+            "Avg. off diag. covG CV difference (%) rel. REML",
+            "RMSE(covG CV)",
+            "RMSE(diag. covG CV)",
+            "RMSE(off diag. covG CV)")
   
   S_ForCV<-abs(cCovstruct$S)
   g_se <- sqrt(diag(S_ForCV))
@@ -7982,19 +8041,17 @@ createTableEntriesPairwise<-function(code,cCovstruct,simulatedTraitsTable,t1,t2)
   
   cCovstruct$S.SE[t1,t1],
   
-  #p$mvLD$covstruct.GCTA$S.SE[t1,t1],
-  
   cCovstruct$S.SE[t2,t2],
   
-  #p$mvLD$covstruct.GCTA$S.SE[t2,t2],
+  mean(cCovstruct$S.SE[c(t1,t2),c(t1,t2)],na.rm=T),
   
   mean(diag(cCovstruct$S.SE[c(t1,t2),c(t1,t2)]),na.rm=T),
   
-  #mean(diag(p$mvLD$covstruct.GCTA$S.SE[c(t1,t2),c(t1,t2)]),na.rm=T),
-  
   cCovstruct$S.SE[t1,t2],
   
-  #p$mvLD$covstruct.GCTA$S.SE[t1,t2],
+  mean(100*(cCovstruct$S.SE[c(t1,t2),c(t1,t2)]-ltCovstructS.SE[c(t1,t2),c(t1,t2)])/ltCovstructS.SE[c(t1,t2),c(t1,t2)],na.rm=T),
+  mean(100*(cCovstruct$S.SE[c(t1,t2),c(t1,t2)]-diagCovstructS.SE[c(t1,t2),c(t1,t2)])/diagCovstructS.SE[c(t1,t2),c(t1,t2)],na.rm=T),
+  mean(100*(cCovstruct$S.SE[c(t1,t2),c(t1,t2)]-offDiagCovstructS.SE[c(t1,t2),c(t1,t2)])/offDiagCovstructS.SE[c(t1,t2),c(t1,t2)],na.rm=T),
   
   sqrt(mean((cCovstruct$S.SE[c(t1,t2),c(t1,t2)]-p$mvLD$covstruct.GCTA$S.SE[c(t1,t2),c(t1,t2)])^2,na.rm=T)),
   sqrt(mean((cCovstruct$S.SE[c(t1,t2),c(t1,t2)]-diagCovstructS.SE[c(t1,t2),c(t1,t2)])^2,na.rm=T)),
@@ -8003,19 +8060,17 @@ createTableEntriesPairwise<-function(code,cCovstruct,simulatedTraitsTable,t1,t2)
   #cv results
   S.CV[t1,t1],
   
-  #p$mvLD$covstruct.GCTA$S.SE[t1,t1],
-  
   S.CV[t2,t2],
   
-  #p$mvLD$covstruct.GCTA$S.SE[t2,t2],
+  mean(S.CV[c(t1,t2),c(t1,t2)],na.rm=T),
   
   mean(diag(S.CV[c(t1,t2),c(t1,t2)]),na.rm=T),
   
-  #mean(diag(p$mvLD$covstruct.GCTA$S.SE[c(t1,t2),c(t1,t2)]),na.rm=T),
-  
   S.CV[t1,t2],
   
-  #p$mvLD$covstruct.GCTA$S.SE[t1,t2],
+  mean(100*(S.CV[c(t1,t2),c(t1,t2)]-ltCovstructS.CV[c(t1,t2),c(t1,t2)])/ltCovstructS.CV[c(t1,t2),c(t1,t2)],na.rm=T),
+  mean(100*(S.CV[c(t1,t2),c(t1,t2)]-diagCovstructS.CV[c(t1,t2),c(t1,t2)])/diagCovstructS.CV[c(t1,t2),c(t1,t2)],na.rm=T),
+  mean(100*(S.CV[c(t1,t2),c(t1,t2)]-offDiagCovstructS.CV[c(t1,t2),c(t1,t2)])/offDiagCovstructS.CV[c(t1,t2),c(t1,t2)],na.rm=T),
   
   sqrt(mean((S.CV[c(t1,t2),c(t1,t2)]-ltCovstructS.CV[c(t1,t2),c(t1,t2)])^2,na.rm=T)),
   sqrt(mean((S.CV[c(t1,t2),c(t1,t2)]-diagCovstructS.CV[c(t1,t2),c(t1,t2)])^2,na.rm=T)),
@@ -8250,6 +8305,18 @@ plotTable$`Method`<-as.factor(plotTable$methodName)
 
 plotTable$`Avg. SIM covG`<-(plotTable$`Avg. SIM h²`+plotTable$`Avg. SIM1 & SIM2 covG`)/2
 plotTable$`Avg. SIM covG CV`<-(plotTable$`Avg. SIM h² CV`+plotTable$`Avg. SIM1 & SIM2 covG CV`)/2
+
+plotTable$`Avg. covG difference (%) rel. REML`<-100*(plotTable$`Avg. SIM covG`-plotTable["gladp.sim.gcta",]$`Avg. SIM covG`)/plotTable["gladp.sim.gcta",]$`Avg. SIM covG`
+plotTable$`Avg. covG CV difference (%) rel. REML`<-100*(plotTable$`Avg. SIM covG CV`-plotTable["gladp.sim.gcta",]$`Avg. SIM covG CV`)/plotTable["gladp.sim.gcta",]$`Avg. SIM covG CV`
+
+plotTable$`Avg. h² difference (%) rel. REML`<-100*(plotTable$`Avg. SIM h²`-plotTable["gladp.sim.gcta",]$`Avg. SIM h²`)/plotTable["gladp.sim.gcta",]$`Avg. SIM h²`
+plotTable$`Avg. h² CV difference (%) rel. REML`<-100*(plotTable$`Avg. SIM h² CV`-plotTable["gladp.sim.gcta",]$`Avg. SIM h² CV`)/plotTable["gladp.sim.gcta",]$`Avg. SIM h² CV`
+
+plotTable$`Avg. covG difference (%) rel. LDSC`<-100*(plotTable$`Avg. SIM covG`-plotTable["gladp.sim.gsem",]$`Avg. SIM covG`)/plotTable["gladp.sim.gsem",]$`Avg. SIM covG`
+plotTable$`Avg. covG CV difference (%) rel. LDSC`<-100*(plotTable$`Avg. SIM covG CV`-plotTable["gladp.sim.gsem",]$`Avg. SIM covG CV`)/plotTable["gladp.sim.gsem",]$`Avg. SIM covG CV`
+
+plotTable$`Avg. h² difference (%) rel. LDSC`<-100*(plotTable$`Avg. SIM h²`-plotTable["gladp.sim.gsem",]$`Avg. SIM h²`)/plotTable["gladp.sim.gsem",]$`Avg. SIM h²`
+plotTable$`Avg. h² CV difference (%) rel. LDSC`<-100*(plotTable$`Avg. SIM h² CV`-plotTable["gladp.sim.gsem",]$`Avg. SIM h² CV`)/plotTable["gladp.sim.gsem",]$`Avg. SIM h² CV`
 
 plotTable_h2<-plotTable[,c("Avg. SIM h²","Avg. SIM h² CV","RMSE(diag S)","RMSE(diag S CV)","Method")]
 plotTable_covG<-plotTable[,c("Avg. SIM1 & SIM2 covG","Avg. SIM1 & SIM2 covG CV","RMSE(off diag S)","RMSE(off diag S CV)","Method")]
@@ -9892,6 +9959,41 @@ superm <- supermunge(
 # edit new_metabolites for Xinyue
 new_metabolites$file_name<-str_replace(string = new_metabolites$file_name, "\\.tsv","\\.gz")
 
+#munge example
+# 
+#  mungeResults <- supermunge(
+#             filePaths = c(
+#               "original/MDD_BIP/MDD2018_ex23andMe_rezip.gz",
+#               "original/MDD_BIP/MDD_MHQ_METACARPA_INFO6_A5_NTOT_no23andMe_noUKBB.rezip.gz"
+#             ),
+#             #refFilePath = '/scratch/prj/gwas_sumstats/variant_lists/reference.1000G.maf.0.005.txt.gz',
+#             traitNames = c(
+#               "DEPR_cole_PGC_UKBB_ex23andMe",
+#               "DEPR_cole_MHQ_ex23andMe_exUKBB"
+#             ),
+#             filter.info = 0.6,
+#             filter.maf = 0.001,
+#             process = F,
+#             #N = [list of N values],
+#             pathDirOutput = "cleaned"
+#               )
+#     
+ # mungeResults <- supermunge(
+ #            filePaths = c(
+ #              "original/MDD_BIP/MDD2018_ex23andMe_rezip.gz",
+ #              "original/MDD_BIP/MDD_MHQ_METACARPA_INFO6_A5_NTOT_no23andMe_noUKBB.rezip.gz"
+ #            ),
+ #            refFilePath = '/scratch/prj/gwas_sumstats/variant_lists/reference.1000G.maf.0.005.txt.gz',
+ #            traitNames = c(
+ #              "DEPR_cole_PGC_UKBB_ex23andMe",
+ #              "DEPR_cole_MHQ_ex23andMe_exUKBB"
+ #            ),
+ #            filter.info = 0.6,
+ #            filter.maf = 0.01,
+ #            process = T,
+ #            #N = [list of N values],
+ #            pathDirOutput = "munged"
+ #              )
 
 ```
 

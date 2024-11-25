@@ -54,6 +54,8 @@ for chr in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23; do sbatc
 
 
 #create LD score libraries
+# Consider new window settings > 1cM (up to 20cM): 10.1093/hmg/ddab130
+
 #source ~/project/JZ_GED_PHD_ADMIN_GENERAL/software/ldsc-venv/bin/activate
 #run in the reference panel folder
 #python ~/project/JZ_GED_PHD_ADMIN_GENERAL/software/ldsc/ldsc.py --bfile 1kGP_high_coverage_Illumina.filtered.SNV_INDEL_SV_phased_panel.rs.CM23.eur --l2 --ld-wind-cm 1 --out hc1kgp3.eur --n-blocks 2000 > ldsc.hc1kgp3.eur.txt
